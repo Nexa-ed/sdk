@@ -6,14 +6,12 @@
   "type": "module",
   "exports": {
     ".": {
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs",
-      "types": "./dist/index.d.ts"
+      "default": "./src/index.ts"
     }
   },
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
   "files": [
     "dist",
     "CHANGELOG.md"
@@ -21,23 +19,38 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "prepublishOnly": "pnpm build"
+  },
+  "publishConfig": {
+    "access": "restricted",
+    "exports": {
+      ".": {
+        "import": "./dist/index.mjs",
+        "require": "./dist/index.cjs",
+        "types": "./dist/index.d.ts"
+      }
+    },
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts"
   },
   "dependencies": {
-    "@nexa-ed/sdk": "workspace:*"
+    "@nexa-ed/sdk": "workspace:*",
+    "@orpc/client": "catalog:",
+    "@orpc/tanstack-query": "catalog:"
   },
   "peerDependencies": {
+    "@tanstack/react-query": ">=5.0.0",
     "react": ">=19",
     "react-dom": ">=19"
   },
   "devDependencies": {
     "@repo/config": "workspace:*",
+    "@tanstack/react-query": "catalog:",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "tsup": "catalog:",
     "typescript": "catalog:"
-  },
-  "publishConfig": {
-    "access": "restricted"
   }
 }
