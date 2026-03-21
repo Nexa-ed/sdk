@@ -6,15 +6,21 @@ package suite.
 
 ---
 
-## Current State (as of 2026-03-20)
+## Current State (as of 2026-03-21)
 
-Three packages live in `sdk/` and pass full TypeScript type-checking:
+Four packages live in `sdk/` and pass full TypeScript type-checking:
 
 | Package | Status | Notes |
 |---------|--------|-------|
-| `@nexa-ed/sdk` | ✅ Core complete | NexaClient, all modules typed, zero deps |
-| `@nexa-ed/next` | ✅ Complete | createNexa + createRouteHandler, all handlers |
-| `@nexa-ed/react` | 🟡 Scaffolded | Package wired, components not yet migrated |
+| `@nexa-ed/sdk` | ✅ Complete | NexaClient, all modules typed; payments module extended with `sync`, `getStatus`, `getConfig` typed |
+| `@nexa-ed/next` | ✅ Complete | createNexa + createRouteHandler; all routes handled (progress, rpc, webhook, file-processing/forward, payments/forward, upload, **payments/config, payments/initialize, payments/status, payments/transactions, payments/stats**) |
+| `@nexa-ed/react` | ✅ Complete | All components: UploadZone, DocumentSelector, StatusBanner, StudentRecordsTable, RecordDataGrid, PageDetailPanel, PipelineTimeline, StatsPanel, ChunkPageMap, AnalysisJobPanel, ResultsViewerSheet; `useUploadFile` hook; **Payment components: NexaPaymentWidget, EnrollmentPaymentFlow, PaymentConfigPanel, PaymentStatusDashboard** |
+| `@nexa-ed/convex` | ✅ Complete | `nexaPaymentsSchema`, `nexaFilesSchema`, `upsertPaymentFromNexa`, `upsertFileResultFromNexa`, `getPaymentByReference`, `getPaymentsByEmail`, `getFileResult`, `createPaymentCompleteHandler`, `createFileCompleteHandler` — wired into Loretto as reference impl |
+
+### Loretto migration — ✅ Fully complete
+
+Every Nexa call in `apps/loretto` now goes through the SDK. No raw HTTP helpers remain.
+All three SDK packages type-check clean against Loretto.
 
 A tenant app installs `@nexa-ed/next` and writes **two files**:
 
@@ -88,10 +94,27 @@ Doc page: `docs/web/content/docs/react/components.mdx`
 
 ---
 
-## Phase 2 — `create-nexaed-app` CLI Scaffolder
+## Phase 1.5 — `@nexa-ed/convex` Convex Integration ✅
+
+> **Complete.** `sdk/convex/` — schema fragments, mutations, queries, and callback factories.
+
+- [x] `sdk/convex/src/schema.ts` — `nexaPaymentsSchema`, `nexaFilesSchema`
+- [x] `sdk/convex/src/mutations.ts` — `upsertPaymentFromNexa`, `upsertFileResultFromNexa`
+- [x] `sdk/convex/src/queries.ts` — `getPaymentByReference`, `getPaymentsByEmail`, `getFileResult`, `getFileResultsByUser`
+- [x] `sdk/convex/src/handlers.ts` — `createPaymentCompleteHandler`, `createFileCompleteHandler`
+- [x] Wired into Loretto: `nexaFilesSchema` in schema builder, `convex/nexa.ts` re-exports, `onFileComplete` uses `createFileCompleteHandler`
+
+---
+
+## Phase 2 — `create-nexaed-app` CLI Scaffolder ✅
 
 > **Goal:** A developer can scaffold a complete Nexa-connected school app with
 > one command, like `create-next-app` but purpose-built for Nexa tenants.
+>
+> **Complete.** `sdk/create-nexaed-app` (moved from `packages/`) — interactive prompts (auth provider,
+> features, API key), generates a full Next.js app skeleton with `lib/nexa.ts`,
+> the catch-all route, providers, dashboard page, `.env.example`, and conditional
+> Convex/payments/file-processing wiring.
 
 ```bash
 pnpm create nexaed-app my-school
@@ -145,8 +168,11 @@ Doc page: `docs/web/content/docs/getting-started/cli.mdx`
 
 ---
 
-## Phase 3 — `docs/web/` Documentation Site
+## Phase 3 — `docs/web/` Documentation Site ✅
 
+> **Complete.** Fumadocs site bootstrapped at `docs/web/`. All content pages written.
+> Run with `pnpm dev:docs` (port 3002). Deploy target: `docs.nexa-ed.com` via Vercel.
+>
 > **Goal:** `docs.nexa-ed.com` — auto-updated as each SDK feature ships.
 > Every phase above ships its own doc page at the same time.
 
@@ -195,8 +221,10 @@ docs/
 
 ---
 
-## Phase 4 — Private Publishing Setup
+## Phase 4 — Private Publishing Setup ✅
 
+> **Complete.**
+>
 > **Goal:** The SDK packages are publishable to npm (restricted scope) and
 > installable by invited school developers.
 
@@ -220,22 +248,22 @@ Release: `pnpm changeset version` → `pnpm changeset publish`.
 
 ### Step 4.3 — Security checklist before first publish
 
-- [ ] `.npmignore` or `files` array only ships `dist/` + `CHANGELOG.md`
-- [ ] No `.env` files tracked
-- [ ] `SECURITY.md` at repo root with responsible disclosure policy
-- [ ] GitHub secret scanning enabled on the repo
-- [ ] Dependabot enabled for `sdk/` packages
-- [ ] No hardcoded URLs, secrets, or internal hostnames in built output
-- [ ] `publishConfig.access: "restricted"` in all three `package.json` files ✅
+- [x] `.npmignore` or `files` array only ships `dist/` + `CHANGELOG.md`
+- [x] No `.env` files tracked
+- [x] `SECURITY.md` at repo root with responsible disclosure policy
+- [ ] GitHub secret scanning enabled on the repo (repo setting — enable in GitHub UI)
+- [ ] Dependabot enabled for `sdk/` packages (repo setting — enable in GitHub UI)
+- [x] No hardcoded URLs, secrets, or internal hostnames in built output
+- [x] `publishConfig.access: "restricted"` in all four `package.json` files
 
 ---
 
-## Phase 5 — Loretto Migration (validation gate)
+## Phase 5 — Loretto Migration (validation gate) ✅
 
 > **Goal:** Replace loretto's manual integration boilerplate with the SDK.
 > This validates the SDK works end-to-end in a real production app.
 
-**Only begins after Phase 1 is complete.**
+**✅ Complete.**
 
 ### Changes in `apps/loretto`
 
