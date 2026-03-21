@@ -27,16 +27,27 @@ export async function handleProgress(
 
   const upstreamUrl = `${instance._config.baseUrl}/api/file-processing/progress/${fileId}`;
 
-  const upstream = await fetch(upstreamUrl, {
-    headers: {
-      "x-api-key": instance._config.apiKey,
-      "x-user-id": userId,
-      accept: "text/event-stream",
-      "cache-control": "no-cache",
-    },
-    // Propagate client abort
-    signal: request.signal,
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(upstreamUrl, {
+      headers: {
+        "x-api-key": instance._config.apiKey,
+        "x-user-id": userId,
+        accept: "text/event-stream",
+        "cache-control": "no-cache",
+      },
+      // Propagate client abort so we don't keep the upstream alive
+      signal: request.signal,
+    });
+  } catch (err: any) {
+    // Client closed the SSE connection before upstream responded — expected,
+    // not an error worth logging.
+    if (request.signal?.aborted || err?.name === "AbortError" || err?.name === "ResponseAborted") {
+      return new Response(null, { status: 204 });
+    }
+    console.error("[nexa-ed/progress] upstream fetch error:", err);
+    return new Response("Failed to connect to progress stream", { status: 502 });
+  }
 
   if (!upstream.ok || !upstream.body) {
     return new Response(
