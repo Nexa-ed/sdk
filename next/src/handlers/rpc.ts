@@ -20,9 +20,11 @@ export async function handleRpc(
   try {
     const user = await instance._getUser(request);
     userId = user.userId;
-  } catch {
+  } catch (err) {
+    console.error("[nexa-ed/rpc] getUser threw:", err);
+    const message = err instanceof Error ? err.message : String(err);
     return new Response(
-      JSON.stringify({ error: { code: "UNAUTHORIZED", message: "Unauthorized" } }),
+      JSON.stringify({ error: { code: "UNAUTHORIZED", message } }),
       { status: 401, headers: { "content-type": "application/json" } },
     );
   }

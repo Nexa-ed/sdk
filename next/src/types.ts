@@ -60,6 +60,18 @@ export interface NexaNextConfig {
    * },
    */
   onFileComplete?: (event: Extract<WebhookEvent, { event: "file.completed" }>) => Promise<void>;
+
+  /**
+   * Called when Nexa forwards a completed payment event to your app.
+   *
+   * Use this to persist payment records in your own database.
+   *
+   * @example
+   * onPaymentComplete: async ({ reference, amount, customerEmail, tenantId }) => {
+   *   await convex.mutation(api.payments.upsertFromNexa, { reference, amount, customerEmail });
+   * },
+   */
+  onPaymentComplete?: (event: Extract<WebhookEvent, { event: "payment.completed" }>) => Promise<void>;
 }
 
 /**
@@ -77,4 +89,6 @@ export interface NexaInstance {
   _getUser: NexaNextConfig["getUser"];
   /** @internal */
   _onFileComplete?: NexaNextConfig["onFileComplete"];
+  /** @internal */
+  _onPaymentComplete?: NexaNextConfig["onPaymentComplete"];
 }

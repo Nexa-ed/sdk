@@ -175,28 +175,79 @@ export interface PaymentInitializeOptions {
   email: string;
   /** Amount in the smallest currency unit (e.g. kobo for NGN) */
   amount: number;
-  /** Net amount after fees/deductions */
-  netAmount: number;
+  /** Net amount after fees/deductions (optional — computed by Nexa if omitted) */
+  netAmount?: number;
   /** Arbitrary key-value metadata stored against the payment */
   metadata: Record<string, unknown>;
+  /**
+   * URL Paystack redirects to after the payment flow completes.
+   * Defaults to the tenant callback URL configured in the Nexa dashboard.
+   */
+  callbackUrl?: string;
 }
 
 export interface PaymentInitializeResult {
+  /** Full Paystack authorization URL to redirect the user to */
   paymentUrl: string;
+  /** Alias for paymentUrl — some Nexa versions return this field name */
+  authorizationUrl?: string;
+  /** Nexa/Paystack payment reference for verification */
   reference: string;
   accessCode?: string;
 }
 
-export type PaymentStatus = "pending" | "success" | "failed" | "cancelled";
+export type PaymentStatus = "pending" | "success" | "failed" | "cancelled" | "abandoned";
 
 export interface PaymentTransaction {
-  id: string;
+  id?: string;
   reference: string;
   amount: number;
   status: PaymentStatus;
-  email: string;
+  /** Alias used in some Nexa API versions */
+  transactionStatus?: string;
+  email?: string;
+  customerEmail?: string;
+  tenantId?: string;
   metadata: Record<string, unknown> | null;
-  createdAt: string;
+  amountPaid?: number;
+  fees?: number;
+  netAmount?: number;
+  paidAt?: string | null;
+  channel?: string | null;
+  createdAt?: string | number | null;
+  updatedAt?: string | number | null;
+}
+
+export interface PaymentVerifyResult {
+  success: boolean;
+  status?: PaymentStatus;
+  transaction?: PaymentTransaction;
+}
+
+export interface PaymentConfig {
+  tenantId?: string;
+  isActive: boolean;
+  mode: "test" | "live";
+  publicKey?: string;
+  bankDetails?: Record<string, unknown>;
+  customBranding?: {
+    /** May be returned as businessName or schoolName depending on Nexa version */
+    businessName?: string;
+    schoolName?: string;
+    supportEmail?: string;
+    logo?: string;
+  };
+}
+
+export interface PaymentConfigResult {
+  success: boolean;
+  config: PaymentConfig;
+  cached?: boolean;
+}
+
+export interface PaymentSyncResult {
+  success: boolean;
+  payload?: PaymentTransaction & Record<string, unknown>;
 }
 
 export interface PaymentStatsResponse {
@@ -235,4 +286,30 @@ export interface WebhookFileCompleteEvent {
   timestamp: string;
 }
 
-export type WebhookEvent = WebhookFileCompleteEvent;
+export interface WebhookPaymentEvent {
+  event: "payment.completed";
+  reference: string;
+  tenantId: string;
+  /** Payment status at the time of the event */
+  status: "success" | "pending" | "failed" | "abandoned";
+  /** Amount in smallest currency unit (e.g. kobo for NGN) */
+  amount: number;
+  customerEmail: string;
+  /** Amount actually received after fees */
+  amountPaid?: number;
+  fees?: number;
+  platformFee?: number;
+  netAmount?: number;
+  paidAt?: string;
+  channel?: string;
+  failureReason?: string;
+  /** Unix timestamp (ms) — when the transaction was created on Nexa */
+  createdAt: number;
+  /** Unix timestamp (ms) — when the transaction was last updated */
+  updatedAt: number;
+  /** ISO 8601 string from the webhook delivery (not the same as createdAt) */
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
+export type WebhookEvent = WebhookFileCompleteEvent | WebhookPaymentEvent;

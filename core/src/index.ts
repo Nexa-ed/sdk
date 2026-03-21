@@ -28,6 +28,10 @@ export type {
   // Payments
   PaymentInitializeOptions,
   PaymentInitializeResult,
+  PaymentVerifyResult,
+  PaymentConfig,
+  PaymentConfigResult,
+  PaymentSyncResult,
   PaymentStatus,
   PaymentTransaction,
   PaymentStatsResponse,
@@ -38,5 +42,6 @@ export type {
 
   // Webhooks
   WebhookFileCompleteEvent,
+  WebhookPaymentEvent,
   WebhookEvent,
 } from "./types";

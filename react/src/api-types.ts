@@ -29,6 +29,7 @@ export type StudentRecord = {
   recordNumberForPage: number | null;
   recordData: Record<string, string | null> | null;
   isCurrent: number;
+  warnings: unknown;
   tableWarnings: unknown;
   tableStatus: string | null;
   hasEmbedding: boolean;
@@ -54,6 +55,8 @@ export type FileChunk = {
   pageStart: number;
   pageEnd: number;
   status: string;
+  ocrProcessingTimeMs?: number | null;
+  llmProcessingTimeMs?: number | null;
 };
 
 export type FileChunksResult = {
@@ -61,30 +64,66 @@ export type FileChunksResult = {
   pagination: StudentRecordsPagination;
 };
 
+export type ChunkPage = {
+  pageNumber: number;
+  tableId: string | null;
+  status: string | null;
+  transactionCount: number | null;
+  hasLLMRefinement: boolean;
+};
+
+export type ChunkWithPages = {
+  chunkId: string;
+  chunkIndex: number;
+  pageStart: number;
+  pageEnd: number;
+  status: string;
+  ocrProcessingTimeMs?: number | null;
+  llmProcessingTimeMs?: number | null;
+  pages: ChunkPage[];
+};
+
 export type FileStatisticsResult = {
-  totalRecords: number;
-  totalPages: number;
-  chunksComplete: number;
-  chunksTotal: number;
-  chunksFailed: number;
-  recordsWithWarnings: number;
-  llmRefinedPages: number;
+  chunks: {
+    successRate: number;
+    completed: number;
+    total: number;
+    byStatus?: Array<{ status: string; count: number }>;
+  };
+  records: {
+    total: number;
+  };
+  file: {
+    processingTimeMs: number | null;
+  };
+  retries: {
+    totalWaves: number;
+    pagesRetried: number;
+    pagesWithWarnings: number;
+    waves?: unknown[];
+  };
 };
 
 export type AnalysisJob = {
-  id: string;
+  jobId?: string;
+  id?: string;
   fileId: string;
-  userId: string;
+  userId?: string;
   status: string;
   pagesProcessed: number | null;
   totalPages: number | null;
+  currentPage?: number | null;
   result: unknown;
+  errorMessage?: string | null;
   createdAt: number | null;
   updatedAt: number | null;
 };
 
 export type PageRecordResult = {
-  records: StudentRecord[];
-  hasLLMRefinement: boolean;
   pageNumber: number;
+  tableId: string | null;
+  ocrRecords: StudentRecord[];
+  llmTransactions: Record<string, unknown>[];
+  hasRefinement: boolean;
+  descriptionColumnKey: string | null;
 };

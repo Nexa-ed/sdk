@@ -20,7 +20,8 @@ export async function handleProgress(
   try {
     const user = await instance._getUser(request);
     userId = user.userId;
-  } catch {
+  } catch (err) {
+    console.error("[nexa-ed/progress] getUser threw:", err);
     return new Response("Unauthorized", { status: 401 });
   }
 

@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useNexaContext } from "../context";
-import type { FileChunksResult } from "../api-types";
+import type { FileChunksResult, ChunkWithPages } from "../api-types";
 
 export function useGetFileChunks(fileId: string, page = 1, limit = 50) {
   const { orpc } = useNexaContext();
@@ -18,7 +18,7 @@ export function useGetFileChunks(fileId: string, page = 1, limit = 50) {
 
 export function useGetChunksWithPages(fileId: string) {
   const { orpc } = useNexaContext();
-  return useQuery<FileChunksResult>({
+  return useQuery<ChunkWithPages[]>({
     ...orpc.documents.getChunksWithPages.queryOptions({
       input: { fileId },
     }),

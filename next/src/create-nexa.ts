@@ -57,6 +57,7 @@ export function createNexa(config: NexaNextConfig): NexaInstance & NexaClient {
   };
   instance._getUser = config.getUser;
   instance._onFileComplete = config.onFileComplete;
+  instance._onPaymentComplete = config.onPaymentComplete;
 
   return instance;
 }

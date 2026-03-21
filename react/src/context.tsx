@@ -22,13 +22,18 @@ const NexaContext = createContext<NexaReactContext | null>(null);
  * Requires `@tanstack/react-query`'s `QueryClientProvider` to be present
  * higher in the tree.
  *
- * @param basePath - The base path where the SDK route handler is mounted.
- *   Defaults to `/api/nexa`, which matches `@nexa-ed/next`'s default.
+ * No configuration needed — just add it once to your providers and all
+ * `@nexa-ed/react` hooks and components work automatically.
+ *
+ * @param basePath - Advanced override for the SDK route mount path.
+ *   Defaults to `/api/nexa` — only change this if you mounted
+ *   `createRouteHandler` at a custom path.
  *
  * @example
  * ```tsx
+ * // providers.tsx (zero-config — this is all you need)
  * <QueryClientProvider client={queryClient}>
- *   <NexaProvider basePath="/api/nexa">
+ *   <NexaProvider>
  *     <App />
  *   </NexaProvider>
  * </QueryClientProvider>
@@ -61,7 +66,7 @@ export function useNexaContext(): NexaReactContext {
   if (!ctx) {
     throw new Error(
       "[nexa-ed] useNexaContext must be called inside a <NexaProvider>. " +
-        'Wrap your app (or subtree) with <NexaProvider basePath="/api/nexa">.',
+        "Wrap your app with <NexaProvider> (inside QueryClientProvider).",
     );
   }
   return ctx;
