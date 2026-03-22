@@ -2,6 +2,7 @@ import { handleProgress } from "./handlers/progress";
 import { handleRpc } from "./handlers/rpc";
 import { handleWebhook } from "./handlers/webhook";
 import { handleUpload } from "./handlers/upload";
+import { handlePrepareUpload } from "./handlers/prepareUpload";
 import { handlePaymentsForward } from "./handlers/paymentsForward";
 import { handlePaymentsApi } from "./handlers/paymentsApi";
 import type { NexaInstance } from "./types";
@@ -21,7 +22,8 @@ interface RouteContext {
  *   GET  /api/nexa/progress/:fileId          → SSE progress stream proxy
  *   GET  /api/nexa/rpc/...path               → oRPC data query proxy
  *   POST /api/nexa/rpc/...path               → oRPC mutation proxy
- *   POST /api/nexa/upload                    → File upload + process proxy
+ *   POST /api/nexa/prepare                   → Request short-lived upload token (no file body)
+ *   POST /api/nexa/upload                    → File upload + process proxy (legacy)
  *   POST /api/nexa/webhook                   → File completion webhook
  *   POST /api/nexa/file-processing/forward   → File completion webhook (alias)
  *   POST /api/nexa/payments/forward          → Payment completion webhook
@@ -91,6 +93,12 @@ export function createRouteHandler(options: { client: NexaInstance }) {
 
     if (segment === "upload") {
       return handleUpload(request, client);
+    }
+
+    // Prepare upload: returns a short-lived token + uploadUrl so the browser
+    // can POST the file directly to Nexa, bypassing Loretto's server.
+    if (segment === "prepare") {
+      return handlePrepareUpload(request, client);
     }
 
     if (segment === "rpc") {
