@@ -1,22 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LoadingSpinner } from "../primitives/LoadingSpinner";
+import { useUploadFile } from "../hooks/useUploadFile";
 import type { UploadState } from "../types";
 
 export interface UploadZoneProps {
   /**
    * Called once the file has been queued in the pipeline.
-   * Receives the NeonDB file ID returned by `onUpload`.
+   * Receives the NeonDB file ID returned after a successful upload.
    */
   onFileQueued: (fileId: string) => void;
   /**
-   * Provider-agnostic upload handler. Receives the selected File, should
-   * upload it to any storage provider (UploadThing, S3, etc.) and dispatch
-   * it to the Nexa processing pipeline via `nexa.files.submit()`.
-   * Must resolve with the NeonDB file ID to track progress against.
+   * Optional custom upload handler. When provided, this overrides the
+   * default `useUploadFile` behaviour. Receives the selected File and must
+   * resolve with the NeonDB file ID.
+   *
+   * Omit this prop to use the built-in two-phase direct-upload flow, which
+   * sends the file directly to Nexa without going through your app's server.
    */
-  onUpload: (file: File) => Promise<{ fileId: string }>;
+  onUpload?: (file: File) => Promise<{ fileId: string }>;
   /** Optional label shown below the title. */
   description?: string;
 }
@@ -24,6 +27,27 @@ export interface UploadZoneProps {
 export function UploadZone({ onFileQueued, onUpload, description }: UploadZoneProps) {
   const [state, setState] = useState<UploadState>({ phase: "idle" });
   const [isDragging, setIsDragging] = useState(false);
+
+  // Default upload mechanism — two-phase direct upload bypassing this server.
+  const { uploadFile, isDispatching, uploadProgress } = useUploadFile();
+
+  // Sync byte-level progress from the hook into local state while uploading.
+  useEffect(() => {
+    setState((prev) => {
+      if (prev.phase !== "uploading") return prev;
+      return { ...prev, progress: uploadProgress };
+    });
+  }, [uploadProgress]);
+
+  // Once all bytes are sent, transition from "uploading" to "processing"
+  // while Nexa handles UploadThing + FastAPI dispatch.
+  useEffect(() => {
+    if (!isDispatching) return;
+    setState((prev) => {
+      if (prev.phase !== "uploading") return prev;
+      return { phase: "processing", fileName: prev.fileName };
+    });
+  }, [isDispatching]);
 
   async function handleFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
@@ -37,14 +61,29 @@ export function UploadZone({ onFileQueued, onUpload, description }: UploadZonePr
       return;
     }
 
-    setState({ phase: "processing", fileName: file.name });
+    setState({ phase: "uploading", fileName: file.name, progress: 0 });
 
     try {
-      const { fileId } = await onUpload(file);
-      if (!fileId) {
-        setState({ phase: "error", message: "Pipeline did not return a file ID" });
-        return;
+      let fileId: string;
+
+      if (onUpload) {
+        // Custom handler provided by the consuming app.
+        const result = await onUpload(file);
+        if (!result.fileId) {
+          setState({ phase: "error", message: "Pipeline did not return a file ID" });
+          return;
+        }
+        fileId = result.fileId;
+      } else {
+        // Built-in two-phase direct upload.
+        const result = await uploadFile(file);
+        if (!result.success || !result.fileId) {
+          setState({ phase: "error", message: result.error ?? "Upload failed" });
+          return;
+        }
+        fileId = result.fileId;
       }
+
       setState({ phase: "done", fileName: file.name, fileId });
       onFileQueued(fileId);
     } catch (e) {
