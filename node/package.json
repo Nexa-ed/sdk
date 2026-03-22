@@ -1,0 +1,85 @@
+{
+  "name": "@nexa-ed/node",
+  "version": "0.1.0",
+  "description": "Nexa Education Platform — Node.js & Framework-Agnostic Adapter",
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./express": {
+      "default": "./src/adapters/express.ts"
+    },
+    "./fastify": {
+      "default": "./src/adapters/fastify.ts"
+    },
+    "./hono": {
+      "default": "./src/adapters/hono.ts"
+    }
+  },
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "check-types": "tsc --noEmit",
+    "prepublishOnly": "pnpm build"
+  },
+  "publishConfig": {
+    "access": "restricted",
+    "exports": {
+      ".": {
+        "import": "./dist/index.mjs",
+        "require": "./dist/index.cjs",
+        "types": "./dist/index.d.ts"
+      },
+      "./express": {
+        "import": "./dist/express.mjs",
+        "require": "./dist/express.cjs",
+        "types": "./dist/express.d.ts"
+      },
+      "./fastify": {
+        "import": "./dist/fastify.mjs",
+        "require": "./dist/fastify.cjs",
+        "types": "./dist/fastify.d.ts"
+      },
+      "./hono": {
+        "import": "./dist/hono.mjs",
+        "require": "./dist/hono.cjs",
+        "types": "./dist/hono.d.ts"
+      }
+    },
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts"
+  },
+  "dependencies": {
+    "@nexa-ed/sdk": "workspace:*"
+  },
+  "peerDependencies": {
+    "express": ">=4.0.0",
+    "fastify": ">=4.0.0",
+    "hono": ">=4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "express": { "optional": true },
+    "fastify": { "optional": true },
+    "hono": { "optional": true }
+  },
+  "devDependencies": {
+    "@repo/config": "workspace:*",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "express": "^4.21.0",
+    "fastify": "^5.0.0",
+    "hono": "^4.7.0",
+    "tsup": "catalog:",
+    "typescript": "catalog:"
+  }
+}
