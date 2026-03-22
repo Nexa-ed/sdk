@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { useMutation } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { useNexaContext } from "../context";
 import type { RecordRow } from "../types";
@@ -11,21 +12,29 @@ export function useSerialRenumber(
   limit: number,
   hasWarnings: boolean | undefined,
   queryClient: QueryClient,
-  mutateAsync: (vars: { recordId: string; recordData: Record<string, string | null> }) => Promise<unknown>
+  // kept for signature compatibility but no longer used for renumber
+  _mutateAsync: (vars: { recordId: string; recordData: Record<string, string | null> }) => Promise<unknown>
 ) {
   const { orpc } = useNexaContext();
+
+  type BatchInput = { updates: Array<{ recordId: string; recordData: Record<string, string | null> }> };
+  const batchMutation = useMutation<unknown, Error, BatchInput>({
+    ...orpc.documents.batchUpdateStudentRecords.mutationOptions(),
+  });
 
   const handleRenumber = useCallback(
     async (records: RecordRow[], col: string, startFrom: number) => {
       if (!records.length) return;
+
       const listQueryKey = orpc.documents.getFileStudentRecords.queryOptions({
         input: { fileId, page, limit, hasWarnings },
       }).queryKey;
 
       await queryClient.cancelQueries({ queryKey: listQueryKey });
       const previousData = queryClient.getQueryData(listQueryKey);
-      const patches = new Map(records.map((r, i) => [r.id, String(startFrom + i)]));
 
+      // Optimistic update
+      const patches = new Map(records.map((r, i) => [r.id, String(startFrom + i)]));
       queryClient.setQueryData(listQueryKey, (old: any) => {
         if (!old) return old;
         return {
@@ -39,26 +48,24 @@ export function useSerialRenumber(
         };
       });
 
-      const results = await Promise.allSettled(
-        records.map((r, i) =>
-          mutateAsync({
+      try {
+        await batchMutation.mutateAsync({
+          updates: records.map((r, i) => ({
             recordId: r.id,
             recordData: {
               ...(r.recordData ?? {}),
               [col]: String(startFrom + i),
             } as Record<string, string | null>,
-          })
-        )
-      );
-
-      const failed = results.filter((r) => r.status === "rejected");
-      if (failed.length > 0) {
-        console.error(`[useSerialRenumber] ${failed.length} renumber mutation(s) failed — restoring`);
+          })),
+        });
+      } catch (err) {
+        console.error("[useSerialRenumber] batch renumber failed — restoring", err);
         queryClient.setQueryData(listQueryKey, previousData);
+      } finally {
+        queryClient.invalidateQueries({ queryKey: listQueryKey });
       }
-      queryClient.invalidateQueries({ queryKey: listQueryKey });
     },
-    [fileId, page, limit, hasWarnings, queryClient, mutateAsync, orpc]
+    [fileId, page, limit, hasWarnings, queryClient, batchMutation, orpc]
   );
 
   return { handleRenumber };

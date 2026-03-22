@@ -22,12 +22,12 @@ export function StudentRecordsTable({ fileId }: { fileId: string }) {
   const [limit, setLimit] = useState<25 | 50 | 100 | 200>(50);
   const [hasWarningsFilter, setHasWarningsFilter] = useState<boolean | undefined>(undefined);
   const [hideMissingOnly, setHideMissingOnly] = useState(false);
-  const [hideNoiseRows, setHideNoiseRows] = useState(true);
+  const [hideNoiseRows, setHideNoiseRows] = useState(false);
   const [showPartialOnly, setShowPartialOnly] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [lastSerialNumber, setLastSerialNumber] = useState<number | null>(null);
 
-  const { data, isLoading } = useGetFileStudentRecords(fileId, page, limit, {
+  const { data, isLoading, isError, error } = useGetFileStudentRecords(fileId, page, limit, {
     hasWarnings: hasWarningsFilter,
   });
 
@@ -238,31 +238,31 @@ export function StudentRecordsTable({ fileId }: { fileId: string }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-4 flex-wrap">
-        <span className="text-xs text-gray-500 font-semibold">
+        <span className="text-xs text-muted-foreground font-semibold">
           {records.length} student{records.length !== 1 ? "s" : ""}
-          {total !== records.length && <span className="text-gray-400"> of {total}</span>}
+          {total !== records.length && <span className="text-muted-foreground"> of {total}</span>}
         </span>
 
         <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none" title="Hides rows with more than 4 blank fields.">
           <input type="checkbox" checked={hideNoiseRows} onChange={(e) => setHideNoiseRows(e.target.checked)} className="rounded accent-blue-600" />
-          <span className={hideNoiseRows ? "text-blue-700 font-medium" : "text-gray-600"}>Students only</span>
+          <span className={hideNoiseRows ? "text-blue-700 font-medium" : "text-muted-foreground"}>Students only</span>
           {hideNoiseRows && noiseRowCount > 0 && (
-            <span className="text-gray-400">({noiseRowCount} noise row{noiseRowCount !== 1 ? "s" : ""} hidden)</span>
+            <span className="text-muted-foreground">({noiseRowCount} noise row{noiseRowCount !== 1 ? "s" : ""} hidden)</span>
           )}
         </label>
 
         <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none" title="Shows only rows with 2–4 missing fields.">
           <input type="checkbox" checked={showPartialOnly} onChange={(e) => setShowPartialOnly(e.target.checked)} className="rounded accent-amber-500" />
-          <span className={showPartialOnly ? "text-amber-700 font-medium" : "text-gray-600"}>Partially filled only</span>
-          {showPartialOnly && partialRowCount > 0 && <span className="text-gray-400">({partialRowCount} rows)</span>}
+          <span className={showPartialOnly ? "text-amber-700 font-medium" : "text-muted-foreground"}>Partially filled only</span>
+          {showPartialOnly && partialRowCount > 0 && <span className="text-muted-foreground">({partialRowCount} rows)</span>}
         </label>
 
-        <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+        <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
           <input type="checkbox" checked={hasWarningsFilter === true} onChange={(e) => setHasWarningsFilter(e.target.checked ? true : undefined)} className="rounded" />
           Has warnings
         </label>
 
-        <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+        <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
           <input type="checkbox" checked={hideMissingOnly} onChange={(e) => setHideMissingOnly(e.target.checked)} className="rounded" />
           Missing fields only
         </label>
@@ -272,27 +272,44 @@ export function StudentRecordsTable({ fileId }: { fileId: string }) {
 
         {totalPages > 1 && (
           <div className="flex items-center gap-1 ml-auto">
-            <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 disabled:opacity-40 rounded border border-gray-200">Prev</button>
-            <span className="text-xs text-gray-500 tabular-nums">{page} / {totalPages}</span>
-            <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 disabled:opacity-40 rounded border border-gray-200">Next</button>
+            <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="px-2 py-1 text-xs bg-muted hover:bg-muted disabled:opacity-40 rounded border border-border">Prev</button>
+            <span className="text-xs text-muted-foreground tabular-nums">{page} / {totalPages}</span>
+            <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className="px-2 py-1 text-xs bg-muted hover:bg-muted disabled:opacity-40 rounded border border-border">Next</button>
           </div>
         )}
       </div>
 
       {updateMutation.isError && (
-        <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+        <div className="text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded px-3 py-2">
           Save failed: {String(updateMutation.error)}
         </div>
       )}
       {deleteMutation.isError && (
-        <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+        <div className="text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded px-3 py-2">
           Delete failed: {String(deleteMutation.error)}
+        </div>
+      )}
+
+      {isError && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <p className="font-semibold">Could not load records</p>
+          <p className="mt-0.5 text-destructive/80 text-xs">{String(error)}</p>
+        </div>
+      )}
+
+      {!isLoading && !isError && total === 0 && (
+        <div className="rounded-lg border border-border bg-muted/50 px-6 py-8 text-center">
+          <p className="text-sm font-medium text-muted-foreground">No student records were extracted</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            The pipeline completed but did not find structured table data in this document.
+            Check the Pipeline tab for details.
+          </p>
         </div>
       )}
 
       {isLoading ? (
         <div className="py-8 flex justify-center"><LoadingSpinner /></div>
-      ) : (
+      ) : !isError && total > 0 ? (
         <RecordDataGrid
           records={records}
           onSave={handleSave}
@@ -310,7 +327,7 @@ export function StudentRecordsTable({ fileId }: { fileId: string }) {
           lastSerialNumber={lastSerialNumber}
           onRenumberComplete={setLastSerialNumber}
         />
-      )}
+      ) : null}
     </div>
   );
 }

@@ -121,9 +121,6 @@ export function RecordDataGrid({
     };
   }, []);
 
-  if (!records.length)
-    return <p className="text-gray-400 text-sm italic py-4">No records found.</p>;
-
   // ── Column ordering ──────────────────────────────────────────────────────────
   const { allCols, colFillRate } = useMemo(() => {
     const keySet = new Set(records.flatMap((r) => Object.keys(r.recordData ?? {})));
@@ -158,6 +155,10 @@ export function RecordDataGrid({
         return acc + allCols.filter((c) => base[c] !== (r.recordData ?? {})[c]).length;
       }, 0)
     : 0;
+
+  // Early return after all hooks are declared
+  if (!records.length)
+    return <p className="text-muted-foreground text-sm italic py-4">No records found.</p>;
 
   // ── Edit helpers ───────────────────────────────────────────────────────────
   function startEdit(rec: RecordRow, col: string, rowIdx: number, colIdx: number) {
@@ -492,8 +493,8 @@ export function RecordDataGrid({
   return (
     <div className="space-y-2">
       {/* Stats row */}
-      <div className="flex items-center gap-3 flex-wrap text-xs text-gray-500">
-        <span className="font-semibold text-gray-700">{records.length} records · {allCols.length} columns</span>
+      <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
+        <span className="font-semibold text-foreground">{records.length} records · {allCols.length} columns</span>
         {totalNulls > 0 && (
           <span className="text-red-500 cursor-help underline decoration-dotted" title={`${totalNulls} cells have no extracted value.`}>
             {totalNulls} missing cells
@@ -520,7 +521,7 @@ export function RecordDataGrid({
           </span>
         )}
         {onSave && !isMultiSelect && (
-          <span className="text-gray-400 italic cursor-help" title="Click to select, double-click to edit. Tab/Enter to move between cells. Shift+Arrow to select a range. Delete to clear.">
+          <span className="text-muted-foreground italic cursor-help" title="Click to select, double-click to edit. Tab/Enter to move between cells. Shift+Arrow to select a range. Delete to clear.">
             ✏ Click cell · Double-click to edit · Del to clear
           </span>
         )}
@@ -551,7 +552,7 @@ export function RecordDataGrid({
               if (e.key === "Escape") { setActiveBar(null); setMassUpdateValue(""); }
             }}
             placeholder="New value (leave blank to clear)"
-            className="flex-1 min-w-[160px] px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white text-xs"
+            className="flex-1 min-w-[160px] px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400 bg-background text-xs"
           />
           <button onClick={handleMassUpdateConfirm} disabled={massUpdating} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded font-semibold transition-colors">
             {massUpdating ? "Updating…" : `Update all ${records.length}`}
@@ -578,7 +579,7 @@ export function RecordDataGrid({
                 if (e.key === "Enter") handleRenumberConfirm();
                 if (e.key === "Escape") setActiveBar(null);
               }}
-              className="w-20 px-2 py-1 border border-violet-300 rounded focus:outline-none focus:ring-1 focus:ring-violet-400 bg-white text-xs ml-1"
+              className="w-20 px-2 py-1 border border-violet-300 rounded focus:outline-none focus:ring-1 focus:ring-violet-400 bg-background text-xs ml-1"
             />
           </label>
           <button onClick={handleRenumberConfirm} disabled={renumbering || isNaN(parseInt(renumberStart, 10))} className="px-3 py-1 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white rounded font-semibold transition-colors">
@@ -609,7 +610,7 @@ export function RecordDataGrid({
                   autoFocus
                   value={rowEditCol}
                   onChange={(e) => setRowEditCol(e.target.value)}
-                  className="border border-indigo-300 rounded px-2 py-1 text-xs bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                  className="border border-indigo-300 rounded px-2 py-1 text-xs bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400"
                 >
                   {allCols.map((c) => (
                     <option key={c} value={c}>{c.replace(/_/g, " ")}</option>
@@ -625,7 +626,7 @@ export function RecordDataGrid({
                     if (e.key === "Escape") setRowEditOpen(false);
                   }}
                   placeholder="New value (blank to clear)"
-                  className="flex-1 min-w-[140px] border border-indigo-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                  className="flex-1 min-w-[140px] border border-indigo-300 rounded px-2 py-1 text-xs bg-background focus:outline-none focus:ring-1 focus:ring-indigo-400"
                 />
                 <button
                   onClick={handleRowEditApply}
@@ -664,7 +665,7 @@ export function RecordDataGrid({
                 </button>
                 <button
                   onClick={() => setConfirmDeleteSelected(false)}
-                  className="px-2 py-1 text-gray-500 hover:text-gray-700"
+                  className="px-2 py-1 text-muted-foreground hover:text-foreground"
                 >
                   Cancel
                 </button>
@@ -696,32 +697,32 @@ export function RecordDataGrid({
           <span className="px-2 py-0.5 rounded bg-green-100 text-green-800 cursor-help" title="OCR left blank; LLM filled it in.">Null → filled</span>
           <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 cursor-help" title="OCR and LLM disagreed on this value.">Value changed</span>
           <span className="px-2 py-0.5 rounded bg-red-100 text-red-700 cursor-help" title="OCR had a value; LLM removed it.">Value removed</span>
-          <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-500 cursor-help" title="No value in either OCR or LLM output.">— missing in both</span>
+          <span className="px-2 py-0.5 rounded bg-muted text-muted-foreground cursor-help" title="No value in either OCR or LLM output.">— missing in both</span>
         </div>
       )}
 
       {/* Add Rows Modal */}
       {addRowsOpen && onAddRows && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+          <div className="bg-background rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
               <div>
-                <h2 className="text-sm font-bold text-gray-800">Add Student Rows</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Enter rows that the OCR missed. Press Enter in the last field to add another row.</p>
+                <h2 className="text-sm font-bold text-foreground">Add Student Rows</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Enter rows that the OCR missed. Press Enter in the last field to add another row.</p>
               </div>
-              <button onClick={() => setAddRowsOpen(false)} className="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+              <button onClick={() => setAddRowsOpen(false)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
             </div>
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3">
-              <label className="text-xs font-semibold text-gray-600 whitespace-nowrap">Page number:</label>
+            <div className="px-5 py-3 border-b border-border/50 flex items-center gap-3">
+              <label className="text-xs font-semibold text-muted-foreground whitespace-nowrap">Page number:</label>
               <input type="number" min={1} value={addRowsPageNum} onChange={(e) => setAddRowsPageNum(Number(e.target.value))}
-                className="w-20 text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-300" />
-              <span className="text-xs text-gray-400">The page this row belongs to in the original PDF.</span>
+                className="w-20 text-xs border border-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-300" />
+              <span className="text-xs text-muted-foreground">The page this row belongs to in the original PDF.</span>
             </div>
             <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
               {addRowsDraft.map((row, rowIdx) => (
-                <div key={rowIdx} className="border border-gray-200 rounded-lg p-3 space-y-2 relative">
+                <div key={rowIdx} className="border border-border rounded-lg p-3 space-y-2 relative">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-semibold text-gray-500">Row {rowIdx + 1}</span>
+                    <span className="text-xs font-semibold text-muted-foreground">Row {rowIdx + 1}</span>
                     {addRowsDraft.length > 1 && (
                       <button onClick={() => setAddRowsDraft((d) => d.filter((_, i) => i !== rowIdx))} className="text-xs text-red-400 hover:text-red-600">Remove</button>
                     )}
@@ -732,7 +733,7 @@ export function RecordDataGrid({
                       const isLastRow = rowIdx === addRowsDraft.length - 1;
                       return (
                         <div key={col}>
-                          <label className="block text-xs text-gray-400 mb-0.5 truncate" title={col}>{col.replace(/_/g, " ")}</label>
+                          <label className="block text-xs text-muted-foreground mb-0.5 truncate" title={col}>{col.replace(/_/g, " ")}</label>
                           <input
                             value={row[col] ?? ""}
                             onChange={(e) => setAddRowsDraft((d) => d.map((r, i) => i === rowIdx ? { ...r, [col]: e.target.value } : r))}
@@ -742,7 +743,7 @@ export function RecordDataGrid({
                                 setAddRowsDraft((d) => [...d, Object.fromEntries(allCols.map((c) => [c, ""]))]);
                               }
                             }}
-                            className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-300"
+                            className="w-full text-xs border border-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-300"
                           />
                         </div>
                       );
@@ -751,12 +752,12 @@ export function RecordDataGrid({
                 </div>
               ))}
               <button onClick={() => setAddRowsDraft((d) => [...d, Object.fromEntries(allCols.map((c) => [c, ""]))])}
-                className="w-full py-2 border border-dashed border-gray-300 rounded-lg text-xs text-gray-500 hover:border-blue-300 hover:text-blue-600 transition-colors">
+                className="w-full py-2 border border-dashed border-border rounded-lg text-xs text-muted-foreground hover:border-blue-300 hover:text-blue-600 transition-colors">
                 + Add another row
               </button>
             </div>
-            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-200 bg-gray-50/50">
-              <button onClick={() => setAddRowsOpen(false)} className="px-4 py-2 text-xs text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">Cancel</button>
+            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-border bg-muted/30">
+              <button onClick={() => setAddRowsOpen(false)} className="px-4 py-2 text-xs text-muted-foreground border border-border rounded-lg hover:bg-muted transition-colors">Cancel</button>
               <button
                 onClick={handleAddRowsSubmit}
                 disabled={addRowsSubmitting || addRowsDraft.every((r) => Object.values(r).every((v) => !v))}
@@ -772,11 +773,11 @@ export function RecordDataGrid({
       {/* Confirm delete popover rendered outside table */}
       {confirmDeleteId && (
         <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-40" onClick={() => setConfirmDeleteId(null)}>
-          <div className="bg-white rounded-xl shadow-xl px-5 py-4 flex flex-col gap-3 w-72" onClick={(e) => e.stopPropagation()}>
-            <p className="text-sm font-semibold text-gray-800">Delete this row?</p>
-            <p className="text-xs text-gray-500">This will permanently remove the record. This action cannot be undone.</p>
+          <div className="bg-background rounded-xl shadow-xl px-5 py-4 flex flex-col gap-3 w-72" onClick={(e) => e.stopPropagation()}>
+            <p className="text-sm font-semibold text-foreground">Delete this row?</p>
+            <p className="text-xs text-muted-foreground">This will permanently remove the record. This action cannot be undone.</p>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setConfirmDeleteId(null)} className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100">Cancel</button>
+              <button onClick={() => setConfirmDeleteId(null)} className="px-3 py-1.5 text-xs text-muted-foreground border border-border rounded-lg hover:bg-muted">Cancel</button>
               <button onClick={() => handleDeleteRow(confirmDeleteId)} className="px-3 py-1.5 text-xs bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold">Delete</button>
             </div>
           </div>
@@ -787,7 +788,7 @@ export function RecordDataGrid({
       <div
         ref={tableRef}
         tabIndex={0}
-        className="overflow-x-auto rounded-lg border border-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset"
+        className="overflow-x-auto rounded-lg border border-border focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-inset"
         onKeyDown={handleTableKeyDown}
         onMouseDown={() => {
           // Ensure the table wrapper gets focus when clicking inside it
@@ -796,9 +797,9 @@ export function RecordDataGrid({
       >
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200 sticky top-0">
+            <tr className="bg-muted/50 border-b border-border sticky top-0">
               {(onDeleteRows || onMassUpdateRows) && (
-                <th className="w-8 px-2 py-2 border-r border-gray-100">
+                <th className="w-8 px-2 py-2 border-r border-border/50">
                   <input
                     ref={headerCheckboxRef}
                     type="checkbox"
@@ -808,8 +809,8 @@ export function RecordDataGrid({
                   />
                 </th>
               )}
-              <th className="px-2 py-2 text-gray-400 font-semibold w-9 text-center border-r border-gray-200 cursor-help" title="Page number in the original PDF.">Pg</th>
-              <th className="px-2 py-2 text-gray-400 font-semibold w-7 text-center border-r border-gray-200 cursor-help" title="Row number within the table on that page.">#</th>
+              <th className="px-2 py-2 text-muted-foreground font-semibold w-9 text-center border-r border-border cursor-help" title="Page number in the original PDF.">Pg</th>
+              <th className="px-2 py-2 text-muted-foreground font-semibold w-7 text-center border-r border-border cursor-help" title="Row number within the table on that page.">#</th>
               {allCols.map((col) => {
                 const fillPct = colFillRate.get(col) ?? 0;
                 const isEmptyCol = fillPct === 0;
@@ -828,13 +829,13 @@ export function RecordDataGrid({
                   <th
                     key={col}
                     title={colTooltip}
-                    className={`px-3 py-2 font-semibold whitespace-nowrap capitalize border-r border-gray-100 last:border-r-0 select-none max-w-[140px] ${
+                    className={`px-3 py-2 font-semibold whitespace-nowrap capitalize border-r border-border/50 last:border-r-0 select-none max-w-[140px] ${
                       isActiveMassUpdate ? "bg-blue-100 text-blue-700 ring-1 ring-inset ring-blue-300"
                       : isActiveRenumber ? "bg-violet-100 text-violet-700 ring-1 ring-inset ring-violet-300"
-                      : isThisSorted ? "bg-gray-100 text-gray-700"
+                      : isThisSorted ? "bg-muted text-foreground"
                       : isEmptyCol ? "text-red-300 bg-red-50/50"
                       : isSparseCol ? "text-amber-600"
-                      : "text-gray-600"
+                      : "text-muted-foreground"
                     }`}
                   >
                     <div className="flex items-center gap-1 group">
@@ -857,7 +858,7 @@ export function RecordDataGrid({
                           tabIndex={-1}
                           onClick={(e) => { e.stopPropagation(); onToggleSort(col); }}
                           title={isThisSorted ? `Sorted ${sortDir === "asc" ? "A→Z" : "Z→A"} — click to change` : "Sort by this column"}
-                          className={`shrink-0 px-0.5 rounded hover:bg-gray-200 transition-opacity ${isThisSorted ? "opacity-100 text-gray-700" : "opacity-0 group-hover:opacity-100 text-gray-400"}`}
+                          className={`shrink-0 px-0.5 rounded hover:bg-muted transition-opacity ${isThisSorted ? "opacity-100 text-foreground" : "opacity-0 group-hover:opacity-100 text-muted-foreground"}`}
                         >
                           <SortIcon dir={isThisSorted ? sortDir ?? null : null} />
                         </button>
@@ -876,11 +877,11 @@ export function RecordDataGrid({
                   </th>
                 );
               })}
-              <th className="px-2 py-2 w-14 text-gray-400 font-semibold text-center cursor-help" title="Warnings and missing-field counts. ⚠ = processing warning; N✗ = blank fields.">⚠ / ✗</th>
+              <th className="px-2 py-2 w-14 text-muted-foreground font-semibold text-center cursor-help" title="Warnings and missing-field counts. ⚠ = processing warning; N✗ = blank fields.">⚠ / ✗</th>
               {onDeleteRow && <th className="w-8 px-1" />}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-border/50">
             {records.map((rec, rowIdx) => {
               const data = rec.recordData ?? {};
               const nullCount = allCols.filter((c) => data[c] == null || data[c] === "").length;
@@ -917,7 +918,7 @@ export function RecordDataGrid({
                 >
                   {/* Row select checkbox */}
                   {(onDeleteRows || onMassUpdateRows) && (
-                    <td className="px-2 py-1.5 border-r border-gray-100 w-8">
+                    <td className="px-2 py-1.5 border-r border-border/50 w-8">
                       <input
                         type="checkbox"
                         checked={rowChecked}
@@ -927,8 +928,8 @@ export function RecordDataGrid({
                       />
                     </td>
                   )}
-                  <td className="px-2 py-1.5 text-gray-400 text-center font-mono border-r border-gray-100">{rec.pageNumber ?? "—"}</td>
-                  <td className="px-2 py-1.5 text-gray-400 text-center font-mono border-r border-gray-100">{rec.recordNumberForPage ?? "—"}</td>
+                  <td className="px-2 py-1.5 text-muted-foreground text-center font-mono border-r border-border/50">{rec.pageNumber ?? "—"}</td>
+                  <td className="px-2 py-1.5 text-muted-foreground text-center font-mono border-r border-border/50">{rec.recordNumberForPage ?? "—"}</td>
 
                   {allCols.map((col, colIdx) => {
                     const val = data[col];
@@ -958,23 +959,23 @@ export function RecordDataGrid({
                       : valueChanged
                       ? "bg-blue-100 text-blue-800"
                       : isEmpty
-                      ? "text-gray-300 italic"
-                      : "text-gray-700";
+                      ? "text-muted-foreground/40 italic"
+                      : "text-foreground";
 
                     if (isEditing) {
                       return (
-                        <td key={col} className="px-1 py-1 border-r border-gray-100 bg-white ring-2 ring-inset ring-blue-400">
+                        <td key={col} className="px-1 py-1 border-r border-border/50 bg-background ring-2 ring-inset ring-blue-400">
                           <div className="flex items-center gap-1">
                             <input
                               autoFocus
-                              className="min-w-[80px] w-28 text-xs border border-blue-400 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-300 bg-white"
+                              className="min-w-[80px] w-28 text-xs border border-blue-400 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-300 bg-background"
                               value={editing.value}
                               onChange={(e) => setEditing({ ...editing, value: e.target.value })}
                               onKeyDown={(e) => handleEditKeyDown(e, rec)}
                               onBlur={() => commitEdit(rec)}
                             />
                             <button onMouseDown={(e) => e.preventDefault()} onClick={() => commitEdit(rec)} className="text-white bg-blue-500 hover:bg-blue-600 px-1.5 py-0.5 rounded">✓</button>
-                            <button onMouseDown={(e) => e.preventDefault()} onClick={() => setEditing(null)} className="text-gray-400 hover:text-gray-600 px-1">✕</button>
+                            <button onMouseDown={(e) => e.preventDefault()} onClick={() => setEditing(null)} className="text-muted-foreground hover:text-foreground px-1">✕</button>
                           </div>
                         </td>
                       );
@@ -992,11 +993,11 @@ export function RecordDataGrid({
                             ? `${isEmpty ? "—" : String(val)}\n\nClick to select · Double-click to edit`
                             : isEmpty ? undefined : String(val)
                         }
-                        className={`px-2 py-1.5 max-w-[150px] truncate border-r border-gray-100 last:border-r-0 select-none ${
+                        className={`px-2 py-1.5 max-w-[150px] truncate border-r border-border/50 last:border-r-0 select-none ${
                           onSave ? "cursor-pointer" : ""
                         } ${cellBg}`}
                       >
-                        {isEmpty ? <span className="text-gray-300 select-none">—</span> : String(val)}
+                        {isEmpty ? <span className="text-muted-foreground/40 select-none">—</span> : String(val)}
                         {isDiff && !isEmpty && !wasFilledNowNull && (
                           <span className="ml-1 text-xs opacity-50" title={`was: ${baseVal ?? "—"}`}>↑</span>
                         )}
@@ -1023,7 +1024,7 @@ export function RecordDataGrid({
                         <button
                           onClick={() => setConfirmDeleteId(rec.id)}
                           title="Delete this row"
-                          className="opacity-0 group-hover/row:opacity-100 transition-opacity p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50"
+                          className="opacity-0 group-hover/row:opacity-100 transition-opacity p-1 rounded text-muted-foreground/40 hover:text-red-500 hover:bg-red-50"
                         >
                           🗑
                         </button>
@@ -1037,7 +1038,7 @@ export function RecordDataGrid({
         </table>
       </div>
 
-      {label && <p className="text-xs text-gray-400 italic text-right">{label}</p>}
+      {label && <p className="text-xs text-muted-foreground italic text-right">{label}</p>}
     </div>
   );
 }

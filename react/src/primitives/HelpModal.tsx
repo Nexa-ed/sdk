@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 type Section = {
   title: string;
@@ -82,10 +82,10 @@ const SECTIONS: Section[] = [
 function Key({ children }: { children: string }) {
   const isWord = children.length > 2 && !["Tab", "Esc", "Del", "F2"].includes(children);
   if (["or", "and", "+"].includes(children)) {
-    return <span className="text-gray-400 text-xs mx-0.5">{children}</span>;
+    return <span className="text-muted-foreground text-xs mx-0.5">{children}</span>;
   }
   return (
-    <kbd className={`inline-flex items-center px-1.5 py-0.5 rounded border border-gray-300 bg-gray-100 text-gray-700 font-mono text-xs shadow-sm ${isWord ? "px-2" : ""}`}>
+    <kbd className={`inline-flex items-center px-1.5 py-0.5 rounded border border-border bg-muted text-foreground font-mono text-xs shadow-sm ${isWord ? "px-2" : ""}`}>
       {children}
     </kbd>
   );
@@ -94,100 +94,132 @@ function Key({ children }: { children: string }) {
 export function HelpButton() {
   const [open, setOpen] = useState(false);
   const [activeSection, setActiveSection] = useState(0);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [open]);
 
   return (
-    <>
+    <div ref={wrapperRef} className="relative">
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => setOpen((v) => !v)}
         title="Keyboard shortcuts & interactions guide"
-        className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 border border-gray-200 rounded-md hover:bg-gray-50 hover:text-gray-700 transition-colors select-none"
+        className={[
+          "flex items-center gap-1 px-2 py-1 text-xs border rounded-md transition-colors select-none",
+          open
+            ? "bg-muted text-foreground border-border"
+            : "text-muted-foreground border-border hover:bg-muted hover:text-foreground",
+        ].join(" ")}
       >
-        <span className="font-bold text-gray-400">?</span>
+        <span className="font-bold">?</span>
         <span className="hidden sm:inline">Help</span>
       </button>
 
       {open && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
+          className="absolute bottom-full right-0 mb-2 z-50 w-[min(640px,90vw)] bg-background border border-border rounded-xl shadow-xl flex flex-col overflow-hidden"
+          style={{ maxHeight: "min(500px, 70vh)" }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <div>
-                <h2 className="text-sm font-bold text-gray-800">Table Interactions Guide</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Everything you can do inside the student records table</p>
-              </div>
-              <button
-                onClick={() => setOpen(false)}
-                className="text-gray-400 hover:text-gray-600 text-xl leading-none w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-100"
-              >
-                ✕
-              </button>
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
+            <div>
+              <h2 className="text-sm font-bold text-foreground">Table Interactions Guide</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Everything you can do inside the student records table</p>
             </div>
+            <button
+              onClick={() => setOpen(false)}
+              className="text-muted-foreground hover:text-foreground w-6 h-6 flex items-center justify-center rounded-md hover:bg-muted transition-colors"
+            >
+              ✕
+            </button>
+          </div>
 
-            <div className="flex flex-1 min-h-0">
-              <nav className="w-44 shrink-0 border-r border-gray-100 py-3 overflow-y-auto">
-                {SECTIONS.map((s, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setActiveSection(i)}
-                    className={`w-full text-left px-4 py-2 text-xs flex items-center gap-2 transition-colors ${
-                      activeSection === i
-                        ? "bg-blue-50 text-blue-700 font-semibold border-r-2 border-blue-500"
-                        : "text-gray-600 hover:bg-gray-50"
-                    }`}
-                  >
-                    <span>{s.icon}</span>
-                    {s.title}
-                  </button>
-                ))}
-              </nav>
+          {/* Body */}
+          <div className="flex flex-1 min-h-0 overflow-hidden">
+            {/* Nav */}
+            <nav className="w-40 shrink-0 border-r border-border py-2 overflow-y-auto">
+              {SECTIONS.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveSection(i)}
+                  className={[
+                    "w-full text-left px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors",
+                    activeSection === i
+                      ? "bg-primary/10 text-primary font-semibold border-r-2 border-primary"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  ].join(" ")}
+                >
+                  <span>{s.icon}</span>
+                  {s.title}
+                </button>
+              ))}
+            </nav>
 
-              <div className="flex-1 overflow-y-auto px-6 py-4">
-                {SECTIONS[activeSection] && (
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                      <span>{SECTIONS[activeSection].icon}</span>
-                      {SECTIONS[activeSection].title}
-                    </h3>
-                    <div className="space-y-2.5">
-                      {SECTIONS[activeSection].items.map((item, i) => (
-                        <div key={i} className="flex gap-3 items-start">
-                          {item.keys ? (
-                            <div className="flex items-center gap-0.5 flex-wrap min-w-[140px] shrink-0">
-                              {item.keys.map((k, ki) => <Key key={ki}>{k}</Key>)}
-                            </div>
-                          ) : (
-                            <div className="min-w-[140px] shrink-0 text-xs text-gray-500 italic leading-5">{item.label}</div>
-                          )}
-                          <div className="flex-1">
-                            {item.keys && (
-                              <p className="text-xs font-medium text-gray-700">{item.label}</p>
-                            )}
-                            {item.detail && (
-                              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{item.detail}</p>
-                            )}
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              {SECTIONS[activeSection] && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <span>{SECTIONS[activeSection].icon}</span>
+                    {SECTIONS[activeSection].title}
+                  </h3>
+                  <div className="space-y-2.5">
+                    {SECTIONS[activeSection].items.map((item, i) => (
+                      <div key={i} className="flex gap-3 items-start">
+                        {item.keys ? (
+                          <div className="flex items-center gap-0.5 flex-wrap min-w-[130px] shrink-0">
+                            {item.keys.map((k, ki) => <Key key={ki}>{k}</Key>)}
                           </div>
+                        ) : (
+                          <div className="min-w-[130px] shrink-0 text-xs text-muted-foreground italic leading-5">{item.label}</div>
+                        )}
+                        <div className="flex-1">
+                          {item.keys && (
+                            <p className="text-xs font-medium text-foreground">{item.label}</p>
+                          )}
+                          {item.detail && (
+                            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{item.detail}</p>
+                          )}
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
+          </div>
 
-            <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
-              <p className="text-xs text-gray-400">Tip: all edits save instantly and update the server in the background.</p>
-              <button
-                onClick={() => setOpen(false)}
-                className="px-3 py-1.5 text-xs bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
-              >
-                Got it
-              </button>
-            </div>
+          {/* Footer */}
+          <div className="px-5 py-2.5 border-t border-border bg-muted/30 flex items-center justify-between shrink-0">
+            <p className="text-xs text-muted-foreground">Tip: all edits save instantly and update the server in the background.</p>
+            <button
+              onClick={() => setOpen(false)}
+              className="px-3 py-1 text-xs bg-foreground text-background rounded-lg hover:opacity-90 transition-opacity font-medium ml-3 shrink-0"
+            >
+              Got it
+            </button>
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

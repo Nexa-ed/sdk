@@ -47,7 +47,13 @@ export function NexaProvider({
   children: React.ReactNode;
 }) {
   const value = useMemo<NexaReactContext>(() => {
-    const link = new RPCLink({ url: `${basePath}/rpc` });
+    // RPCLink requires an absolute URL — relative paths like "/api/nexa/rpc"
+    // cause `new URL("/api/nexa/rpc")` to throw "Invalid URL" inside the oRPC
+    // client. In the browser we prefix with the current origin; on the server
+    // (SSR pre-render) we use a placeholder — queries never fire during SSR so
+    // the URL is never actually resolved there.
+    const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost";
+    const link = new RPCLink({ url: `${origin}${basePath}/rpc` });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const client = createORPCClient(link) as any;
     const orpc = createTanstackQueryUtils(client);

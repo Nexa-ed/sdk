@@ -35,18 +35,42 @@ export async function handleRpc(
   // Forward the request body and method intact
   const body = request.method !== "GET" ? await request.text() : undefined;
 
-  const upstream = await fetch(upstreamUrl, {
-    method: request.method,
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": instance._config.apiKey,
-      "x-user-id": userId,
-    },
-    body,
-    signal: request.signal,
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(upstreamUrl, {
+      method: request.method,
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": instance._config.apiKey,
+        "x-user-id": userId,
+      },
+      body,
+      signal: request.signal,
+    });
+  } catch (err: any) {
+    // Client navigated away or cancelled the request — not an error worth logging
+    if (
+      request.signal?.aborted ||
+      err?.name === "AbortError" ||
+      err?.name === "ResponseAborted"
+    ) {
+      return new Response(null, { status: 499 });
+    }
+    console.error(`[nexa-ed/rpc] upstream fetch failed for ${procedurePath}:`, err);
+    return new Response(
+      JSON.stringify({ error: { code: "INTERNAL_SERVER_ERROR", message: "Upstream unreachable" } }),
+      { status: 502, headers: { "content-type": "application/json" } },
+    );
+  }
 
   const responseBody = await upstream.text();
+
+  if (!upstream.ok) {
+    console.error(
+      `[nexa-ed/rpc] upstream ${procedurePath} returned ${upstream.status}:`,
+      responseBody.slice(0, 500),
+    );
+  }
 
   return new Response(responseBody, {
     status: upstream.status,
