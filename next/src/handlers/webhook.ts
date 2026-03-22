@@ -66,8 +66,11 @@ async function verifyAndParse(
   request: Request,
   webhookSecret: string,
 ): Promise<WebhookEvent> {
-  // Replay protection — reject events older than 5 minutes
-  const eventTime = parseInt(timestamp, 10);
+  // Replay protection — reject events older than 5 minutes.
+  // Normalise to seconds: the platform sends Date.now() (ms), but some
+  // senders may already send seconds. Any value > 1e12 is treated as ms.
+  const rawTime = parseInt(timestamp, 10);
+  const eventTime = rawTime > 1e12 ? Math.floor(rawTime / 1000) : rawTime;
   const now = Math.floor(Date.now() / 1000);
   if (Math.abs(now - eventTime) > 300) {
     throw new NexaError(

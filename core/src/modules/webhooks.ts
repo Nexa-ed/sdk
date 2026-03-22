@@ -34,8 +34,10 @@ export async function verifyWebhook(
     );
   }
 
-  // Replay protection: reject events older than maxAge
-  const eventTime = parseInt(timestamp, 10);
+  // Replay protection: reject events older than maxAge.
+  // Normalise to seconds: values > 1e12 are millisecond timestamps.
+  const rawTime = parseInt(timestamp, 10);
+  const eventTime = rawTime > 1e12 ? Math.floor(rawTime / 1000) : rawTime;
   const now = Math.floor(Date.now() / 1000);
   if (Math.abs(now - eventTime) > maxAge) {
     throw new NexaError(

@@ -14,6 +14,17 @@ export interface ResultsViewerSheetProps {
   title?: string;
   /** Whether LLM refinement is enabled in your pipeline. Passed to PipelineTimeline. */
   llmEnabled?: boolean;
+  /**
+   * Which tab to open on. Defaults to "Pipeline".
+   * Pass "Records" when opening from a "Review Extracted Data" action so the
+   * teacher lands directly on the records and match CTA.
+   */
+  initialTab?: "Pipeline" | "Records" | "Stats";
+  /**
+   * When provided, a "Match Students with Class" CTA is shown at the top of
+   * the Records tab. Call this to hand off to your student-matching flow.
+   */
+  onMatchStudents?: () => void;
 }
 
 const TABS = ["Pipeline", "Records", "Stats"] as const;
@@ -25,13 +36,15 @@ export function ResultsViewerSheet({
   onOpenChange,
   title = "Pipeline Results",
   llmEnabled = false,
+  initialTab = "Pipeline",
+  onMatchStudents,
 }: ResultsViewerSheetProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("Pipeline");
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
 
-  // Reset tab when a new file is opened
+  // Reset tab when a new file is opened or when initialTab changes
   useEffect(() => {
-    if (open) setActiveTab("Pipeline");
-  }, [open, fileId]);
+    if (open) setActiveTab(initialTab);
+  }, [open, fileId, initialTab]);
 
   // Trap keyboard: close on Escape
   useEffect(() => {
@@ -109,7 +122,31 @@ export function ResultsViewerSheet({
             <PipelineTimeline fileId={fileId} llmEnabled={llmEnabled} />
           )}
           {activeTab === "Records" && (
-            <StudentRecordsTable fileId={fileId} />
+            <>
+              {onMatchStudents && (
+                <div className="flex items-center justify-between gap-4 rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-indigo-900">
+                      Match Students with Your Class
+                    </p>
+                    <p className="mt-0.5 text-xs text-indigo-600">
+                      Review the extracted records below, then map them to enrolled
+                      students so scores are saved to the gradebook.
+                    </p>
+                  </div>
+                  <button
+                    onClick={onMatchStudents}
+                    className="shrink-0 flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 active:bg-indigo-800 transition-colors"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Match with Class
+                  </button>
+                </div>
+              )}
+              <StudentRecordsTable fileId={fileId} />
+            </>
           )}
           {activeTab === "Stats" && (
             <StatsPanel fileId={fileId} />
