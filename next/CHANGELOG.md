@@ -1,5 +1,13 @@
 # @nexa-ed/next
 
+## 0.2.0-beta.2
+
+### Patch Changes
+
+- 8adccda: patch added readme docs
+- Updated dependencies [8adccda]
+  - @nexa-ed/sdk@0.2.0-beta.2
+
 ## 0.2.0-beta.1
 
 ### Minor Changes
