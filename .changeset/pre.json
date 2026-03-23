@@ -10,5 +10,7 @@
     "@nexa-ed/node": "0.1.0",
     "@nexa-ed/react": "0.1.0"
   },
-  "changesets": []
+  "changesets": [
+    "warm-rockets-rest"
+  ]
 }
