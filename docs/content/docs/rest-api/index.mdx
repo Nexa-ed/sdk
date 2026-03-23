@@ -1,0 +1,172 @@
+---
+title: REST API Overview
+description: Call the Nexa platform directly from any language or framework using plain HTTP.
+---
+
+The Nexa REST API lets you integrate file processing, payments, and student records into any stack — Python, PHP, Ruby, Go, plain `curl`, or anything else that can make an HTTP request. No SDK required.
+
+## Base URL
+
+```
+https://nexa-ed.com
+```
+
+All endpoints are versioned implicitly through breaking-change-free evolution. When a breaking change is necessary a versioned prefix (`/v2/...`) will be introduced with advance notice.
+
+## Authentication
+
+Every request must carry your **tenant API key** in the `x-api-key` header.
+
+```bash
+curl https://nexa-ed.com/api/file-processing/status \
+  -H "x-api-key: nxa_live_your_key_here"
+```
+
+Get your API key from the **Nexa dashboard → Settings → API Keys**.
+
+<Callout type="warn">
+  Never expose your API key in client-side code or public repositories.
+  Route all Nexa API calls through your server.
+</Callout>
+
+### User-scoped requests
+
+Endpoints that return per-user data (documents, student records, analysis jobs) also accept an optional `x-user-id` header. When provided, results are filtered to that user.
+
+```bash
+curl https://nexa-ed.com/api/rpc/documents/getUserDocuments \
+  -X POST \
+  -H "x-api-key: nxa_live_..." \
+  -H "x-user-id: user_abc123" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+## Request format
+
+- All `POST` / `PATCH` bodies must be **JSON** with `Content-Type: application/json`.
+- `GET` parameters are passed as **query string** values.
+- File uploads use `multipart/form-data`.
+
+## Response format
+
+Successful responses return JSON. The shape varies by endpoint — see the individual reference pages.
+
+## Error format
+
+All errors follow a consistent envelope:
+
+```json
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid or missing API key"
+  }
+}
+```
+
+| HTTP status | When |
+|-------------|------|
+| `400` | Malformed request body or missing required fields |
+| `401` | Missing or invalid `x-api-key` |
+| `403` | Valid key but insufficient permissions |
+| `404` | Resource not found |
+| `409` | Conflict (e.g. duplicate payment reference) |
+| `422` | Validation failed |
+| `429` | Rate limit exceeded |
+| `500` | Internal server error |
+
+## Rate limits
+
+Requests are rate-limited per API key. Limits are included in response headers:
+
+| Header | Description |
+|--------|-------------|
+| `X-RateLimit-Limit` | Requests allowed per window |
+| `X-RateLimit-Remaining` | Requests remaining in the current window |
+| `X-RateLimit-Reset` | Unix timestamp when the window resets |
+
+## Webhook verification
+
+When Nexa delivers webhook events to your server, each request is signed with HMAC-SHA256. Verify the signature before processing any event.
+
+**Headers sent by Nexa:**
+
+| Header | Value |
+|--------|-------|
+| `x-nexa-signature` | Hex-encoded HMAC-SHA256 of `body + timestamp` |
+| `x-nexa-timestamp` | Unix timestamp (seconds) when the event was signed |
+
+**Verification (Python example):**
+
+```python
+import hmac, hashlib, time, json
+
+def verify_nexa_webhook(raw_body: str, signature: str, timestamp: str, secret: str) -> dict:
+    now = int(time.time())
+    event_time = int(timestamp)
+    if event_time > 1e12:
+        event_time = event_time // 1000  # milliseconds → seconds
+
+    if abs(now - event_time) > 300:
+        raise ValueError("Webhook event is too old (replay protection)")
+
+    expected = hmac.new(
+        secret.encode(),
+        (raw_body + timestamp).encode(),
+        hashlib.sha256,
+    ).hexdigest()
+
+    if not hmac.compare_digest(expected, signature):
+        raise ValueError("Invalid webhook signature")
+
+    return json.loads(raw_body)
+```
+
+**Verification (Go example):**
+
+```go
+import (
+    "crypto/hmac"
+    "crypto/sha256"
+    "encoding/hex"
+    "encoding/json"
+    "fmt"
+    "math"
+    "strconv"
+    "time"
+)
+
+func verifyNexaWebhook(rawBody, signature, timestamp, secret string) (map[string]any, error) {
+    ts, err := strconv.ParseInt(timestamp, 10, 64)
+    if err != nil {
+        return nil, fmt.Errorf("invalid timestamp: %w", err)
+    }
+    if ts > 1e12 { ts /= 1000 }
+    if math.Abs(float64(time.Now().Unix()-ts)) > 300 {
+        return nil, fmt.Errorf("webhook too old")
+    }
+
+    mac := hmac.New(sha256.New, []byte(secret))
+    mac.Write([]byte(rawBody + timestamp))
+    expected := hex.EncodeToString(mac.Sum(nil))
+
+    if !hmac.Equal([]byte(expected), []byte(signature)) {
+        return nil, fmt.Errorf("invalid signature")
+    }
+
+    var event map[string]any
+    if err := json.Unmarshal([]byte(rawBody), &event); err != nil {
+        return nil, fmt.Errorf("invalid JSON body: %w", err)
+    }
+    return event, nil
+}
+```
+
+## Quick reference
+
+| Category | Docs |
+|----------|------|
+| File processing | [REST API → File Processing](/docs/rest-api/file-processing) |
+| Payments | [REST API → Payments](/docs/rest-api/payments) |
+| Documents & records | [REST API → Documents](/docs/rest-api/documents) |

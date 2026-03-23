@@ -1,0 +1,266 @@
+---
+title: Payments
+description: Initialize and verify Paystack enrollment payments via the REST API.
+---
+
+## Initialize a payment
+
+Create a new Paystack payment session and get a checkout URL to redirect the student to.
+
+```
+POST /api/payments/initialize
+```
+
+**Headers**
+
+| Header | Required | Value |
+|--------|----------|-------|
+| `x-api-key` | Yes | Your tenant API key |
+| `Content-Type` | Yes | `application/json` |
+
+**Body**
+
+```json
+{
+  "email": "student@loretto.edu.ng",
+  "amount": 15000,
+  "studentId": "stu_001",
+  "metadata": {
+    "studentName": "Amara Obi",
+    "term": "Second Term 2026"
+  }
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `email` | string | Yes | Student/payer email |
+| `amount` | number | Yes | Amount in **kobo** (NGN × 100) |
+| `studentId` | string | No | Your internal student ID |
+| `metadata` | object | No | Arbitrary key-value pairs echoed back on the webhook |
+
+**Response `200 OK`**
+
+```json
+{
+  "status": true,
+  "message": "Authorization URL created",
+  "data": {
+    "authorization_url": "https://checkout.paystack.com/abc123",
+    "access_code": "abc123",
+    "reference": "nxa_ref_xyz789"
+  }
+}
+```
+
+Redirect the student to `authorization_url` to complete payment.
+
+**Example (cURL)**
+
+```bash
+curl -X POST https://nexa-ed.com/api/payments/initialize \
+  -H "x-api-key: nxa_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "student@loretto.edu.ng",
+    "amount": 15000
+  }'
+```
+
+**Example (Python)**
+
+```python
+import requests
+
+resp = requests.post(
+    "https://nexa-ed.com/api/payments/initialize",
+    headers={"x-api-key": "nxa_live_..."},
+    json={"email": "student@loretto.edu.ng", "amount": 15000},
+)
+checkout_url = resp.json()["data"]["authorization_url"]
+```
+
+---
+
+## Verify a payment
+
+Check whether a payment was successful by reference.
+
+```
+GET /api/payments/verify?reference=nxa_ref_xyz789
+```
+
+**Headers**
+
+| Header | Required | Value |
+|--------|----------|-------|
+| `x-api-key` | Yes | Your tenant API key |
+
+**Response `200 OK`**
+
+```json
+{
+  "status": true,
+  "data": {
+    "reference": "nxa_ref_xyz789",
+    "status": "success",
+    "amount": 15000,
+    "currency": "NGN",
+    "customerEmail": "student@loretto.edu.ng",
+    "paidAt": "2026-03-15T10:22:00Z"
+  }
+}
+```
+
+`status` values: `"success"` | `"failed"` | `"abandoned"` | `"pending"`
+
+---
+
+## Get payment config
+
+Retrieve the tenant's payment configuration — public key, surcharge settings, and branding.
+
+```
+GET /api/payments/config
+```
+
+**Headers**
+
+| Header | Required | Value |
+|--------|----------|-------|
+| `x-api-key` | Yes | Your tenant API key |
+
+**Response `200 OK`**
+
+```json
+{
+  "paystackPublicKey": "pk_live_...",
+  "currency": "NGN",
+  "surchargePercent": 1.5,
+  "surchargeFlat": 100,
+  "surchargeCapKobo": 200000,
+  "brandName": "Loretto College",
+  "brandColor": "#10b981"
+}
+```
+
+---
+
+## Get payment status
+
+Lightweight status check — no full Paystack round-trip. Result may be cached for up to 60 seconds; use [Verify a payment](#verify-a-payment) for authoritative results.
+
+```
+GET /api/payments/status?reference=nxa_ref_xyz789
+```
+
+**Headers**
+
+| Header | Required | Value |
+|--------|----------|-------|
+| `x-api-key` | Yes | Your tenant API key |
+
+**Response `200 OK`**
+
+```json
+{
+  "reference": "nxa_ref_xyz789",
+  "status": "success"
+}
+```
+
+---
+
+## List transactions
+
+```
+GET /api/payments/transactions
+```
+
+**Headers**
+
+| Header | Required | Value |
+|--------|----------|-------|
+| `x-api-key` | Yes | Your tenant API key |
+
+**Query params**
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `limit` | number | `20` | Max results |
+| `offset` | number | `0` | Pagination offset |
+| `status` | string | — | Filter by status |
+
+**Response `200 OK`**
+
+```json
+{
+  "transactions": [
+    {
+      "reference": "nxa_ref_xyz789",
+      "amount": 15000,
+      "status": "success",
+      "customerEmail": "student@loretto.edu.ng",
+      "paidAt": "2026-03-15T10:22:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+---
+
+## Get payment stats
+
+Aggregated revenue and count metrics.
+
+```
+GET /api/payments/stats
+```
+
+**Headers**
+
+| Header | Required | Value |
+|--------|----------|-------|
+| `x-api-key` | Yes | Your tenant API key |
+
+**Response `200 OK`**
+
+```json
+{
+  "totalRevenue": 4500000,
+  "totalTransactions": 300,
+  "successfulTransactions": 287,
+  "failedTransactions": 13,
+  "currency": "NGN"
+}
+```
+
+---
+
+## Webhook — payment completed
+
+Nexa forwards a `POST` to your webhook URL when a payment is confirmed.
+
+**Payload**
+
+```json
+{
+  "event": "payment.completed",
+  "reference": "nxa_ref_xyz789",
+  "amount": 15000,
+  "currency": "NGN",
+  "customerEmail": "student@loretto.edu.ng",
+  "tenantId": "loretto_00123",
+  "metadata": { "studentName": "Amara Obi" },
+  "timestamp": 1742000000
+}
+```
+
+<Callout type="warn">
+  `customerEmail` and any fields you pass via `metadata` may contain personally
+  identifiable information (PII). Store and handle this data in accordance with
+  your privacy policy and applicable data-protection regulations.
+</Callout>
+
+See [REST API Overview → Webhook verification](/docs/rest-api#webhook-verification) for signature verification.

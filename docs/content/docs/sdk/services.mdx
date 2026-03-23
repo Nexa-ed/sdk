@@ -1,0 +1,84 @@
+---
+title: Services
+description: Query the Nexa services and usage quotas available to your tenant.
+---
+
+## Overview
+
+`nexa.services` lets you inspect which Nexa features are enabled for your tenant and how much of each quota you've consumed. Use this to show usage indicators in admin dashboards or gate features before attempting an operation.
+
+---
+
+## List services
+
+```ts
+const services = await nexa.services.list();
+```
+
+Returns an array of `Service` objects for every feature your tenant has access to.
+
+### `Service` type
+
+```ts
+type Service = {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  quota?: {
+    used: number;
+    limit: number;
+    resetAt: string; // ISO timestamp of next quota reset
+  };
+};
+```
+
+---
+
+## Get a single service
+
+```ts
+const service = await nexa.services.get("file-processing");
+```
+
+---
+
+## Get usage metrics
+
+```ts
+const usage = await nexa.services.getUsage("file-processing");
+// {
+//   used: 142,
+//   limit: 500,
+//   resetAt: "2026-04-01T00:00:00Z"
+// }
+```
+
+---
+
+## Example — quota gate
+
+Check before submitting a file to give users a clear error rather than a failed API call:
+
+```ts
+const usage = await nexa.services.getUsage("file-processing");
+
+if (usage.used >= usage.limit) {
+  throw new Error(
+    `Monthly page limit reached (${usage.limit}). Resets ${new Date(usage.resetAt).toLocaleDateString()}.`
+  );
+}
+
+// Safe to proceed
+await nexa.files.submit({ fileId, userId });
+```
+
+---
+
+## Common service IDs
+
+| ID | Feature |
+|----|---------|
+| `file-processing` | OCR and AI extraction pipeline |
+| `payments` | Paystack payment processing |
+| `student-emails` | Google Workspace student email provisioning |

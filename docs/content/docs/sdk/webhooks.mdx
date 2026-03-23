@@ -1,0 +1,169 @@
+---
+title: Webhooks
+description: Receive, verify, and handle Nexa webhook events for file processing and payments.
+---
+
+## How webhooks work
+
+When a file finishes processing or a payment is confirmed, Nexa sends a signed `POST` request to a URL you register in the dashboard. The SDK:
+
+1. Verifies the HMAC-SHA256 signature using your `NEXA_WEBHOOK_SECRET`
+2. Rejects events older than 5 minutes (replay protection)
+3. Parses the payload into a typed `WebhookEvent`
+4. Calls your `onFileComplete` or `onPaymentComplete` callback
+
+All of this happens automatically inside the catch-all route handler — you only implement the callbacks.
+
+---
+
+## Setup checklist
+
+**1. Register your webhook URLs** in the Nexa dashboard:
+
+| Event | URL |
+|-------|-----|
+| `file.completed` | `https://your-domain.com/api/nexa/webhook` |
+| `payment.completed` | `https://your-domain.com/api/nexa/payments/forward` |
+
+**2. Confirm `NEXA_WEBHOOK_SECRET` is set** in your environment:
+
+```bash
+NEXA_WEBHOOK_SECRET=whsec_...
+```
+
+**3. Implement your callbacks** in `lib/nexa.ts`:
+
+```ts
+export const nexa = createNexa({
+  apiKey: process.env.NEXA_API_KEY!,
+  webhookSecret: process.env.NEXA_WEBHOOK_SECRET!,
+  getUser: async () => { /* ... */ },
+
+  onFileComplete: async (event) => {
+    // called when file.completed arrives
+    await db.fileResults.upsert({ fileId: event.fileId, userId: event.userId });
+  },
+
+  onPaymentComplete: async (event) => {
+    // called when payment.completed arrives
+    await db.payments.upsert({ reference: event.reference, status: event.status });
+  },
+});
+```
+
+---
+
+## Manual verification
+
+If you need to verify a webhook in a custom route outside the SDK:
+
+```ts
+import { nexa } from "@/lib/nexa";
+
+// app/api/custom-webhook/route.ts
+export async function POST(request: Request) {
+  const event = await nexa.webhooks.verify(request);
+  // throws NexaError if signature is invalid or event is too old
+
+  if (event.type === "file.completed") {
+    await handleFileComplete(event);
+  }
+
+  return Response.json({ received: true });
+}
+```
+
+You can also adjust the replay protection window:
+
+```ts
+const event = await nexa.webhooks.verify(request, { maxAgeSeconds: 600 });
+```
+
+---
+
+## `WebhookEvent` types
+
+```ts
+type WebhookEvent =
+  | WebhookFileCompleteEvent
+  | WebhookPaymentEvent;
+```
+
+### `WebhookFileCompleteEvent`
+
+```ts
+type WebhookFileCompleteEvent = {
+  type: "file.completed";
+  fileId: string;
+  userId: string;
+  tenantId: string;
+  status: "success" | "failed";
+  records?: StudentRecord[];
+  error?: string;
+};
+```
+
+### `WebhookPaymentEvent`
+
+```ts
+type WebhookPaymentEvent = {
+  type: "payment.completed";
+  reference: string;
+  tenantId: string;
+  customerEmail: string;
+  amount: number;
+  amountPaid: number;
+  status: "success" | "failed";
+  fees: number;
+  platformFee: number;
+  netAmount: number;
+  paidAt: string | null;
+  channel: string;
+  failureReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+```
+
+---
+
+## Convex integration
+
+`@nexa-ed/convex` provides pre-built handlers that sync events straight into your Convex backend:
+
+```ts
+import { createFileCompleteHandler, createPaymentCompleteHandler } from "@nexa-ed/convex/handlers";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../convex/_generated/api";
+
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+export const nexa = createNexa({
+  // ...
+  onFileComplete: createFileCompleteHandler(convex, api),
+  onPaymentComplete: createPaymentCompleteHandler(convex, api),
+});
+```
+
+This writes to the `nexaFileResults` and `paymentTransactions` tables defined by `@nexa-ed/convex/schema`.
+
+---
+
+## Testing webhooks locally
+
+Use [ngrok](https://ngrok.com) or [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) to expose your local server:
+
+```bash
+ngrok http 3000
+# → Forwarding https://abc123.ngrok.io → localhost:3000
+```
+
+Register `https://abc123.ngrok.io/api/nexa/webhook` in the Nexa dashboard temporarily, then trigger a test event from the dashboard to verify your handler is working.
+
+---
+
+## What's next
+
+- [File Processing](/docs/sdk/files) — submit files and trigger `file.completed` events
+- [Payments](/docs/sdk/payments) — initialize payments and trigger `payment.completed` events
+- [Reference — Types](/docs/reference/types) — full type definitions

@@ -1,0 +1,118 @@
+---
+title: Node.js Overview
+description: Use Nexa in any Node.js server — Express, Fastify, Hono, or raw http.
+---
+
+The `@nexa-ed/node` package gives you everything you need to integrate Nexa into a non-Next.js server:
+
+- **`verifyWebhookPayload`** — low-level signature verifier, works with any framework
+- **`proxyProgressStream`** — SSE proxy helper; returns a `ReadableStream` you pipe to your response
+- **Framework adapters** — pre-built webhook handlers for Express, Hono, and Fastify
+- **Full core SDK re-export** — `NexaClient` for calling the Nexa API from your server
+
+## Install
+
+```bash
+# pnpm
+pnpm add @nexa-ed/node
+
+# npm
+npm install @nexa-ed/node
+```
+
+`@nexa-ed/node` re-exports everything from `@nexa-ed/sdk` — you do **not** need to install `@nexa-ed/sdk` separately.
+
+## Requirements
+
+- Node.js 18+ (uses the built-in Web Crypto API — `globalThis.crypto`)
+
+## Environment variables
+
+```bash
+NEXA_API_KEY=nxa_live_...
+NEXA_WEBHOOK_SECRET=whsec_...
+```
+
+## Core usage — `NexaClient`
+
+`NexaClient` is the same class used by all SDK adapters. Call it server-side to interact with the Nexa API:
+
+```ts
+import { NexaClient } from "@nexa-ed/node";
+
+const nexa = new NexaClient({
+  apiKey: process.env.NEXA_API_KEY!,
+  webhookSecret: process.env.NEXA_WEBHOOK_SECRET!,
+});
+
+// Submit a file for processing
+const result = await nexa.files.submit({
+  fileUrl: "https://storage.example.com/term2.pdf",
+  fileId: "file_abc123",
+  fileName: "term2-results.pdf",
+  userId: "user_abc",
+});
+console.log(result.jobId);
+
+// Verify and retrieve payment
+const payment = await nexa.payments.verify("nxa_ref_xyz");
+console.log(payment.status); // "success"
+```
+
+## Low-level webhook verification
+
+If you prefer to read the body yourself and verify manually:
+
+```ts
+import { verifyWebhookPayload } from "@nexa-ed/node";
+
+// Works inside any request handler — just pass the raw strings
+const event = await verifyWebhookPayload(
+  rawBody,          // string — the full request body before any parsing
+  signature,        // value of x-nexa-signature header
+  timestamp,        // value of x-nexa-timestamp header
+  process.env.NEXA_WEBHOOK_SECRET!,
+);
+
+if (event.event === "file.completed") {
+  console.log("File processed:", event.fileId);
+}
+```
+
+## SSE progress proxy
+
+Forward a Nexa progress stream to your client:
+
+```ts
+import http from "node:http";
+import { Readable } from "node:stream";
+import { proxyProgressStream } from "@nexa-ed/node";
+
+const server = http.createServer(async (req, res) => {
+  const fileId = req.url?.split("/").pop() ?? "";
+
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+  });
+
+  const stream = await proxyProgressStream(fileId, {
+    apiKey: process.env.NEXA_API_KEY!,
+  });
+
+  Readable.fromWeb(stream).pipe(res);
+});
+
+server.listen(3000);
+```
+
+## Framework guides
+
+| Framework | Guide |
+|-----------|-------|
+| Express | [Node.js → Express](/docs/node/express) |
+| Hono | [Node.js → Hono](/docs/node/hono) |
+| Fastify | [Node.js → Fastify](/docs/node/fastify) |
+
+For Vue, Svelte, or other frontend frameworks see [Other Frameworks](/docs/frameworks/vue).

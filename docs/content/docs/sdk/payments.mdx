@@ -1,0 +1,159 @@
+---
+title: Payments
+description: Collect school enrollment fees with Paystack — initialize, verify, and handle webhooks.
+---
+
+## How it works
+
+1. **Fetch config** — get your fee structure and Paystack public key from the Nexa dashboard
+2. **Initialize** — create a Paystack session, receive a checkout URL
+3. **Redirect** — send the student to Paystack to complete payment
+4. **Verify** — confirm the transaction after the student returns
+5. **Webhook** — Nexa forwards the confirmed event to your server
+
+Your API key stays server-side throughout — the browser calls your `/api/nexa/payments/*` proxy routes, never the Nexa API directly.
+
+---
+
+## Step 1 — Fetch payment config
+
+Retrieve your fee structure before initializing payments. You'll need this to calculate the gross amount the student pays.
+
+```ts
+const config = await nexa.payments.getConfig();
+// {
+//   platformFeePercent: 1.5,
+//   platformFeeFixed: 10000,
+//   bankDetails: { ... }
+// }
+```
+
+### Calculate the gross amount
+
+Nexa can calculate the total charge so the school receives your exact `amount` net of all fees:
+
+```ts
+import { calculateTotalAmountFromNetAmount } from "@nexa-ed/react";
+
+const grossKobo = calculateTotalAmountFromNetAmount(
+  50000,                      // ₦500 net amount you want to receive
+  config.platformFeePercent,
+  config.platformFeeFixed,
+);
+```
+
+---
+
+## Step 2 — Initialize a payment
+
+Create a Paystack session and get a checkout URL to redirect the student to.
+
+`nexa.payments.initialize()` must be called **server-side** — your API key stays on the server. Return the `authorizationUrl` to the browser, then redirect.
+
+**Server (API route / server action)**
+
+```ts
+// e.g. app/api/payments/init/route.ts (Next.js)
+const result = await nexa.payments.initialize({
+  email: "student@example.com",
+  amount: grossKobo,           // total in kobo (₦1 = 100 kobo)
+  reference: `enroll_${userId}_${Date.now()}`,
+  metadata: {
+    userId,
+    studentName: "Jane Doe",
+    category: "enrollment",
+  },
+});
+// → { authorizationUrl: "https://checkout.paystack.com/...", reference: "enroll_..." }
+return Response.json({ authorizationUrl: result.authorizationUrl });
+```
+
+**Client (browser)**
+
+```ts
+const { authorizationUrl } = await fetch("/api/payments/init", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ email, amount: grossKobo }),
+}).then(r => r.json());
+
+// Redirect the student to Paystack:
+window.location.href = authorizationUrl;
+```
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `email` | `string` | Yes | Student or payer email |
+| `amount` | `number` | Yes | Amount in **kobo** (₦1 = 100) |
+| `reference` | `string` | No | Unique ref — auto-generated if omitted |
+| `metadata` | `object` | No | Any key-value data; echoed back on the webhook |
+
+---
+
+## Step 3 — Verify after return
+
+When Paystack redirects the student back to your app, verify the transaction:
+
+```ts
+const status = await nexa.payments.verify(reference);
+// {
+//   status: "success" | "failed" | "pending",
+//   amountPaid: 52500,
+//   ...
+// }
+
+if (status.status === "success") {
+  // grant access, send confirmation email, etc.
+}
+```
+
+---
+
+## Step 4 — Handle the webhook
+
+Configure `https://your-domain.com/api/nexa/payments/forward` in the Nexa dashboard. The SDK verifies the signature and calls your callback:
+
+```ts
+// lib/nexa.ts
+createNexa({
+  // ...
+  onPaymentComplete: async (event) => {
+    await db.payments.upsert({
+      reference: event.reference,
+      status: event.status,
+      amountPaid: event.amountPaid,
+    });
+  },
+});
+```
+
+For the full event payload see [Webhooks](/docs/sdk/webhooks#webhookevent-types).
+
+---
+
+## Manual sync
+
+To pull the latest status from Paystack on demand (useful for reconciliation):
+
+```ts
+await nexa.payments.sync(reference);
+```
+
+---
+
+## React components
+
+For a complete payment UI without building it yourself:
+
+- [`<NexaPaymentWidget />`](/docs/react/components#nexapaymentwidget) — inline payment form
+- [`<EnrollmentPaymentFlow />`](/docs/react/components#enrollmentpaymentflow) — full enrollment flow with fee breakdown
+- [`<PaymentStatusDashboard />`](/docs/react/components#paymentstatusdashboard) — admin view of all transactions
+
+---
+
+## What's next
+
+- [Webhooks](/docs/sdk/webhooks) — full payload types and signature verification
+- [React Components](/docs/react/components) — pre-built payment UI

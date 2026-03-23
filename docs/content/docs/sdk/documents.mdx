@@ -1,0 +1,144 @@
+---
+title: Documents
+description: Query, edit, and manage extracted student records after file processing.
+---
+
+## Overview
+
+`nexa.documents` is the read/write layer for everything the file processing pipeline produces. You use it after a file reaches `status: "complete"` — either via the `file.completed` webhook or by polling.
+
+All methods are scoped to a `userId` — the same ID resolved by your `getUser` callback.
+
+**Typical flow after a file is processed:**
+
+1. List the user's documents to find the completed file
+2. Fetch student records for that file
+3. Review stats — pass rates, subject breakdowns
+4. Let teachers correct records with update/delete
+5. Optionally re-run AI refinement on low-quality pages
+
+---
+
+## List user documents
+
+Fetch all documents belonging to a user:
+
+```ts
+const docs = await nexa.documents.getUserDocuments(userId);
+```
+
+Each entry contains:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `fileId` | `string` | Use this to fetch records |
+| `documentTitle` | `string` | Label set during upload |
+| `status` | `string` | `"queued"` \| `"processing"` \| `"complete"` \| `"failed"` |
+| `pageCount` | `number` | Total pages in the PDF |
+| `recordCount` | `number` | Student records extracted |
+| `createdAt` | `string` | ISO timestamp |
+
+---
+
+## Get student records
+
+Fetch paginated, sortable records for a file:
+
+```ts
+const result = await nexa.documents.getStudentRecords(userId, fileId, {
+  page: 1,
+  pageSize: 50,
+  sortBy: "studentName",
+  sortOrder: "asc",
+});
+// → { records: StudentRecord[], total: number, page: number }
+```
+
+Each `StudentRecord` contains `studentName`, a `subjects` map of scores, `total`, `average`, and `grade`.
+
+---
+
+## Get document statistics
+
+Aggregated analytics for a processed file:
+
+```ts
+const stats = await nexa.documents.getStats(userId, fileId);
+// {
+//   totalRecords: 85,
+//   passCount: 72,
+//   failCount: 13,
+//   averageScore: 68.4,
+//   subjectBreakdown: { mathematics: 71.2, english: 65.8 }
+// }
+```
+
+---
+
+## Update a record
+
+Correct a student's name or subject scores:
+
+```ts
+await nexa.documents.updateRecord(userId, recordId, {
+  studentName: "Jane Doe",
+  subjects: { mathematics: 87, english: 91 },
+});
+```
+
+---
+
+## Delete a record
+
+Remove a record from a document (e.g. a duplicate or OCR artefact):
+
+```ts
+await nexa.documents.deleteRecord(userId, recordId);
+```
+
+---
+
+## Advanced — LLM refinement
+
+Re-run AI refinement on a specific page. Useful when OCR produced poor quality output on a single page without needing to reprocess the whole document.
+
+```ts
+await nexa.documents.refinePage(userId, fileId, chunkId, pageNumber);
+```
+
+---
+
+## Advanced — Confirm subject groups
+
+After the AI analyses the document, confirm or override the detected subject column groupings:
+
+```ts
+await nexa.documents.confirmSubjectGroups(userId, [
+  { name: "Mathematics", aliases: ["maths", "math", "mth"] },
+  { name: "English Language", aliases: ["english", "eng"] },
+]);
+```
+
+This affects how subjects are labelled and grouped in the records table.
+
+---
+
+## Advanced — Analysis jobs and chunks
+
+Inspect the raw pipeline state for debugging:
+
+```ts
+// Analysis jobs for a file
+const jobs = await nexa.documents.getAnalysisJobs(userId, fileId);
+
+// OCR chunks (pages) for a file
+const chunks = await nexa.documents.getChunks(userId, fileId);
+```
+
+---
+
+## What's next
+
+- [React Hooks](/docs/react/hooks) — `useGetUserDocuments`, `useGetFileStudentRecords`, and more
+- [React Components — StudentRecordsTable](/docs/react/components#studentrecordstable) — pre-built records grid with sorting and inline editing
+- [Webhooks](/docs/sdk/webhooks) — know when a file is ready to query

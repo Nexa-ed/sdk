@@ -1,0 +1,339 @@
+---
+title: Documents & Records
+description: Query student records, analysis jobs, and document data via oRPC or REST.
+---
+
+The documents API is built on [oRPC](https://orpc.unnoq.com/) — a type-safe RPC layer. All procedures are reachable via `POST /api/rpc/{router}/{procedure}`.
+
+## How oRPC calls work
+
+Every procedure is a `POST` request where the body is the procedure input:
+
+```
+POST /api/rpc/{router}/{procedure}
+Content-Type: application/json
+x-api-key: nxa_live_...
+x-user-id: user_abc123   ← optional; scopes results to that user
+
+{...input}
+```
+
+On success the response body **is** the output directly (no wrapper). On error:
+
+```json
+{ "error": { "code": "NOT_FOUND", "message": "File not found" } }
+```
+
+---
+
+## List user documents
+
+```
+POST /api/rpc/documents/getUserDocuments
+```
+
+**Body**
+
+```json
+{}
+```
+
+**Response**
+
+```json
+{
+  "documents": [
+    {
+      "id": "doc_abc",
+      "fileId": "file_abc123",
+      "fileName": "term2-results.pdf",
+      "documentTitle": "Term 2 Results 2026",
+      "status": "complete",
+      "recordCount": 34,
+      "createdAt": "2026-03-15T10:22:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## Get student records for a file
+
+```
+POST /api/rpc/documents/getFileStudentRecords
+```
+
+**Body**
+
+```json
+{
+  "fileId": "file_abc123",
+  "page": 1,
+  "pageSize": 50
+}
+```
+
+**Response**
+
+```json
+{
+  "records": [
+    {
+      "id": "rec_001",
+      "studentName": "Amara Obi",
+      "subjects": { "Maths": 87, "English": 92, "Science": 78 },
+      "total": 257,
+      "average": 85.7,
+      "grade": "A"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "pageSize": 50,
+    "total": 34
+  }
+}
+```
+
+---
+
+## Get analysis job for a file
+
+```
+POST /api/rpc/documents/getLatestAnalysisJobForFile
+```
+
+**Body**
+
+```json
+{ "fileId": "file_abc123" }
+```
+
+**Response**
+
+```json
+{
+  "id": "job_xyz789",
+  "fileId": "file_abc123",
+  "status": "complete",
+  "totalPages": 8,
+  "processedPages": 8,
+  "startedAt": "2026-03-15T10:20:00Z",
+  "completedAt": "2026-03-15T10:22:00Z"
+}
+```
+
+---
+
+## Get file statistics
+
+```
+POST /api/rpc/documents/getFileStatistics
+```
+
+**Body**
+
+```json
+{ "fileId": "file_abc123" }
+```
+
+**Response**
+
+```json
+{
+  "fileId": "file_abc123",
+  "totalRecords": 34,
+  "totalPages": 8,
+  "averageScore": 71.4,
+  "gradeDistribution": {
+    "A": 8,
+    "B": 12,
+    "C": 10,
+    "D": 3,
+    "F": 1
+  }
+}
+```
+
+---
+
+## Get page records with LLM refinement
+
+Returns records for a specific page, optionally triggering LLM refinement if not yet run.
+
+```
+POST /api/rpc/documents/getPageRecordsWithRefinement
+```
+
+**Body**
+
+```json
+{
+  "fileId": "file_abc123",
+  "pageNumber": 2,
+  "refine": true
+}
+```
+
+**Response**
+
+```json
+{
+  "pageNumber": 2,
+  "records": [
+    {
+      "id": "rec_010",
+      "studentName": "Chidi Eze",
+      "subjects": { "Maths": 74, "English": 81 },
+      "total": 155,
+      "average": 77.5,
+      "grade": "B"
+    }
+  ],
+  "refined": true
+}
+```
+
+---
+
+## Trigger LLM refinement for a page
+
+```
+POST /api/rpc/documents/refinePageWithLLM
+```
+
+**Body**
+
+```json
+{
+  "fileId": "file_abc123",
+  "pageNumber": 2
+}
+```
+
+**Response**
+
+```json
+{
+  "success": true,
+  "refinedRecords": 5,
+  "corrections": 3
+}
+```
+
+---
+
+## Update a student record
+
+```
+POST /api/rpc/documents/updateRecord
+```
+
+**Body**
+
+```json
+{
+  "recordId": "rec_001",
+  "patch": {
+    "subjects": { "Maths": 90 },
+    "total": 260,
+    "grade": "A"
+  }
+}
+```
+
+**Response**
+
+```json
+{
+  "success": true,
+  "record": {
+    "id": "rec_001",
+    "studentName": "Amara Obi",
+    "subjects": { "Maths": 90, "English": 92, "Science": 78 },
+    "total": 260,
+    "average": 86.7,
+    "grade": "A"
+  }
+}
+```
+
+---
+
+## Delete a student record
+
+```
+POST /api/rpc/documents/deleteRecord
+```
+
+**Body**
+
+```json
+{ "recordId": "rec_001" }
+```
+
+**Response**
+
+```json
+{ "success": true }
+```
+
+---
+
+## Confirm subject groups
+
+After LLM analysis, confirm or override the detected subject column groupings.
+
+```
+POST /api/rpc/documents/confirmSubjectGroups
+```
+
+**Body**
+
+```json
+{
+  "fileId": "file_abc123",
+  "groups": [
+    { "key": "maths", "label": "Mathematics", "type": "score" },
+    { "key": "eng", "label": "English Language", "type": "score" }
+  ]
+}
+```
+
+**Response**
+
+```json
+{ "success": true, "confirmedGroups": 2 }
+```
+
+---
+
+## Get file chunks
+
+Raw OCR chunks for a file — useful for debugging extraction quality.
+
+```
+POST /api/rpc/documents/getFileChunks
+```
+
+**Body**
+
+```json
+{ "fileId": "file_abc123" }
+```
+
+**Response**
+
+```json
+{
+  "chunks": [
+    {
+      "id": "chunk_001",
+      "pageNumber": 1,
+      "rawText": "Student Name | Maths | English ...",
+      "status": "refined"
+    }
+  ]
+}
+```

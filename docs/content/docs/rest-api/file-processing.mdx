@@ -1,0 +1,379 @@
+---
+title: File Processing
+description: Submit PDFs for OCR processing and stream real-time progress via the REST API.
+---
+
+## Upload and process a file
+
+The recommended way to send a file through the pipeline. Handles upload and dispatch in a single request.
+
+```
+POST /api/file-processing/tenant-upload-and-process
+```
+
+**Headers**
+
+| Header | Required | Value |
+|--------|----------|-------|
+| `x-api-key` | Yes | Your tenant API key |
+| `x-user-id` | Yes | User to associate with this file |
+| `Content-Type` | Yes | `multipart/form-data` |
+
+**Body** — multipart form with a single `file` field (PDF, max 64 MB).
+
+**Response `200 OK`**
+
+```json
+{
+  "success": true,
+  "fileId": "file_abc123"
+}
+```
+
+Use `fileId` to poll progress or query records.
+
+**Example (cURL)**
+
+```bash
+curl -X POST https://nexa-ed.com/api/file-processing/tenant-upload-and-process \
+  -H "x-api-key: nxa_live_..." \
+  -H "x-user-id: user_abc123" \
+  -F "file=@/path/to/term2-results.pdf"
+```
+
+**Example (Python)**
+
+```python
+import requests
+
+with open("term2-results.pdf", "rb") as f:
+    response = requests.post(
+        "https://nexa-ed.com/api/file-processing/tenant-upload-and-process",
+        headers={
+            "x-api-key": "nxa_live_...",
+            "x-user-id": "user_abc123",
+        },
+        files={"file": ("term2-results.pdf", f, "application/pdf")},
+    )
+file_id = response.json()["fileId"]
+```
+
+<Callout type="info">
+  **Browser upload?** Use the two-phase flow below to avoid the file passing through your
+  server. The `/tenant-upload-and-process` endpoint above is ideal for server-to-server
+  or CLI usage.
+</Callout>
+
+---
+
+## Browser-direct upload (two-phase)
+
+For browser clients where you don't want the file passing through your server:
+
+### Phase 1 — Request an upload token
+
+```
+POST /api/file-processing/upload-token
+```
+
+**Headers**
+
+| Header | Required | Value |
+|--------|----------|-------|
+| `x-api-key` | Yes | Your tenant API key (server-side only) |
+| `x-user-id` | Yes | User to associate with this file |
+| `Content-Type` | Yes | `application/json` |
+
+**Body**
+
+```json
+{
+  "name": "term2-results.pdf",
+  "size": 2048576,
+  "type": "application/pdf"
+}
+```
+
+**Response `200 OK`**
+
+```json
+{
+  "token": "eyJ...",
+  "uploadUrl": "https://nexa-ed.com/api/file-processing/tenant-upload-and-process"
+}
+```
+
+The token is valid for **2 minutes**.
+
+### Phase 2 — Upload directly from the browser
+
+```
+POST {uploadUrl}
+```
+
+**Headers**
+
+| Header | Required | Value |
+|--------|----------|-------|
+| `x-upload-token` | Yes | Token from Phase 1 |
+| `Content-Type` | Yes | `multipart/form-data` |
+
+**Body** — same as above: multipart `file` field, PDF only, max 64 MB.
+
+**Response `200 OK`** — same shape as the single-step endpoint: `{ success: true, fileId }`.
+
+**Example (browser JavaScript)**
+
+```js
+// Phase 1 — run server-side (your API route, not the browser)
+const { token, uploadUrl } = await fetch("/api/your-prepare-route", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ name: file.name, size: file.size, type: file.type }),
+}).then(r => r.json());
+
+// Phase 2 — run in the browser
+const form = new FormData();
+form.append("file", file);
+const { fileId } = await fetch(uploadUrl, {
+  method: "POST",
+  headers: { "x-upload-token": token },
+  body: form,
+}).then(r => r.json());
+```
+
+<Callout type="info">
+  Using Next.js? The `@nexa-ed/next` SDK handles Phase 1 automatically via the
+  `/api/nexa/prepare` route. The `useUploadFile` hook and `<UploadZone />` component
+  implement the full two-phase flow out of the box.
+</Callout>
+
+---
+
+## Submit a file for processing
+
+Kick off the OCR pipeline for an already-uploaded file. Returns immediately with a `jobId` — processing happens asynchronously.
+
+```
+POST /api/file-processing/extract
+```
+
+**Headers**
+
+| Header | Required | Value |
+|--------|----------|-------|
+| `x-api-key` | Yes | Your tenant API key |
+| `x-user-id` | No | User to associate with this file |
+| `Content-Type` | Yes | `application/json` |
+
+**Body**
+
+```json
+{
+  "fileUrl": "https://uploadthing.com/f/abc123.pdf",
+  "fileId": "file_abc123",
+  "fileName": "term2-results.pdf",
+  "extractionType": "document_ai"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `fileUrl` | string | Yes | Publicly accessible URL of the uploaded PDF |
+| `fileId` | string | Yes | Your identifier for this file |
+| `fileName` | string | No | Human-readable name |
+| `extractionType` | string | No | `"document_ai"` (default) or `"tesseract"` |
+
+**Response `202 Accepted`**
+
+```json
+{
+  "success": true,
+  "status": "pending",
+  "jobId": "job_xyz789"
+}
+```
+
+**Example (cURL)**
+
+```bash
+curl -X POST https://nexa-ed.com/api/file-processing/extract \
+  -H "x-api-key: nxa_live_..." \
+  -H "x-user-id: user_abc123" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fileUrl": "https://uploadthing.com/f/abc123.pdf",
+    "fileId": "file_abc123",
+    "fileName": "term2-results.pdf"
+  }'
+```
+
+**Example (Python)**
+
+```python
+import requests
+
+response = requests.post(
+    "https://nexa-ed.com/api/file-processing/extract",
+    headers={
+        "x-api-key": "nxa_live_...",
+        "x-user-id": "user_abc123",
+    },
+    json={
+        "fileUrl": "https://uploadthing.com/f/abc123.pdf",
+        "fileId": "file_abc123",
+        "fileName": "term2-results.pdf",
+    },
+)
+data = response.json()
+job_id = data["jobId"]
+```
+
+---
+
+## Stream processing progress
+
+Subscribe to real-time SSE events for a file. The stream closes automatically when processing completes or fails.
+
+```
+GET /api/file-processing/progress/:fileId
+```
+
+**Headers**
+
+| Header | Required | Value |
+|--------|----------|-------|
+| `x-api-key` | Yes | Your tenant API key |
+| `Accept` | Yes | `text/event-stream` |
+
+**SSE events**
+
+Each event is a JSON object in the `data:` field:
+
+```
+data: {"stage":"ocr","progress":45,"message":"Extracting page 3 of 8"}
+
+data: {"stage":"analysis","progress":80,"message":"Running LLM refinement"}
+
+data: {"stage":"complete","progress":100,"fileId":"file_abc123","recordCount":34}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `stage` | string | `"queued"` \| `"ocr"` \| `"analysis"` \| `"complete"` \| `"failed"` |
+| `progress` | number | 0–100 |
+| `message` | string | Human-readable status |
+| `fileId` | string | Echoed on completion |
+| `recordCount` | number | Number of student records extracted (on `complete`) |
+| `error` | string | Error message (on `failed`) |
+
+**Example (Python with sseclient)**
+
+```python
+import sseclient, requests
+
+with requests.get(
+    f"https://nexa-ed.com/api/file-processing/progress/{file_id}",
+    headers={"x-api-key": "nxa_live_...", "Accept": "text/event-stream"},
+    stream=True,
+) as resp:
+    client = sseclient.SSEClient(resp)
+    for event in client.events():
+        import json
+        data = json.loads(event.data)
+        print(f"{data['stage']}: {data['progress']}%")
+        if data["stage"] in ("complete", "failed"):
+            break
+```
+
+**Example (Node.js EventSource)**
+
+```js
+const { EventSource } = require("eventsource");
+
+const es = new EventSource(
+  `https://nexa-ed.com/api/file-processing/progress/${fileId}`,
+  { headers: { "x-api-key": process.env.NEXA_API_KEY } },
+);
+
+es.onmessage = (e) => {
+  const data = JSON.parse(e.data);
+  console.log(`${data.stage}: ${data.progress}%`);
+  if (data.stage === "complete" || data.stage === "failed") es.close();
+};
+```
+
+---
+
+## Check file status
+
+Lightweight polling alternative to SSE.
+
+```
+GET /api/file-processing/status?fileId=file_abc123
+```
+
+**Response `200 OK`**
+
+```json
+{
+  "fileId": "file_abc123",
+  "status": "processing",
+  "progress": 45,
+  "stage": "ocr"
+}
+```
+
+---
+
+## List processed files
+
+```
+GET /api/file-processing/history
+```
+
+**Query params**
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `userId` | string | — | Filter by user |
+| `limit` | number | `20` | Max results |
+| `offset` | number | `0` | Pagination offset |
+
+**Response**
+
+```json
+{
+  "files": [
+    {
+      "fileId": "file_abc123",
+      "fileName": "term2-results.pdf",
+      "status": "complete",
+      "recordCount": 34,
+      "createdAt": "2026-03-15T10:22:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+---
+
+## Webhook — file completed
+
+When processing finishes, Nexa sends a `POST` to your configured webhook URL.
+
+**Payload**
+
+```json
+{
+  "event": "file.completed",
+  "fileId": "file_abc123",
+  "userId": "user_abc123",
+  "tenantId": "loretto_00123",
+  "recordCount": 34,
+  "timestamp": 1742000000
+}
+```
+
+See [REST API Overview → Webhook verification](/docs/rest-api#webhook-verification) for how to verify the signature.

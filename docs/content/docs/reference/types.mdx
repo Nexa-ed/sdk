@@ -1,0 +1,179 @@
+---
+title: Types Reference
+description: Complete TypeScript type definitions for the Nexa SDK.
+---
+
+All types are exported from `@nexa-ed/sdk` (and re-exported from `@nexa-ed/next`).
+
+## File types
+
+```ts
+type FileProgressEvent =
+  | { type: "progress"; stage: string; progress: number; message: string }
+  | { type: "complete"; records: StudentRecord[] }
+  | { type: "error"; message: string };
+
+type DocumentSummary = {
+  fileId: string;
+  documentTitle: string;
+  status: "queued" | "processing" | "complete" | "failed";
+  pageCount: number;
+  recordCount: number;
+  createdAt: string;
+};
+
+type StudentRecord = {
+  recordId: string;
+  fileId: string;
+  pageNumber: number;
+  studentName: string;
+  subjects: Record<string, number | null>;
+  total: number | null;
+  grade: string | null;
+  position: number | null;
+  rawText: string;
+};
+```
+
+## Payment types
+
+```ts
+type PaymentMetadata = {
+  userId?: string;
+  studentName?: string;
+  category?: "enrollment" | "exam" | "tuition" | "other";
+  [key: string]: string | undefined;
+};
+
+type PaymentTransaction = {
+  reference: string;
+  tenantId: string;
+  customerEmail: string;
+  amount: number;
+  amountPaid: number;
+  status: "success" | "failed" | "pending" | "abandoned";
+  fees: number;
+  platformFee: number;
+  netAmount: number;
+  paidAt: string | null;
+  channel: string;
+  failureReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type PaymentConfig = {
+  platformFeePercent: number;
+  platformFeeFixed: number;
+  currency: string;
+  bankDetails?: {
+    bankName: string;
+    accountNumber: string;
+    accountName: string;
+  };
+};
+
+type PaymentStats = {
+  totalTransactions: number;
+  successCount: number;
+  failedCount: number;
+  totalRevenue: number;
+  totalNetRevenue: number;
+  averageAmount: number;
+};
+
+type PaymentError = {
+  code: string;
+  message: string;
+};
+```
+
+## Webhook types
+
+```ts
+type WebhookFileCompleteEvent = {
+  type: "file.completed";
+  fileId: string;
+  userId: string;
+  tenantId: string;
+  status: "success" | "failed";
+  records?: StudentRecord[];
+  error?: string;
+};
+
+type WebhookPaymentEvent = {
+  type: "payment.completed";
+  reference: string;
+  tenantId: string;
+  customerEmail: string;
+  amount: number;
+  amountPaid: number;
+  status: "success" | "failed";
+  fees: number;
+  platformFee: number;
+  netAmount: number;
+  paidAt: string | null;
+  channel: string;
+  failureReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type WebhookEvent = WebhookFileCompleteEvent | WebhookPaymentEvent;
+```
+
+## Analysis types
+
+```ts
+type AnalysisJob = {
+  jobId: string;
+  fileId: string;
+  status: "pending" | "running" | "complete" | "failed";
+  chunkId: string;
+  pageNumber: number;
+  createdAt: string;
+  completedAt: string | null;
+};
+
+type ChunkSummary = {
+  chunkId: string;
+  fileId: string;
+  pageStart: number;
+  pageEnd: number;
+  recordCount: number;
+  status: "pending" | "complete" | "failed";
+};
+```
+
+## Convex integration
+
+`@nexa-ed/convex` adds these schema fragments and types:
+
+```ts
+// nexaFilesSchema — spread into defineSchema()
+const nexaFilesSchema = {
+  nexaFileResults: defineTable({
+    fileId: v.string(),
+    userId: v.string(),
+    tenantId: v.string(),
+    status: v.union(v.literal("success"), v.literal("failed")),
+    completedAt: v.string(),
+  })
+    .index("by_fileId", ["fileId"])
+    .index("by_userId", ["userId"]),
+};
+
+// nexaPaymentsSchema — spread into defineSchema()
+const nexaPaymentsSchema = {
+  paymentTransactions: defineTable({
+    reference: v.string(),
+    tenantId: v.string(),
+    customerEmail: v.string(),
+    amount: v.number(),
+    status: v.string(),
+    // ... all PaymentTransaction fields
+  })
+    .index("by_reference", ["reference"])
+    .index("by_email", ["customerEmail"]),
+};
+```

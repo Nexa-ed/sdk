@@ -1,0 +1,88 @@
+---
+title: Error Reference
+description: SDK error codes and how to handle them.
+---
+
+## NexaError
+
+All SDK errors extend `NexaError`:
+
+```ts
+try {
+  await nexa.files.submit({ ... });
+} catch (err) {
+  if (err instanceof NexaError) {
+    console.error(err.code, err.message, err.status);
+  }
+}
+```
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `code` | `string` | Machine-readable error code (see below) |
+| `message` | `string` | Human-readable description |
+| `status` | `number` | HTTP status code from the Nexa API |
+
+## Error codes
+
+### Authentication errors
+
+| Code | Status | Description |
+|------|--------|-------------|
+| `UNAUTHORIZED` | 401 | Missing or invalid API key |
+| `FORBIDDEN` | 403 | API key doesn't have permission for this operation |
+| `WEBHOOK_SIGNATURE_INVALID` | 400 | HMAC signature doesn't match — possible replay or tamper |
+
+### File processing errors
+
+| Code | Status | Description |
+|------|--------|-------------|
+| `FILE_NOT_FOUND` | 404 | No file with this `fileId` for the tenant |
+| `FILE_PROCESSING_FAILED` | 422 | OCR/AI pipeline failed — check `error` field in webhook |
+| `FILE_QUOTA_EXCEEDED` | 429 | Tenant page quota exhausted |
+| `INVALID_FILE_TYPE` | 400 | Only PDF files are supported |
+
+### Payment errors
+
+| Code | Status | Description |
+|------|--------|-------------|
+| `PAYMENT_NOT_FOUND` | 404 | No payment with this `reference` |
+| `PAYMENT_VERIFICATION_FAILED` | 422 | Paystack could not verify this reference |
+| `PAYMENT_CONFIG_MISSING` | 500 | Tenant payment config not set up — contact Nexa support |
+
+### General errors
+
+| Code | Status | Description |
+|------|--------|-------------|
+| `VALIDATION_ERROR` | 400 | Request body failed validation — check `message` for details |
+| `RATE_LIMITED` | 429 | Too many requests — back off and retry |
+| `UPSTREAM_ERROR` | 502 | Nexa's upstream service returned an error |
+| `INTERNAL_ERROR` | 500 | Unexpected server error — contact Nexa support |
+
+## Webhook errors
+
+Webhook handlers should **throw** on failure so the SDK returns a non-2xx status, causing Nexa to retry:
+
+```ts
+onFileComplete: async ({ fileId, userId }) => {
+  try {
+    await db.save({ fileId, userId });
+  } catch (err) {
+    // throwing causes SDK to return 500 → Nexa retries
+    throw err;
+  }
+},
+```
+
+Nexa retries failed webhooks up to 5 times with exponential backoff.
+
+## `useFileProgress` errors
+
+```tsx
+const { error } = useFileProgress(fileId);
+
+if (error) {
+  // error is a plain string message from the SSE stream
+  return <Alert>{error}</Alert>;
+}
+```

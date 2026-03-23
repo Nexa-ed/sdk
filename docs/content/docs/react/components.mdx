@@ -1,0 +1,217 @@
+---
+title: UI Components
+description: Drop-in React components for teacher dashboards, file upload, and payment flows.
+---
+
+All components are pure Tailwind — no shadcn/ui dependency. Wrap your app in `<NexaProvider>` once and every component picks up the correct API base path automatically.
+
+## Setup
+
+```tsx title="app/layout.tsx"
+import { NexaProvider } from "@nexa-ed/react";
+
+export default function RootLayout({ children }) {
+  return (
+    <NexaProvider basePath="/api/nexa"> {/* basePath is optional, defaults to /api/nexa */}
+      {children}
+    </NexaProvider>
+  );
+}
+```
+
+---
+
+## ResultsViewerSheet
+
+A slide-over panel with three tabs: **Pipeline**, **Records**, and **Stats**.
+
+```tsx
+import { ResultsViewerSheet } from "@nexa-ed/react";
+
+<ResultsViewerSheet
+  fileId="file_xyz"       // optional — shows document selector if omitted
+  userId="user_abc"       // optional — resolved server-side if omitted
+/>
+```
+
+---
+
+## UploadZone
+
+Drag-and-drop file upload wired to `nexa.files.submit()`.
+
+```tsx
+import { UploadZone } from "@nexa-ed/react";
+
+<UploadZone
+  userId="user_abc"
+  onFileSubmitted={(fileId) => console.log("Submitted:", fileId)}
+  accept=".pdf"
+/>
+```
+
+---
+
+## DocumentSelector
+
+Lists a user's uploaded documents with processing status badges.
+
+```tsx
+import { DocumentSelector } from "@nexa-ed/react";
+
+<DocumentSelector
+  userId="user_abc"
+  onSelect={(fileId) => setSelectedFile(fileId)}
+  selectedFileId={selectedFile}
+/>
+```
+
+---
+
+## StatusBanner
+
+Shows the current processing status for a file (queued → extracting → refining → complete).
+
+```tsx
+import { StatusBanner } from "@nexa-ed/react";
+
+<StatusBanner fileId="file_xyz" userId="user_abc" />
+```
+
+---
+
+## PipelineTimeline
+
+Detailed step-by-step OCR pipeline visualization with per-stage timing.
+
+```tsx
+import { PipelineTimeline } from "@nexa-ed/react";
+
+<PipelineTimeline fileId="file_xyz" userId="user_abc" />
+```
+
+---
+
+## StudentRecordsTable
+
+Paginated table of student records with sorting and row selection.
+
+```tsx
+import { StudentRecordsTable } from "@nexa-ed/react";
+
+<StudentRecordsTable fileId="file_xyz" userId="user_abc" pageSize={25} />
+```
+
+---
+
+## RecordDataGrid
+
+Full CRUD data grid: inline editing, bulk delete, row reordering, and CSV export.
+
+```tsx
+import { RecordDataGrid } from "@nexa-ed/react";
+
+<RecordDataGrid fileId="file_xyz" userId="user_abc" />
+```
+
+---
+
+## PageDetailPanel
+
+Per-page record review with the original scanned image alongside extracted fields.
+
+```tsx
+import { PageDetailPanel } from "@nexa-ed/react";
+
+<PageDetailPanel
+  fileId="file_xyz"
+  userId="user_abc"
+  pageNumber={3}
+/>
+```
+
+---
+
+## StatsPanel
+
+Subject pass/fail rates, average scores, and grade distribution charts.
+
+```tsx
+import { StatsPanel } from "@nexa-ed/react";
+
+<StatsPanel fileId="file_xyz" userId="user_abc" />
+```
+
+---
+
+## NexaPaymentWidget
+
+Standalone payment widget: loads fee config, displays the total, opens Paystack checkout, and polls for completion.
+
+```tsx
+import { NexaPaymentWidget } from "@nexa-ed/react";
+
+<NexaPaymentWidget
+  email="student@example.com"
+  netAmount={5000_00}          // kobo — school receives this amount
+  metadata={{ userId, category: "enrollment" }}
+  onSuccess={(ref) => router.push(`/success?ref=${ref}`)}
+  onError={(err) => toast.error(err.message)}
+/>
+```
+
+### Props
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `email` | `string` | Customer email for Paystack |
+| `netAmount` | `number` | Amount school receives (kobo). Widget auto-calculates gross. |
+| `metadata` | `PaymentMetadata` | Passed through to webhook |
+| `onSuccess` | `(reference: string) => void` | Called when payment is confirmed |
+| `onError` | `(error: PaymentError) => void` | Called on failure |
+| `reference` | `string?` | Custom reference; auto-generated if omitted |
+
+---
+
+## EnrollmentPaymentFlow
+
+3-step flow: fee breakdown → payment → confirmation receipt.
+
+```tsx
+import { EnrollmentPaymentFlow } from "@nexa-ed/react";
+
+<EnrollmentPaymentFlow
+  email="student@example.com"
+  studentName="Jane Doe"
+  examFee={2000_00}             // kobo
+  enrollmentFee={3000_00}       // kobo — optional
+  metadata={{ userId, category: "enrollment" }}
+  onComplete={(ref) => markEnrolled(ref)}
+/>
+```
+
+---
+
+## PaymentConfigPanel
+
+Admin UI to view and update the platform fee configuration.
+
+```tsx
+import { PaymentConfigPanel } from "@nexa-ed/react";
+
+<PaymentConfigPanel />
+```
+
+Renders a form with fee percentage, fixed fee, and bank account fields. Calls `GET/POST /api/nexa/payments/config` automatically.
+
+---
+
+## PaymentStatusDashboard
+
+Transaction list with search, status filter, date range, and CSV export.
+
+```tsx
+import { PaymentStatusDashboard } from "@nexa-ed/react";
+
+<PaymentStatusDashboard defaultPageSize={20} />
+```

@@ -1,0 +1,120 @@
+---
+title: Hono
+description: Integrate Nexa webhooks and file processing into a Hono app.
+---
+
+Hono works on Cloudflare Workers, Bun, Deno, and Node.js. `@nexa-ed/node/hono` uses `c.req.text()` for body reading, so it works across all Hono runtimes that expose the Web `Request` interface.
+
+## Install
+
+```bash
+pnpm add @nexa-ed/node hono
+```
+
+## Full example
+
+```ts
+// app.ts
+import { Hono } from "hono";
+import { NexaClient, proxyProgressStream } from "@nexa-ed/node";
+import { createWebhookHandler } from "@nexa-ed/node/hono";
+
+if (!process.env.NEXA_API_KEY || !process.env.NEXA_WEBHOOK_SECRET) {
+  throw new Error("NEXA_API_KEY and NEXA_WEBHOOK_SECRET must be set");
+}
+
+const app = new Hono();
+const nexa = new NexaClient({
+  apiKey: process.env.NEXA_API_KEY,
+  webhookSecret: process.env.NEXA_WEBHOOK_SECRET,
+});
+
+// ── Webhook ───────────────────────────────────────────────────────────────────
+app.post(
+  "/webhooks/nexa",
+  createWebhookHandler({
+    webhookSecret: process.env.NEXA_WEBHOOK_SECRET!,
+    onFileComplete: async (event) => {
+      console.log("File processed:", event.fileId, "records:", event.recordCount);
+    },
+    onPaymentComplete: async (event) => {
+      console.log("Payment confirmed:", event.reference);
+    },
+  }),
+);
+
+// ── SSE progress proxy ────────────────────────────────────────────────────────
+app.get("/progress/:fileId", async (c) => {
+  const fileId = c.req.param("fileId");
+  if (!fileId) return c.json({ error: "fileId is required" }, 400);
+
+  try {
+    const stream = await proxyProgressStream(fileId, {
+      apiKey: process.env.NEXA_API_KEY ?? "",
+    });
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+      },
+    });
+  } catch (err) {
+    return c.json({ error: "Failed to open progress stream" }, 502);
+  }
+});
+
+// ── Submit a file ─────────────────────────────────────────────────────────────
+app.post("/process", async (c) => {
+  try {
+    const { fileUrl, fileId, userId } = await c.req.json<{
+      fileUrl: string;
+      fileId: string;
+      userId?: string;
+    }>();
+    if (!fileUrl || !fileId) {
+      return c.json({ error: "fileUrl and fileId are required" }, 400);
+    }
+    const result = await nexa.files.submit({ fileUrl, fileId, userId });
+    return c.json(result);
+  } catch (err) {
+    return c.json({ error: "Failed to submit file for processing" }, 500);
+  }
+});
+
+export default app;
+```
+
+## Node.js server
+
+```ts
+// server.ts
+import { serve } from "@hono/node-server";
+import app from "./app";
+
+serve({ fetch: app.fetch, port: 3000 }, () =>
+  console.log("Listening on :3000"),
+);
+```
+
+## Cloudflare Workers
+
+No extra setup needed — Hono on Workers uses the same `Request` interface:
+
+```ts
+// worker.ts
+import app from "./app";
+export default app;
+```
+
+## Bun
+
+```ts
+// index.ts
+import app from "./app";
+export default { port: 3000, fetch: app.fetch };
+```
+
+## No middleware needed
+
+Unlike Express, Hono does not parse request bodies before route handlers run. `c.req.text()` always returns the raw body string, so webhook verification works out of the box with no configuration.

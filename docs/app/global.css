@@ -1,0 +1,71 @@
+@import "fumadocs-ui/style.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== Nexa brand theme — overrides fumadocs-ui defaults ===== */
+/* Variables are raw HSL values (no hsl() wrapper) to match fumadocs-ui convention */
+
+:root {
+  /* Light mode */
+  --fd-background: 240 20% 99%;
+  --fd-foreground: 220 15% 12%;
+
+  --fd-card: 0 0% 100%;
+  --fd-card-foreground: 220 15% 12%;
+
+  --fd-popover: 0 0% 100%;
+  --fd-popover-foreground: 220 15% 12%;
+
+  --fd-primary: 158 64% 48%;
+  --fd-primary-foreground: 0 0% 100%;
+
+  --fd-secondary: 220 15% 95%;
+  --fd-secondary-foreground: 220 15% 12%;
+
+  --fd-muted: 220 15% 95%;
+  --fd-muted-foreground: 220 10% 45%;
+
+  --fd-accent: 220 15% 93%;
+  --fd-accent-foreground: 220 15% 12%;
+
+  --fd-border: 220 15% 90%;
+  --fd-ring: 158 64% 48%;
+}
+
+.dark {
+  /* Dark mode — matches Nexa platform default */
+  --fd-background: 0 0% 2%;
+  --fd-foreground: 0 0% 95%;
+
+  --fd-card: 0 0% 5%;
+  --fd-card-foreground: 0 0% 95%;
+
+  --fd-popover: 0 0% 5%;
+  --fd-popover-foreground: 0 0% 95%;
+
+  --fd-primary: 158 64% 52%;
+  --fd-primary-foreground: 0 0% 5%;
+
+  --fd-secondary: 0 0% 10%;
+  --fd-secondary-foreground: 0 0% 95%;
+
+  --fd-muted: 0 0% 10%;
+  --fd-muted-foreground: 0 0% 62%;
+
+  --fd-accent: 0 0% 13%;
+  --fd-accent-foreground: 0 0% 90%;
+
+  --fd-border: 0 0% 13%;
+  --fd-ring: 158 64% 52%;
+}
+
+@layer base {
+  * {
+    @apply border-fd-border;
+  }
+  body {
+    @apply bg-fd-background text-fd-foreground;
+  }
+}

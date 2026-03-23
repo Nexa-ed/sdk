@@ -1,0 +1,91 @@
+---
+title: Hooks
+description: React hooks for file progress streaming and document data fetching.
+---
+
+## useFileProgress
+
+Connects to `/api/nexa/progress/:fileId` via `EventSource` and streams real-time progress events.
+
+```tsx
+import { useFileProgress } from "@nexa-ed/react";
+
+function UploadStatus({ fileId }: { fileId: string }) {
+  const { progress, stage, message, isComplete, records, error } =
+    useFileProgress(fileId);
+
+  if (error) return <p>Error: {error}</p>;
+  if (isComplete) return <p>Extracted {records.length} records</p>;
+
+  return (
+    <div>
+      <p>{stage}: {message}</p>
+      <progress value={progress} max={100} />
+    </div>
+  );
+}
+```
+
+### Return value
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `progress` | `number` | 0–100 |
+| `stage` | `string` | Current pipeline stage name |
+| `message` | `string` | Human-readable status message |
+| `isComplete` | `boolean` | `true` when extraction finished |
+| `records` | `StudentRecord[]` | Extracted records (populated when complete) |
+| `error` | `string \| null` | Error message if pipeline failed |
+
+The hook automatically closes the `EventSource` connection when `isComplete` is `true` or the component unmounts.
+
+## useNexaContext
+
+Access the configured base path and other SDK context values:
+
+```tsx
+import { useNexaContext } from "@nexa-ed/react";
+
+function MyComponent() {
+  const { basePath } = useNexaContext();
+  // basePath = "/api/nexa" (or whatever you set in NexaProvider)
+
+  const res = await fetch(`${basePath}/rpc`);
+}
+```
+
+This hook is used internally by all components — you rarely need it directly.
+
+## useUploadFile
+
+Handles the full upload flow: get a presigned URL → PUT the file → submit for processing.
+
+```tsx
+import { useUploadFile } from "@nexa-ed/react";
+
+function Uploader({ userId }: { userId: string }) {
+  const { upload, isUploading, progress, fileId, error } =
+    useUploadFile({ userId });
+
+  return (
+    <input
+      type="file"
+      accept=".pdf"
+      onChange={(e) => {
+        const file = e.target.files?.[0];
+        if (file) upload(file);
+      }}
+    />
+  );
+}
+```
+
+### Return value
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `upload` | `(file: File) => Promise<string>` | Returns `fileId` on success |
+| `isUploading` | `boolean` | `true` while upload + submit is in progress |
+| `progress` | `number` | Upload byte progress 0–100 |
+| `fileId` | `string \| null` | Set after successful submission |
+| `error` | `string \| null` | Error message on failure |

@@ -1,0 +1,207 @@
+---
+title: Vue 3
+description: Integrate Nexa into a Vue 3 app using the core SDK and composables.
+---
+
+Vue 3 apps call the Nexa API through your own backend (not directly from the browser). The `@nexa-ed/sdk` core package is used server-side; on the client you call your own API routes.
+
+## Architecture
+
+```
+Browser (Vue 3)
+  ↓  fetch /api/nexa/...
+Your server (Express / Fastify / Hono / Nitro)
+  ↓  NexaClient
+Nexa platform (nexa-ed.com)
+```
+
+Your API key never touches the browser. Vue components call your server, which proxies to Nexa.
+
+## Server setup
+
+Set up your server with `@nexa-ed/node` — see [Node.js guides](/docs/node) for Express, Hono, and Fastify. Then expose the endpoints your Vue app needs.
+
+**Example (Hono server)**
+
+```ts
+// server/app.ts
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { NexaClient, proxyProgressStream } from "@nexa-ed/node";
+import { createWebhookHandler } from "@nexa-ed/node/hono";
+
+const app = new Hono();
+app.use("*", cors());
+
+const nexa = new NexaClient({
+  apiKey: process.env.NEXA_API_KEY!,
+  webhookSecret: process.env.NEXA_WEBHOOK_SECRET!,
+});
+
+app.post("/api/nexa/process", async (c) => {
+  const body = await c.req.json<{ fileUrl: string; fileId: string }>();
+  const result = await nexa.files.submit(body);
+  return c.json(result);
+});
+
+app.get("/api/nexa/progress/:fileId", async (c) => {
+  const stream = await proxyProgressStream(c.req.param("fileId"), {
+    apiKey: process.env.NEXA_API_KEY!,
+  });
+  return new Response(stream, {
+    headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
+  });
+});
+
+app.post("/webhooks/nexa", createWebhookHandler({
+  webhookSecret: process.env.NEXA_WEBHOOK_SECRET!,
+  onFileComplete: async (event) => { /* sync to DB */ },
+}));
+
+export default app;
+```
+
+## Vue composables
+
+These are example composables that call your own server — not Nexa directly.
+
+### `useFileProgress`
+
+```ts
+// composables/useFileProgress.ts
+import { ref, onUnmounted } from "vue";
+
+export function useFileProgress(fileId: string) {
+  const stage = ref<string>("idle");
+  const progress = ref(0);
+  const error = ref<string | null>(null);
+
+  const es = new EventSource(`/api/nexa/progress/${fileId}`);
+
+  es.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    stage.value = data.stage;
+    progress.value = data.progress;
+    if (data.stage === "complete" || data.stage === "failed") {
+      if (data.stage === "failed") error.value = data.error;
+      es.close();
+    }
+  };
+
+  es.onerror = () => {
+    error.value = "Connection lost";
+    es.close();
+  };
+
+  onUnmounted(() => es.close());
+
+  return { stage, progress, error };
+}
+```
+
+### `useSubmitFile`
+
+```ts
+// composables/useSubmitFile.ts
+import { ref } from "vue";
+
+export function useSubmitFile() {
+  const jobId = ref<string | null>(null);
+  const loading = ref(false);
+  const error = ref<string | null>(null);
+
+  async function submit(fileUrl: string, fileId: string) {
+    loading.value = true;
+    error.value = null;
+    try {
+      const res = await fetch("/api/nexa/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileUrl, fileId }),
+      });
+      if (!res.ok) throw new Error(`Submit failed (${res.status})`);
+      const data = await res.json();
+      jobId.value = data.jobId;
+    } catch (e) {
+      error.value = (e as Error).message;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  return { jobId, loading, error, submit };
+}
+```
+
+## Vue component example
+
+```vue
+<!-- components/FileUploader.vue -->
+<script setup lang="ts">
+import { ref, watch, onUnmounted } from "vue";
+import { useSubmitFile } from "@/composables/useSubmitFile";
+
+const { loading, submit } = useSubmitFile();
+const fileId = ref<string | null>(null);
+const stage = ref<string>("idle");
+const progress = ref(0);
+
+async function onFileChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+
+  // Upload to your storage first, then submit to Nexa
+  const formData = new FormData();
+  formData.append("file", file);
+  const upload = await fetch("/api/upload", { method: "POST", body: formData });
+  const { fileUrl, id } = await upload.json();
+  fileId.value = id;
+  await submit(fileUrl, id);
+}
+
+// Open a new EventSource each time fileId is set
+let es: EventSource | null = null;
+watch(fileId, (id) => {
+  es?.close();
+  if (!id) return;
+  es = new EventSource(`/api/nexa/progress/${id}`);
+  es.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    stage.value = data.stage;
+    progress.value = data.progress;
+    if (data.stage === "complete" || data.stage === "failed") es?.close();
+  };
+  es.onerror = () => es?.close();
+});
+onUnmounted(() => es?.close());
+</script>
+
+<template>
+  <div>
+    <input type="file" accept=".pdf" @change="onFileChange" :disabled="loading" />
+    <div v-if="fileId">
+      <p>{{ stage }}: {{ progress }}%</p>
+      <progress :value="progress" max="100" />
+    </div>
+  </div>
+</template>
+```
+
+## Nuxt 3
+
+In a Nuxt 3 app, use **server routes** (`server/routes/`) as your Nexa proxy and `useEventSource` (or the composables above) on the client:
+
+```ts
+// server/routes/api/nexa/process.post.ts
+import { NexaClient } from "@nexa-ed/node";
+
+const nexa = new NexaClient({
+  apiKey: process.env.NEXA_API_KEY!,
+  webhookSecret: process.env.NEXA_WEBHOOK_SECRET!,
+});
+
+export default defineEventHandler(async (event) => {
+  const body = await readBody(event);
+  return nexa.files.submit(body);
+});
+```

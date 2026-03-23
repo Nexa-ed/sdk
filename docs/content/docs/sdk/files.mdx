@@ -1,0 +1,156 @@
+---
+title: File Processing
+description: Upload PDFs and stream structured student record extraction in real time.
+---
+
+## How it works
+
+The file processing pipeline runs in three stages:
+
+1. **Upload** — the browser uploads the PDF directly to Nexa using a short-lived token (your API key never leaves the server)
+2. **Process** — Nexa stores the file in UploadThing and dispatches it to the OCR + AI pipeline automatically
+3. **Stream** — receive live progress events; query structured records when done
+
+The upload is a **two-phase flow** managed automatically by the SDK:
+
+```
+Browser → POST /api/nexa/prepare  { name, size, type }
+       ← { token, uploadUrl }     (2-minute signed token, no API key)
+
+Browser → POST uploadUrl  (file bytes, x-upload-token header)
+       ← { success, fileId }      (pipeline dispatched, ready to poll)
+```
+
+This means the file never passes through your app's server — it goes directly from the browser to Nexa.
+
+---
+
+## Step 1 — Upload a file
+
+### React (recommended)
+
+Drop `<UploadZone />` anywhere in your UI. It handles the entire two-phase flow with a progress bar — no extra code needed.
+
+```tsx
+import { UploadZone } from "@nexa-ed/react";
+
+function TeacherDashboard() {
+  return (
+    <UploadZone
+      onFileQueued={(fileId) => {
+        // fileId is ready — start polling progress
+        console.log("queued:", fileId);
+      }}
+      description="Upload a student results PDF."
+    />
+  );
+}
+```
+
+The `onUpload` prop is **optional**. When omitted, `<UploadZone />` uses the built-in `useUploadFile` hook automatically.
+
+### Manual (hook)
+
+Use `useUploadFile` when you need custom UI or programmatic control:
+
+```ts
+import { useUploadFile } from "@nexa-ed/react";
+
+const { uploadFile, isUploading, isDispatching, uploadProgress } = useUploadFile();
+
+// call with a File object from an <input> or drag-and-drop
+const result = await uploadFile(file);
+if (result.success && result.fileId) {
+  // pipeline is running — use result.fileId for progress polling
+}
+```
+
+<Callout type="info">
+  `uploadProgress` (0–100) reflects actual byte-transfer progress. `isDispatching`
+  is `true` once all bytes are sent and Nexa is storing the file + dispatching the pipeline.
+</Callout>
+
+---
+
+## Step 2 — Processing is automatic
+
+There is no separate "submit" step. Once the file upload completes (`POST uploadUrl` returns `200`), Nexa has already:
+
+1. Stored the file in UploadThing and obtained a permanent CDN URL
+2. Provisioned your user in the pipeline database
+3. Dispatched the OCR job to FastAPI
+
+The `fileId` returned is your handle for polling progress and querying records.
+
+---
+
+## Step 3 — Stream progress
+
+### Server-side (async generator)
+
+Use `streamProgress` in a server action or API route to get live events as they arrive:
+
+```ts
+for await (const event of nexa.files.streamProgress(fileId, userId)) {
+  console.log(event.stage, event.progress); // e.g. "ocr", 42
+  if (event.type === "complete") {
+    console.log(`${event.records.length} records extracted`);
+  }
+}
+```
+
+### Client-side (React hook)
+
+In a React component, use `useFileProgress` — it connects to `/api/nexa/progress/:fileId` via `EventSource` automatically:
+
+```tsx
+import { useFileProgress } from "@nexa-ed/react";
+
+function ProgressBar({ fileId }: { fileId: string }) {
+  const { stage, progress, isComplete, records } = useFileProgress(fileId);
+
+  if (isComplete) return <p>Done — {records.length} records extracted</p>;
+
+  return (
+    <div>
+      <p>{stage}</p>
+      <progress value={progress} max={100} />
+    </div>
+  );
+}
+```
+
+### `FileProgressEvent` shape
+
+```ts
+type FileProgressEvent =
+  | { type: "progress"; stage: string; progress: number; message: string }
+  | { type: "complete"; records: StudentRecord[] }
+  | { type: "error"; message: string };
+```
+
+---
+
+## Step 4 — Handle the webhook
+
+When extraction finishes, Nexa sends a `file.completed` event to your webhook URL. The SDK verifies the signature and calls your `onFileComplete` callback automatically.
+
+```ts
+// lib/nexa.ts
+createNexa({
+  // ...
+  onFileComplete: async ({ fileId, userId, records }) => {
+    await db.fileResults.upsert({ fileId, userId, records });
+  },
+});
+```
+
+For the full payload shape see [Webhooks](/docs/sdk/webhooks).
+
+---
+
+## What's next
+
+- [Documents](/docs/sdk/documents) — query student records and analysis jobs after processing
+- [Webhooks](/docs/sdk/webhooks) — full payload types and Convex integration
+- [React Components — UploadZone](/docs/react/components#uploadzone) — drop-in upload UI

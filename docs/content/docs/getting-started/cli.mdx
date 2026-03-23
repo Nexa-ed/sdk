@@ -1,0 +1,136 @@
+---
+title: CLI Scaffolder
+description: Generate a production-ready Nexa-connected school app with one command.
+---
+
+`create-nexaed-app` scaffolds a complete Next.js school app with routing, auth, a results dashboard, and payment support already wired up. It's the fastest way to go from zero to a working integration.
+
+---
+
+## Run the scaffolder
+
+```bash
+# npx (no install required)
+npx create-nexaed-app my-school
+
+# pnpm
+pnpm create nexaed-app my-school
+```
+
+---
+
+## Interactive prompts
+
+The CLI asks four questions:
+
+| Prompt | Options |
+|--------|---------|
+| School name | Used as directory name and `package.json#name` |
+| Auth provider | Clerk · NextAuth · None |
+| Features | File processing, Payments, Student email provisioning |
+| Nexa API key | Optional — can be added to `.env.local` later |
+
+---
+
+## What gets generated
+
+```
+my-school/
+├── app/
+│   ├── api/
+│   │   └── nexa/
+│   │       └── [...nexaed]/
+│   │           └── route.ts        ← single catch-all route handler
+│   └── dashboard/
+│       └── page.tsx                ← teacher dashboard with ResultsViewerSheet
+├── lib/
+│   └── nexa.ts                     ← SDK instance (pre-wired to your auth provider)
+├── .env.example                    ← all required vars with inline comments
+├── .env.local                      ← API key pre-filled if you provided it
+├── package.json
+└── README.md
+```
+
+The generated `lib/nexa.ts` varies by auth provider:
+
+```ts title="Clerk variant"
+import { createNexa } from "@nexa-ed/next";
+import { auth } from "@clerk/nextjs/server";
+
+export const nexa = createNexa({
+  apiKey: process.env.NEXA_API_KEY!,
+  webhookSecret: process.env.NEXA_WEBHOOK_SECRET!,
+  getUser: async () => {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+    return { userId };
+  },
+});
+```
+
+```ts title="NextAuth variant"
+import { createNexa } from "@nexa-ed/next";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+export const nexa = createNexa({
+  apiKey: process.env.NEXA_API_KEY!,
+  webhookSecret: process.env.NEXA_WEBHOOK_SECRET!,
+  getUser: async () => {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) throw new Error("Unauthorized");
+    return { userId: session.user.id };
+  },
+});
+```
+
+---
+
+## After scaffolding
+
+Follow these steps to get the app running:
+
+**1. Install dependencies**
+
+```bash
+cd my-school && pnpm install
+```
+
+**2. Fill in environment variables**
+
+Open `.env.local` and set:
+
+```bash
+NEXA_API_KEY=nxa_live_...
+NEXA_WEBHOOK_SECRET=whsec_...
+```
+
+Get both values from **Nexa dashboard → Settings → API Keys** and **→ Webhooks**.
+
+**3. Register webhook URLs**
+
+In the Nexa dashboard, add:
+
+| Event | URL |
+|-------|-----|
+| `file.completed` | `https://your-domain.com/api/nexa/webhook` |
+| `payment.completed` | `https://your-domain.com/api/nexa/payments/forward` |
+
+Use [ngrok](https://ngrok.com) to expose `localhost:3000` while developing.
+
+**4. Start the dev server**
+
+```bash
+pnpm dev
+```
+
+Open [http://localhost:3000/dashboard](http://localhost:3000/dashboard) — your results viewer is live.
+
+---
+
+## What's next
+
+- [Quickstart](/docs/getting-started/quickstart) — understand what each generated file does
+- [File Processing](/docs/sdk/files) — submit PDFs and stream OCR progress
+- [Payments](/docs/sdk/payments) — collect enrollment fees
+- [React Components](/docs/react/components) — customise the pre-built UI

@@ -1,0 +1,144 @@
+---
+title: Quickstart
+description: Wire up a complete Nexa-connected Next.js school app in four steps.
+---
+
+<Callout type="info">
+  This guide is for **Next.js 15 App Router**. Using a different stack?
+  See [Node.js](/docs/node), [Vue / Svelte](/docs/frameworks/vue), or the [REST API](/docs/rest-api).
+</Callout>
+
+## Before you start
+
+Make sure you have:
+
+- `@nexa-ed/next` and `@nexa-ed/react` installed — see [Installation](/docs/getting-started/installation)
+- `NEXA_API_KEY` and `NEXA_WEBHOOK_SECRET` in your `.env.local`
+- An auth provider (Clerk or NextAuth) set up in your app
+
+**What you'll have at the end:** a working teacher dashboard with live OCR progress, structured student records, and a payment widget — wired to the Nexa API in two files.
+
+---
+
+## Step 1 — Create the SDK instance
+
+Create `lib/nexa.ts`. This is the one place you configure Nexa for your entire app.
+
+```ts title="lib/nexa.ts"
+import { createNexa } from "@nexa-ed/next";
+import { auth } from "@clerk/nextjs/server"; // or your auth provider
+
+export const nexa = createNexa({
+  apiKey: process.env.NEXA_API_KEY!,
+  webhookSecret: process.env.NEXA_WEBHOOK_SECRET!,
+
+  // Resolve the current user from every incoming SDK request
+  getUser: async () => {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+    return { userId };
+  },
+
+  // Called automatically when Nexa delivers a file.completed webhook
+  onFileComplete: async ({ fileId, userId }) => {
+    console.log(`File ${fileId} processed for user ${userId}`);
+    // Save records to your database here
+  },
+
+  // Called automatically when a payment webhook arrives
+  onPaymentComplete: async ({ reference, amount }) => {
+    console.log(`Payment ${reference} confirmed — ₦${amount / 100}`);
+  },
+});
+```
+
+---
+
+## Step 2 — Mount the catch-all route
+
+Create a single catch-all route. This one file handles every Nexa endpoint.
+
+```ts title="app/api/nexa/[...nexaed]/route.ts"
+import { createRouteHandler } from "@nexa-ed/next";
+import { nexa } from "@/lib/nexa";
+
+export const { GET, POST } = createRouteHandler({ client: nexa });
+```
+
+That's the entire server-side setup. The route handler covers:
+
+| Method | Path | What it does |
+|--------|------|-------------|
+| `GET` | `/api/nexa/progress/:fileId` | Streams real-time OCR progress (SSE) |
+| `GET/POST` | `/api/nexa/rpc/*` | Typed data queries (student records, jobs) |
+| `POST` | `/api/nexa/webhook` | Receives and verifies file completion events |
+| `POST` | `/api/nexa/prepare` | Issues a short-lived upload token (no file body — API key stays server-side) |
+| `GET/POST` | `/api/nexa/payments/*` | Payment initialization, status, config |
+| `POST` | `/api/nexa/payments/forward` | Receives and verifies payment events |
+
+---
+
+## Step 3 — Wrap your app with NexaProvider
+
+Add `NexaProvider` to your root layout so all React components and hooks can reach the SDK.
+
+```tsx title="app/layout.tsx"
+import { NexaProvider } from "@nexa-ed/react";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html>
+      <body>
+        <NexaProvider>
+          {children}
+        </NexaProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+`NexaProvider` defaults `basePath` to `/api/nexa` — matching the route you just created. No props needed unless you mounted it at a different path.
+
+---
+
+## Step 4 — Add your first component
+
+Drop `ResultsViewerSheet` into any server or client page. It renders a full-featured slide-over with a pipeline timeline, student records grid, and stats panel — all wired automatically.
+
+```tsx title="app/dashboard/teacher/page.tsx"
+import { ResultsViewerSheet } from "@nexa-ed/react";
+
+export default function TeacherDashboardPage() {
+  return (
+    <main>
+      <h1>Teacher Dashboard</h1>
+      <ResultsViewerSheet />
+    </main>
+  );
+}
+```
+
+---
+
+## Configure webhook URLs
+
+In the **Nexa dashboard → Webhooks**, register these two URLs so Nexa can call back to your app:
+
+| Event | URL |
+|-------|-----|
+| `file.completed` | `https://your-domain.com/api/nexa/webhook` |
+| `payment.completed` | `https://your-domain.com/api/nexa/payments/forward` |
+
+Use a tool like [ngrok](https://ngrok.com) to expose localhost during development.
+
+---
+
+## What's next
+
+Now that the integration is live, explore what you can build:
+
+- [File Processing](/docs/sdk/files) — submit PDFs, stream OCR progress, retrieve records
+- [Payments](/docs/sdk/payments) — initialize fees, verify transactions, handle webhooks
+- [React Components](/docs/react/components) — upload zone, records table, payment widget
+- [React Hooks](/docs/react/hooks) — fine-grained control over every feature

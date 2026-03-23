@@ -6,6 +6,7 @@ packages:
   - "convex"
   - "node"
   - "create-nexaed-app"
+  - "docs"
 
 catalog:
   "@orpc/client": "^1.13.4"

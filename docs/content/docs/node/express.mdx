@@ -1,0 +1,100 @@
+---
+title: Express
+description: Integrate Nexa webhooks and file processing into an Express server.
+---
+
+## Install
+
+```bash
+pnpm add @nexa-ed/node express
+pnpm add -D @types/express
+```
+
+## Full example
+
+```ts
+// server.ts
+import express from "express";
+import { Readable } from "node:stream";
+import { NexaClient, proxyProgressStream } from "@nexa-ed/node";
+import { createWebhookHandler } from "@nexa-ed/node/express";
+
+const app = express();
+const nexa = new NexaClient({
+  apiKey: process.env.NEXA_API_KEY!,
+  webhookSecret: process.env.NEXA_WEBHOOK_SECRET!,
+});
+
+// ── Webhook ──────────────────────────────────────────────────────────────────
+//
+// IMPORTANT: mount express.raw() BEFORE the webhook handler on this route.
+// It must come before express.json() (if you use it globally) so the raw
+// body string is available for HMAC verification.
+
+app.post(
+  "/webhooks/nexa",
+  express.raw({ type: "application/json" }),
+  createWebhookHandler({
+    webhookSecret: process.env.NEXA_WEBHOOK_SECRET!,
+    onFileComplete: async (event) => {
+      console.log("File processed:", event.fileId, "records:", event.recordCount);
+      // sync to your database here
+    },
+    onPaymentComplete: async (event) => {
+      console.log("Payment confirmed:", event.reference, event.amount / 100, "NGN");
+    },
+  }),
+);
+
+// ── SSE progress proxy ────────────────────────────────────────────────────────
+app.get("/progress/:fileId", async (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  try {
+    const stream = await proxyProgressStream(req.params.fileId, {
+      apiKey: process.env.NEXA_API_KEY!,
+    });
+    Readable.fromWeb(stream)
+      .on("error", () => res.end())
+      .pipe(res);
+  } catch (err) {
+    res.status(500).end("Stream error");
+  }
+});
+
+// ── Submit a file ─────────────────────────────────────────────────────────────
+app.post("/process", express.json(), async (req, res) => {
+  const { fileUrl, fileId, userId } = req.body as {
+    fileUrl: string;
+    fileId: string;
+    userId?: string;
+  };
+
+  const result = await nexa.files.submit({ fileUrl, fileId, userId });
+  res.json(result);
+});
+
+app.listen(3000, () => console.log("Listening on :3000"));
+```
+
+## Body parsing note
+
+Nexa webhook verification requires the **raw, unparsed** request body. If you apply `express.json()` globally, use `express.raw()` on the webhook route specifically:
+
+```ts
+// Apply json globally
+app.use(express.json());
+
+// Override for Nexa webhook route with raw parser
+app.post(
+  "/webhooks/nexa",
+  express.raw({ type: "application/json" }), // ← overrides global json() for this route
+  createWebhookHandler({ webhookSecret: "..." }),
+);
+```
+
+## TypeScript — request body type
+
+When using `express.raw()`, `req.body` is a `Buffer`. The `createWebhookHandler` adapter handles both `Buffer` and already-parsed cases internally.

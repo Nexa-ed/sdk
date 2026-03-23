@@ -1,0 +1,135 @@
+---
+title: Installation
+description: Choose your integration path and install the right Nexa packages.
+---
+
+## Prerequisites
+
+- Node.js **18+** (all packages)
+- Node.js **20+** if using `@nexa-ed/next`
+- A Nexa tenant account — grab your **API key** and **webhook secret** from the dashboard
+
+---
+
+## Choose your path
+
+| My stack | Install this |
+|----------|-------------|
+| Next.js 15 (App Router) | `@nexa-ed/next` + `@nexa-ed/react` |
+| Express / Fastify / Hono / raw Node | `@nexa-ed/node` |
+| React (Vite, Remix) | `@nexa-ed/react` + `@nexa-ed/node` on server |
+| Vue 3 / Nuxt / SvelteKit | `@nexa-ed/node` on server |
+| Any language (Python, PHP, Go, cURL) | No package — [REST API docs](/docs/rest-api) |
+| Convex backend | `@nexa-ed/convex` |
+
+---
+
+## Next.js — recommended
+
+The fastest integration. One file gives you upload, SSE progress, webhooks, and payments.
+
+```bash
+pnpm add @nexa-ed/next @nexa-ed/react
+# npm
+npm install @nexa-ed/next @nexa-ed/react
+```
+
+`@nexa-ed/next` re-exports everything from `@nexa-ed/sdk` — you do **not** need to install `@nexa-ed/sdk` separately.
+
+**Peer dependencies:** Next.js 15+, React 19+
+
+→ Continue with the [Quickstart](/docs/getting-started/quickstart)
+
+---
+
+## Node.js
+
+For any Node.js server — Express, Fastify, Hono, or raw `http`. Includes the full core SDK and framework-specific webhook adapters.
+
+```bash
+pnpm add @nexa-ed/node
+```
+
+**Requirements:** Node.js 18+
+
+```ts
+import { NexaClient } from "@nexa-ed/node";
+
+const nexa = new NexaClient({
+  apiKey: process.env.NEXA_API_KEY!,
+  webhookSecret: process.env.NEXA_WEBHOOK_SECRET!,
+});
+```
+
+→ Continue with the [Node.js guide](/docs/node)
+
+---
+
+## React components
+
+Drop-in UI for any React 19+ app. Works with Vite, Remix, or alongside `@nexa-ed/next`.
+
+```bash
+pnpm add @nexa-ed/react
+```
+
+**Peer dependencies:** `react >=19`, `@tanstack/react-query >=5`
+
+```tsx
+import { NexaProvider, ResultsViewerSheet } from "@nexa-ed/react";
+
+export default function App() {
+  return (
+    <NexaProvider basePath="/api/nexa">
+      <ResultsViewerSheet />
+    </NexaProvider>
+  );
+}
+```
+
+→ See all [components](/docs/react/components) and [hooks](/docs/react/hooks)
+
+---
+
+## Convex
+
+Schema fragments, mutations, queries, and webhook handlers for Convex backends.
+
+```bash
+pnpm add @nexa-ed/convex
+```
+
+**Peer dependency:** `convex >=1.9.0`
+
+```ts
+// convex/schema.ts
+import { defineSchema } from "convex/server";
+import { nexaPaymentsSchema, nexaFilesSchema } from "@nexa-ed/convex/schema";
+
+export default defineSchema({
+  ...nexaPaymentsSchema,
+  ...nexaFilesSchema,
+});
+```
+
+→ See [Webhooks → Convex integration](/docs/sdk/webhooks#convex-integration)
+
+---
+
+## Environment variables
+
+Add these to `.env.local` (or your framework's equivalent) regardless of which package you use:
+
+```bash
+# Required — get both from the Nexa dashboard
+NEXA_API_KEY=nxa_live_...
+NEXA_WEBHOOK_SECRET=whsec_...
+
+# Optional — defaults to https://nexa-ed.com
+NEXA_URL=https://nexa-ed.com
+```
+
+<Callout type="warn">
+  Never expose `NEXA_API_KEY` in client-side code or commit it to source control.
+  All SDK packages route API calls through your server — the key never leaves it.
+</Callout>

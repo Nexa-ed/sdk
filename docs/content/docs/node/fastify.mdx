@@ -1,0 +1,98 @@
+---
+title: Fastify
+description: Integrate Nexa webhooks and file processing into a Fastify server.
+---
+
+## Install
+
+```bash
+pnpm add @nexa-ed/node fastify
+```
+
+## Full example
+
+```ts
+// server.ts
+import Fastify from "fastify";
+import { Readable } from "node:stream";
+import { NexaClient, proxyProgressStream } from "@nexa-ed/node";
+import { createWebhookHandler } from "@nexa-ed/node/fastify";
+
+const app = Fastify({ logger: true });
+const nexa = new NexaClient({
+  apiKey: process.env.NEXA_API_KEY!,
+  webhookSecret: process.env.NEXA_WEBHOOK_SECRET!,
+});
+
+// ── Body parsing ──────────────────────────────────────────────────────────────
+//
+// Fastify's default JSON parser transforms the body before your handler runs.
+// We override it to deliver the raw string to the webhook handler.
+//
+// Scope this to just the webhook route with a plugin to avoid affecting
+// other routes.
+
+await app.register(async (webhookApp) => {
+  webhookApp.addContentTypeParser(
+    "application/json",
+    { parseAs: "string" },
+    (_req, body, done) => done(null, body),
+  );
+
+  webhookApp.post(
+    "/webhooks/nexa",
+    createWebhookHandler({
+      webhookSecret: process.env.NEXA_WEBHOOK_SECRET!,
+      onFileComplete: async (event) => {
+        console.log("File processed:", event.fileId, "records:", event.recordCount);
+      },
+      onPaymentComplete: async (event) => {
+        console.log("Payment confirmed:", event.reference);
+      },
+    }),
+  );
+});
+
+// ── SSE progress proxy ────────────────────────────────────────────────────────
+app.get<{ Params: { fileId: string } }>("/progress/:fileId", async (req, reply) => {
+  reply.raw.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+  });
+
+  const stream = await proxyProgressStream(req.params.fileId, {
+    apiKey: process.env.NEXA_API_KEY!,
+  });
+
+  Readable.fromWeb(stream).pipe(reply.raw);
+  return reply;
+});
+
+// ── Submit a file ─────────────────────────────────────────────────────────────
+app.post<{ Body: { fileUrl: string; fileId: string; userId?: string } }>(
+  "/process",
+  async (req) => {
+    const { fileUrl, fileId, userId } = req.body;
+    return nexa.files.submit({ fileUrl, fileId, userId });
+  },
+);
+
+await app.listen({ port: 3000 });
+```
+
+## Raw body scoping
+
+The `addContentTypeParser` override in the example above is scoped to a Fastify plugin (encapsulated scope). This means it only affects the `/webhooks/nexa` route and does not change how Fastify parses JSON for any other routes.
+
+If you'd prefer a simpler setup and don't mind all routes receiving raw strings for `application/json`, you can register it at the top level:
+
+```ts
+app.addContentTypeParser(
+  "application/json",
+  { parseAs: "string" },
+  (_req, body, done) => done(null, body),
+);
+```
+
+You'll then need to call `JSON.parse(req.body as string)` in your other route handlers.

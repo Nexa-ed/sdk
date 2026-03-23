@@ -1,0 +1,233 @@
+---
+title: Svelte / SvelteKit
+description: Integrate Nexa into a SvelteKit app using server routes and Svelte stores.
+---
+
+SvelteKit's server routes (in `src/routes/+server.ts`) are the right place to call the Nexa API — the API key stays server-side and your Svelte components call your own routes.
+
+## Architecture
+
+```
+Browser (Svelte)
+  ↓  fetch /api/nexa/...
+SvelteKit server route (+server.ts)
+  ↓  NexaClient
+Nexa platform (nexa-ed.com)
+```
+
+## Install
+
+```bash
+pnpm add @nexa-ed/node
+```
+
+## Server routes
+
+### Submit a file
+
+```ts
+// src/routes/api/nexa/process/+server.ts
+import { json } from "@sveltejs/kit";
+import { NexaClient } from "@nexa-ed/node";
+import { NEXA_API_KEY, NEXA_WEBHOOK_SECRET } from "$env/static/private";
+
+const nexa = new NexaClient({
+  apiKey: NEXA_API_KEY,
+  webhookSecret: NEXA_WEBHOOK_SECRET,
+});
+
+export async function POST({ request }) {
+  try {
+    const body = await request.json();
+    if (!body?.fileUrl || !body?.fileId) {
+      return json({ error: "fileUrl and fileId are required" }, { status: 400 });
+    }
+    const result = await nexa.files.submit({ fileUrl: body.fileUrl, fileId: body.fileId });
+    return json(result);
+  } catch (err) {
+    return json({ error: "Failed to submit file for processing" }, { status: 500 });
+  }
+}
+```
+
+### SSE progress proxy
+
+```ts
+// src/routes/api/nexa/progress/[fileId]/+server.ts
+import { NEXA_API_KEY } from "$env/static/private";
+import { proxyProgressStream } from "@nexa-ed/node";
+
+export async function GET({ params }) {
+  try {
+    const stream = await proxyProgressStream(params.fileId, {
+      apiKey: NEXA_API_KEY,
+    });
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+      },
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: "Failed to open progress stream" }), {
+      status: 502,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+```
+
+### Webhook endpoint
+
+```ts
+// src/routes/webhooks/nexa/+server.ts
+import { NEXA_WEBHOOK_SECRET } from "$env/static/private";
+import { verifyWebhookPayload } from "@nexa-ed/node";
+
+export async function POST({ request }) {
+  try {
+    const rawBody = await request.text();
+    const signature = request.headers.get("x-nexa-signature");
+    const timestamp = request.headers.get("x-nexa-timestamp");
+
+    const event = await verifyWebhookPayload(
+      rawBody,
+      signature,
+      timestamp,
+      NEXA_WEBHOOK_SECRET,
+    );
+
+    if (event.event === "file.completed") {
+      // sync to your database here
+      console.log("File processed:", event.fileId);
+    }
+
+    return new Response(JSON.stringify({ received: true }), {
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Webhook error";
+    return new Response(JSON.stringify({ error: message }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+```
+
+## Svelte stores
+
+### File progress store
+
+```ts
+// src/lib/stores/fileProgress.ts
+import { writable } from "svelte/store";
+
+export interface ProgressState {
+  stage: string;
+  progress: number;
+  error: string | null;
+}
+
+export function createProgressStore(fileId: string) {
+  const { subscribe, set, update } = writable<ProgressState>({
+    stage: "idle",
+    progress: 0,
+    error: null,
+  });
+
+  const es = new EventSource(`/api/nexa/progress/${fileId}`);
+
+  es.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      update((s) => ({ ...s, stage: data.stage, progress: data.progress }));
+      if (data.stage === "complete" || data.stage === "failed") {
+        if (data.stage === "failed") update((s) => ({ ...s, error: data.error }));
+        es.close();
+      }
+    } catch {
+      update((s) => ({ ...s, error: "Received malformed event" }));
+      es.close();
+    }
+  };
+
+  es.onerror = () => {
+    update((s) => ({ ...s, error: "Connection lost" }));
+    es.close();
+  };
+
+  function destroy() { es.close(); }
+
+  return { subscribe, destroy };
+}
+```
+
+## Svelte component example
+
+```svelte
+<!-- src/lib/components/FileProcessor.svelte -->
+<script lang="ts">
+  import { onDestroy } from "svelte";
+  import { createProgressStore } from "$lib/stores/fileProgress";
+
+  let fileId: string | null = null;
+  let progressStore: ReturnType<typeof createProgressStore> | null = null;
+  let state = { stage: "idle", progress: 0, error: null as string | null };
+
+  let unsubscribe: (() => void) | null = null;
+
+  async function onFile(e: Event) {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    try {
+      // 1. Upload file to your storage
+      const formData = new FormData();
+      formData.append("file", file);
+      const upload = await fetch("/api/upload", { method: "POST", body: formData });
+      if (!upload.ok) throw new Error(`Upload failed (${upload.status})`);
+      const { fileUrl, id } = await upload.json();
+      fileId = id;
+
+      // 2. Submit to Nexa
+      const submit = await fetch("/api/nexa/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileUrl, fileId }),
+      });
+      if (!submit.ok) throw new Error(`Submit failed (${submit.status})`);
+
+      // 3. Stream progress — unsubscribe the previous store first
+      unsubscribe?.();
+      progressStore = createProgressStore(id);
+      unsubscribe = progressStore.subscribe((s) => (state = s));
+    } catch (err) {
+      state = { stage: "error", progress: 0, error: (err as Error).message };
+    }
+  }
+
+  onDestroy(() => {
+    unsubscribe?.();
+    progressStore?.destroy();
+  });
+</script>
+
+<input type="file" accept=".pdf" on:change={onFile} />
+
+{#if fileId}
+  <p>{state.stage}: {state.progress}%</p>
+  <progress value={state.progress} max={100} />
+  {#if state.error}<p class="error">{state.error}</p>{/if}
+{/if}
+```
+
+## Environment variables
+
+SvelteKit reads private env vars from `$env/static/private`. Add to your `.env`:
+
+```bash
+NEXA_API_KEY=nxa_live_...
+NEXA_WEBHOOK_SECRET=whsec_...
+```
