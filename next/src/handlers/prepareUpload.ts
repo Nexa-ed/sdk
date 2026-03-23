@@ -26,7 +26,20 @@ export async function handlePrepareUpload(
 
   let body: { name: string; size: number; type: string };
   try {
-    body = await request.json() as { name: string; size: number; type: string };
+    const raw = await request.json() as unknown;
+    if (
+      typeof raw !== "object" ||
+      raw === null ||
+      typeof (raw as Record<string, unknown>).name !== "string" ||
+      typeof (raw as Record<string, unknown>).size !== "number" ||
+      typeof (raw as Record<string, unknown>).type !== "string"
+    ) {
+      return new Response(
+        JSON.stringify({ error: "Expected JSON body: { name: string, size: number, type: string }" }),
+        { status: 400, headers: { "content-type": "application/json" } },
+      );
+    }
+    body = raw as { name: string; size: number; type: string };
   } catch {
     return new Response(
       JSON.stringify({ error: "Expected JSON body: { name, size, type }" }),
@@ -55,7 +68,16 @@ export async function handlePrepareUpload(
     );
   }
 
-  const responseBody = await upstream.text();
+  let responseBody: string;
+  try {
+    responseBody = await upstream.text();
+  } catch (err) {
+    console.error("[nexa-ed/prepare-upload] Failed to read upstream response:", err);
+    return new Response(
+      JSON.stringify({ error: "Failed to read upload token response" }),
+      { status: 502, headers: { "content-type": "application/json" } },
+    );
+  }
   return new Response(responseBody, {
     status: upstream.status,
     headers: { "content-type": "application/json" },

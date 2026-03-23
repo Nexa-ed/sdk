@@ -58,9 +58,15 @@ export function createWebhookHandler(config: WebhookHandlerConfig) {
 
       return c.json({ received: true });
     } catch (err: unknown) {
-      const status = (err as { status?: number }).status ?? 500;
-      const message = (err as Error).message ?? "Webhook error";
-      return c.json({ error: message }, status as 400 | 401 | 500);
+      const status = typeof (err as { status?: unknown }).status === "number"
+        ? (err as { status: number }).status
+        : 500;
+      // Expose the error message for client errors; use a generic string for 5xx
+      // to avoid leaking internal details.
+      const message = status < 500 && err instanceof Error
+        ? err.message
+        : "Webhook error";
+      return c.json({ error: message }, status as Parameters<typeof c.json>[1]);
     }
   };
 }

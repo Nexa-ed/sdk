@@ -39,14 +39,19 @@ export function createWebhookHandler(config: WebhookHandlerConfig) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       // With addContentTypeParser parseAs: "string", body is already a string.
-      // Fallback: re-serialise if the default JSON parser ran first.
-      const rawBody =
-        typeof request.body === "string"
-          ? request.body
-          : JSON.stringify(request.body);
+      // If the default JSON parser ran first, re-serialising would produce a
+      // different byte sequence and break HMAC verification. Throw instead.
+      if (typeof request.body !== "string") {
+        return reply.status(400).send({
+          error: "Webhook body must be a raw string. Add addContentTypeParser({ parseAs: 'string' }) for this route.",
+        });
+      }
+      const rawBody = request.body;
 
-      const signature = request.headers["x-nexa-signature"] as string | undefined;
-      const timestamp = request.headers["x-nexa-timestamp"] as string | undefined;
+      const rawSig = request.headers["x-nexa-signature"];
+      const rawTs = request.headers["x-nexa-timestamp"];
+      const signature = Array.isArray(rawSig) ? rawSig[0] : rawSig;
+      const timestamp = Array.isArray(rawTs) ? rawTs[0] : rawTs;
 
       const event = await verifyWebhookPayload<WebhookEvent>(
         rawBody,

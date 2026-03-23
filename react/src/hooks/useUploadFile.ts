@@ -75,6 +75,7 @@ export function useUploadFile() {
             const xhr = new XMLHttpRequest();
             xhr.open("POST", uploadUrl);
             xhr.setRequestHeader("x-upload-token", token);
+            xhr.timeout = 10 * 60 * 1000; // 10 minutes — large PDFs can be slow
 
             // Track byte-level progress during the direct upload
             xhr.upload.onprogress = (e) => {

@@ -41,13 +41,15 @@ export function UploadZone({ onFileQueued, onUpload, description }: UploadZonePr
 
   // Once all bytes are sent, transition from "uploading" to "processing"
   // while Nexa handles UploadThing + FastAPI dispatch.
+  // Only applies to the built-in upload path (not the custom onUpload handler).
   useEffect(() => {
+    if (onUpload) return;
     if (!isDispatching) return;
     setState((prev) => {
       if (prev.phase !== "uploading") return prev;
       return { phase: "processing", fileName: prev.fileName };
     });
-  }, [isDispatching]);
+  }, [isDispatching, onUpload]);
 
   async function handleFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
@@ -69,7 +71,7 @@ export function UploadZone({ onFileQueued, onUpload, description }: UploadZonePr
       if (onUpload) {
         // Custom handler provided by the consuming app.
         const result = await onUpload(file);
-        if (!result.fileId) {
+        if (!result || !result.fileId) {
           setState({ phase: "error", message: "Pipeline did not return a file ID" });
           return;
         }

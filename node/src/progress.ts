@@ -34,6 +34,9 @@ export async function proxyProgressStream(
   if (!fileId) {
     throw new Error("[nexa-ed] proxyProgressStream: fileId is required");
   }
+  if (!config.apiKey) {
+    throw new Error("[nexa-ed] proxyProgressStream: apiKey is required");
+  }
 
   const baseUrl = config.baseUrl?.replace(/\/+$/, "") ?? "https://nexa-ed.com";
   const url = `${baseUrl}/api/file-processing/progress/${encodeURIComponent(fileId)}`;

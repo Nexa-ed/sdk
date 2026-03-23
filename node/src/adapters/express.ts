@@ -42,8 +42,10 @@ export function createWebhookHandler(config: WebhookHandlerConfig): RequestHandl
           ? req.body
           : JSON.stringify(req.body);
 
-      const signature = req.headers["x-nexa-signature"] as string | undefined;
-      const timestamp = req.headers["x-nexa-timestamp"] as string | undefined;
+      const rawSig = req.headers["x-nexa-signature"];
+      const rawTs = req.headers["x-nexa-timestamp"];
+      const signature = Array.isArray(rawSig) ? rawSig[0] : rawSig;
+      const timestamp = Array.isArray(rawTs) ? rawTs[0] : rawTs;
 
       const event = await verifyWebhookPayload<WebhookEvent>(
         rawBody,
