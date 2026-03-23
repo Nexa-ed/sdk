@@ -2,7 +2,7 @@
   "name": "@nexa-ed/sdk",
   "version": "0.1.0",
   "description": "Nexa Education Platform — Core SDK",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "exports": {
     ".": {
@@ -23,7 +23,7 @@
     "prepublishOnly": "pnpm build"
   },
   "publishConfig": {
-    "access": "restricted",
+    "access": "public",
     "exports": {
       ".": {
         "import": "./dist/index.mjs",
