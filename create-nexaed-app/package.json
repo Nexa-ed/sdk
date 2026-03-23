@@ -1,6 +1,6 @@
 {
   "name": "create-nexaed-app",
-  "version": "0.2.0-beta.0",
+  "version": "0.2.0-beta.1",
   "description": "Scaffold a Nexa-connected school app in seconds",
   "license": "MIT",
   "private": false,
