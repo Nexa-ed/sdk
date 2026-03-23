@@ -48,6 +48,7 @@
   "devDependencies": {
     "@repo/config": "workspace:*",
     "@tanstack/react-query": "catalog:",
+    "@types/node": "^22.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "tsup": "catalog:",
