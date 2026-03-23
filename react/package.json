@@ -42,6 +42,7 @@
   },
   "peerDependencies": {
     "@tanstack/react-query": ">=5.0.0",
+    "lucide-react": ">=0.400.0",
     "react": ">=19",
     "react-dom": ">=19"
   },
@@ -51,6 +52,7 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "lucide-react": "^0.487.0",
     "tsup": "catalog:",
     "typescript": "catalog:"
   }
