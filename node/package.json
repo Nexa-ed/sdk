@@ -1,6 +1,6 @@
 {
   "name": "@nexa-ed/node",
-  "version": "0.1.0",
+  "version": "0.2.0-beta.0",
   "description": "Nexa Education Platform — Node.js & Framework-Agnostic Adapter",
   "license": "MIT",
   "type": "module",
@@ -68,9 +68,15 @@
     "hono": ">=4.0.0"
   },
   "peerDependenciesMeta": {
-    "express": { "optional": true },
-    "fastify": { "optional": true },
-    "hono": { "optional": true }
+    "express": {
+      "optional": true
+    },
+    "fastify": {
+      "optional": true
+    },
+    "hono": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@nexa-ed/config": "workspace:*",

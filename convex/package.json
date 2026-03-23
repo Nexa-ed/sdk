@@ -1,6 +1,6 @@
 {
   "name": "@nexa-ed/convex",
-  "version": "0.1.0",
+  "version": "0.2.0-beta.0",
   "description": "Nexa Education Platform — Convex schema fragments and callback factories",
   "license": "MIT",
   "type": "module",
