@@ -47,7 +47,7 @@
     "react-dom": ">=19"
   },
   "devDependencies": {
-    "@repo/config": "workspace:*",
+    "@nexa-ed/config": "workspace:*",
     "@tanstack/react-query": "catalog:",
     "@types/node": "^22.0.0",
     "@types/react": "^19",

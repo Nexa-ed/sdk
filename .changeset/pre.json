@@ -1,0 +1,14 @@
+{
+  "mode": "pre",
+  "tag": "beta",
+  "initialVersions": {
+    "@nexa-ed/config": "0.0.0",
+    "@nexa-ed/convex": "0.1.0",
+    "@nexa-ed/sdk": "0.1.0",
+    "create-nexaed-app": "0.1.0",
+    "@nexa-ed/next": "0.1.0",
+    "@nexa-ed/node": "0.1.0",
+    "@nexa-ed/react": "0.1.0"
+  },
+  "changesets": []
+}

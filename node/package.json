@@ -73,7 +73,7 @@
     "hono": { "optional": true }
   },
   "devDependencies": {
-    "@repo/config": "workspace:*",
+    "@nexa-ed/config": "workspace:*",
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
     "express": "^4.21.0",

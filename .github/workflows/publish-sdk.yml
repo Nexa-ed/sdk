@@ -1,0 +1,73 @@
+name: Publish SDK
+
+on:
+  push:
+    branches:
+      - master
+
+concurrency:
+  group: publish-sdk-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Version or publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # to push the Version Packages branch + tag releases
+      pull-requests: write  # to open the Version Packages PR
+      id-token: write       # for npm provenance attestation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history required for changesets to diff correctly
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all SDK packages
+        run: |
+          pnpm --filter "@nexa-ed/sdk" build
+          pnpm --filter "@nexa-ed/node" build
+          pnpm --filter "@nexa-ed/next" build
+          pnpm --filter "@nexa-ed/react" build
+          pnpm --filter "@nexa-ed/convex" build
+          pnpm --filter "create-nexaed-app" build
+
+      # ── Changesets action ──────────────────────────────────────────────────
+      # On every push to master this does ONE of two things:
+      #
+      #   A) If there are pending .changeset/* files:
+      #      → Opens (or updates) a "Version Packages" PR that bumps
+      #        versions and writes CHANGELOGs. Nothing is published yet.
+      #
+      #   B) If the "Version Packages" PR was just merged:
+      #      → Publishes every package whose version changed to npm.
+      #      → Creates a GitHub release + tag for each published package.
+      #
+      - name: Create Version PR or publish to npm
+        uses: changesets/action@v1
+        with:
+          publish: pnpm release
+          version: pnpm version-packages
+          title: "chore: version SDK packages"
+          commit: "chore: version SDK packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

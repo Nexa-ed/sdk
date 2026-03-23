@@ -42,7 +42,7 @@
     "next": ">=15.0.0"
   },
   "devDependencies": {
-    "@repo/config": "workspace:*",
+    "@nexa-ed/config": "workspace:*",
     "@types/node": "^22.0.0",
     "next": "catalog:",
     "tsup": "catalog:",
