@@ -16,7 +16,7 @@ interface NexaReactContext {
 const NexaContext = createContext<NexaReactContext | null>(null);
 
 /**
- * NexaProvider — wraps your app (or a subtree) to provide the Nexa SDK
+ * NexaProvider — wraps your app (or a subtree) to provide the Nexa-ed SDK
  * context to all hooks and components.
  *
  * Requires `@tanstack/react-query`'s `QueryClientProvider` to be present

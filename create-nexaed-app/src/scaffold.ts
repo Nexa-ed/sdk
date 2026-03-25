@@ -38,7 +38,7 @@ export async function scaffold(opts: ScaffoldOptions): Promise<void> {
   await write(projectDir, "app/providers.tsx",       renderProvidersFile(opts));
   await write(projectDir, "app/dashboard/page.tsx",  renderDashboardPage(opts));
 
-  // ── Nexa SDK wiring ──────────────────────────────────────────────────────────
+  // ── Nexa-ed SDK wiring ───────────────────────────────────────────────────────
   await write(projectDir, "lib/nexa.ts",                         renderNexaLib(opts));
   await write(projectDir, "app/api/nexa/[...nexaed]/route.ts",   renderCatchAllRoute());
 
@@ -91,7 +91,7 @@ function nextConfig(): string {
   return `import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* Nexa SDK requires server components to be able to use Node.js APIs */
+  /* Nexa-ed SDK requires server components to be able to use Node.js APIs */
   experimental: {},
 };
 

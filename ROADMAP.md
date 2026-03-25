@@ -1,4 +1,4 @@
-# Nexa SDK — Build Roadmap
+# Nexa-ed SDK — Build Roadmap
 
 This document tracks every remaining step to bring the `@nexa-ed` SDK from
 its current scaffolded state to a complete, documented, privately-published

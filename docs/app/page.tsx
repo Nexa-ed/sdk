@@ -160,7 +160,7 @@ export default function HomePage() {
 
         {/* Headline */}
         <h1 className="mb-5 text-[clamp(2.75rem,9vw,6rem)] font-bold leading-none tracking-tight text-fd-foreground">
-          Nexa{" "}
+          Nexa-ed{" "}
           <span
             className="bg-clip-text text-transparent"
             style={{ backgroundImage: "linear-gradient(135deg, hsl(158 64% 58%), hsl(167 82% 50%), hsl(142 76% 42%))" }}

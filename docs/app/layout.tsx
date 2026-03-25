@@ -24,8 +24,8 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Nexa SDK Docs",
-    template: "%s — Nexa SDK",
+    default: "Nexa-ed SDK Docs",
+    template: "%s — Nexa-ed SDK",
   },
   description:
     "Integrate student results processing, payments, and AI-powered document analysis into your school app in minutes.",

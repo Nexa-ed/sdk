@@ -16,7 +16,7 @@ const NexaLogo = () => (
       <path d="M8 1L14 8L8 15L2 8L8 1Z" fill="hsl(158 64% 52%)" opacity="0.6" />
       <path d="M8 4L11.5 8L8 12L4.5 8L8 4Z" fill="hsl(158 64% 52%)" />
     </svg>
-    <span className="font-semibold tracking-tight">Nexa SDK</span>
+    <span className="font-semibold tracking-tight">Nexa-ed SDK</span>
   </div>
 );
 

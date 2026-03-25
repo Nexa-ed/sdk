@@ -1,6 +1,6 @@
 {
   "buildCommand": "pnpm --filter nexaed-docs build",
-  "outputDirectory": "docs/.next",
+  "outputDirectory": ".next",
   "installCommand": "pnpm install",
   "framework": "nextjs"
 }
