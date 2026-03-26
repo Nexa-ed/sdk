@@ -1,4 +1,5 @@
 import { NexaError } from "./error";
+import { assertConfig } from "./config";
 import type { ResolvedNexaConfig } from "./config";
 
 interface FetchOptions {
@@ -24,6 +25,7 @@ export async function nexaFetch<T>(
   path: string,
   options: FetchOptions = {},
 ): Promise<T> {
+  assertConfig(config);
   const headers: Record<string, string> = {
     "content-type": "application/json",
     "x-api-key": config.apiKey,
@@ -68,6 +70,7 @@ export async function nexaRpc<T>(
   userId: string,
   signal?: AbortSignal,
 ): Promise<T> {
+  assertConfig(config);
   const res = await fetch(`${config.baseUrl}/api/rpc/${procedure}`, {
     method: "POST",
     headers: {
