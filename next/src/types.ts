@@ -1,4 +1,4 @@
-import type { WebhookEvent } from "@nexa-ed/sdk";
+import type { WebhookEvent, NexaEmailConfig } from "@nexa-ed/sdk";
 
 /**
  * Configuration passed to `createNexa()`.
@@ -47,6 +47,25 @@ export interface NexaNextConfig {
    * },
    */
   getUser: (request: Request) => Promise<{ userId: string }>;
+
+  /**
+   * Email provisioning configuration.
+   *
+   * Required if you use `nexa.email.*` methods.
+   * Set this once and all email calls work identically regardless of whether
+   * your school is on Tier 1 (Nexa-hosted), Tier 2 (Zoho), or Tier 3 (Google Workspace).
+   *
+   * @example
+   * // Tier 3 — Google Workspace with your own domain
+   * email: { tier: "tier-3-google", domain: "loretto.edu.ng" }
+   *
+   * // Tier 1 — Nexa-hosted subdomain
+   * email: { tier: "tier-1-nexa", domain: "loretto.nexaed.com" }
+   *
+   * // Tier 2 — Zoho Mail with your own domain
+   * email: { tier: "tier-2-zoho", domain: "loretto.edu.ng" }
+   */
+  email?: NexaEmailConfig;
 
   /**
    * Called when Nexa delivers a `file.completed` webhook to your app.

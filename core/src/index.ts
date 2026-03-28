@@ -1,6 +1,6 @@
 export { NexaClient } from "./client";
 export { NexaError, isNexaError } from "./error";
-export type { NexaConfig } from "./config";
+export type { NexaConfig, NexaEmailConfig } from "./config";
 
 // All public types
 export type {
@@ -39,6 +39,15 @@ export type {
   // Tenant services
   TenantService,
   GetServicesResponse,
+
+  // Email provisioning
+  EmailTier,
+  EmailCreateOptions,
+  EmailCreateResult,
+  EmailBulkCreateOptions,
+  EmailBulkCreateResult,
+  EmailJobStatus,
+  StudentEmailAccount,
 
   // Webhooks
   WebhookFileCompleteEvent,

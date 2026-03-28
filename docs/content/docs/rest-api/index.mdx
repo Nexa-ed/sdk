@@ -78,13 +78,70 @@ All errors follow a consistent envelope:
 
 ## Rate limits
 
-Requests are rate-limited per API key. Limits are included in response headers:
+All limits use a **sliding window** algorithm scoped per tenant (by API key), except the RPC endpoint which is scoped per user.
+
+| Endpoint | Limit | Scope |
+|----------|-------|-------|
+| `POST /api/file-processing/extract` | **20 req / min** | per tenant |
+| `POST /api/payments/initialize` | **10 req / min** | per tenant |
+| `POST /api/student-emails/bulk` | **5 req / min** | per tenant |
+| `POST /api/rpc/[...orpc]` | **120 req / min** | per user |
+| All other routes | **60 req / min** | per tenant |
+
+### Response headers
+
+Every response (including successful ones) includes rate limit headers:
 
 | Header | Description |
 |--------|-------------|
-| `X-RateLimit-Limit` | Requests allowed per window |
+| `X-RateLimit-Limit` | Max requests allowed in the window |
 | `X-RateLimit-Remaining` | Requests remaining in the current window |
-| `X-RateLimit-Reset` | Unix timestamp when the window resets |
+| `X-RateLimit-Reset` | Unix timestamp (milliseconds) when the window resets |
+
+### 429 response
+
+When the limit is exceeded you receive HTTP `429` with an additional `Retry-After` header:
+
+```
+HTTP/1.1 429 Too Many Requests
+Retry-After: 42
+X-RateLimit-Limit: 20
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1742000042000
+```
+
+```json
+{
+  "success": false,
+  "message": "Too many requests — please slow down",
+  "errorType": "rate_limit_exceeded"
+}
+```
+
+### Retry strategy
+
+Use `Retry-After` as your wait floor before retrying:
+
+```ts
+if (res.status === 429) {
+  const wait = parseInt(res.headers.get("retry-after") ?? "5", 10);
+  await new Promise((r) => setTimeout(r, wait * 1_000));
+  // retry request
+}
+```
+
+```python
+if resp.status_code == 429:
+    retry_after = int(resp.headers.get("Retry-After", 5))
+    time.sleep(retry_after)
+    # retry request
+```
+
+<Callout type="info">
+  The `@nexa-ed/sdk` handles `429` automatically with one built-in retry using the
+  `Retry-After` header. If the retry also fails, a `NexaError` with code
+  `RATE_LIMITED` is thrown.
+</Callout>
 
 ## Webhook verification
 

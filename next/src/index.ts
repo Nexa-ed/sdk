@@ -10,6 +10,7 @@ export {
 
 export type {
   NexaConfig,
+  NexaEmailConfig,
   ExtractionType,
   FileSubmitOptions,
   FileSubmitResult,
@@ -30,6 +31,14 @@ export type {
   TenantService,
   WebhookEvent,
   WebhookFileCompleteEvent,
+  // Email provisioning
+  EmailTier,
+  EmailCreateOptions,
+  EmailCreateResult,
+  EmailBulkCreateOptions,
+  EmailBulkCreateResult,
+  EmailJobStatus,
+  StudentEmailAccount,
 } from "@nexa-ed/sdk";
 
 export type { NexaNextConfig, NexaInstance } from "./types";

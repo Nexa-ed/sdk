@@ -11,6 +11,13 @@ Create a new Paystack payment session and get a checkout URL to redirect the stu
 POST /api/payments/initialize
 ```
 
+<Callout type="warn">
+  **Rate limit: 10 requests / minute per tenant.**
+  This limit is intentionally tight to prevent fraud probing.
+  Exceeding it returns HTTP `429` with a `Retry-After` header.
+  See [Rate limits](/docs/rest-api#rate-limits) for retry guidance.
+</Callout>
+
 **Headers**
 
 | Header | Required | Value |

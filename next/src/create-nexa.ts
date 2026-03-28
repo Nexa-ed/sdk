@@ -46,6 +46,7 @@ export function createNexa(config: NexaNextConfig): NexaInstance & NexaClient {
     apiKey: config.apiKey,
     webhookSecret: config.webhookSecret,
     baseUrl: resolvedBaseUrl,
+    email: config.email,
   });
 
   // Attach Next.js-specific internals

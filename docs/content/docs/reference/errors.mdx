@@ -55,9 +55,50 @@ try {
 | Code | Status | Description |
 |------|--------|-------------|
 | `VALIDATION_ERROR` | 400 | Request body failed validation — check `message` for details |
-| `RATE_LIMITED` | 429 | Too many requests — back off and retry |
+| `RATE_LIMITED` | 429 | Sliding window limit exceeded — read `Retry-After` and back off |
 | `UPSTREAM_ERROR` | 502 | Nexa's upstream service returned an error |
 | `INTERNAL_ERROR` | 500 | Unexpected server error — contact Nexa support |
+
+## Rate limit errors
+
+`RATE_LIMITED` (HTTP 429) responses always include a `Retry-After` header containing the number of **seconds** to wait before retrying.
+
+Per-endpoint limits:
+
+| Endpoint | Limit |
+|----------|-------|
+| `POST /api/file-processing/extract` | 20 req / min per tenant |
+| `POST /api/payments/initialize` | 10 req / min per tenant |
+| `POST /api/student-emails/bulk` | 5 req / min per tenant |
+| `POST /api/rpc/[...orpc]` | 120 req / min per user |
+| All other routes | 60 req / min per tenant |
+
+The SDK automatically retries once on `429` using the `Retry-After` value. If the retry also fails, it throws:
+
+```ts
+try {
+  await nexa.files.submit({ fileUrl, fileId, userId });
+} catch (err) {
+  if (err instanceof NexaError && err.code === "RATE_LIMITED") {
+    const retryAfter = err.headers?.["retry-after"];
+    console.warn(`Rate limited. Retry after ${retryAfter}s`);
+  }
+}
+```
+
+For manual retry without the SDK:
+
+```ts
+async function withRateLimitRetry(fn: () => Promise<Response>): Promise<Response> {
+  const res = await fn();
+  if (res.status === 429) {
+    const wait = parseInt(res.headers.get("retry-after") ?? "5", 10);
+    await new Promise((r) => setTimeout(r, wait * 1_000));
+    return fn(); // one retry
+  }
+  return res;
+}
+```
 
 ## Webhook errors
 

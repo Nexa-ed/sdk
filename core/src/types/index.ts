@@ -276,6 +276,97 @@ export interface GetServicesResponse {
   services: TenantService[];
 }
 
+// ─── Email Provisioning ──────────────────────────────────────────────────────
+
+/**
+ * Which email infrastructure tier a school is on.
+ * Determined by the tenant's subscription — configured once in `createNexa()`.
+ */
+export type EmailTier = "tier-1-nexa" | "tier-2-zoho" | "tier-3-google";
+
+/** Options for creating a single student email account */
+export interface EmailCreateOptions {
+  /** The student's ID in your own system */
+  studentId: string;
+  firstName: string;
+  lastName: string;
+  /**
+   * Explicit email address. If omitted, Nexa generates one from
+   * `firstName.lastName@<your-domain>`.
+   */
+  email?: string;
+  /** Grade/class label (e.g. "SS2") — used for organisational grouping */
+  gradeLevel?: string;
+  /** Student's personal email for account recovery */
+  recoveryEmail?: string;
+}
+
+/** Result of creating a single student email account */
+export interface EmailCreateResult {
+  /** The provisioned email address */
+  email: string;
+  /** Temporary password — student must change on first login */
+  temporaryPassword: string;
+  /** Provider-specific user ID (Google userId, Stalwart name, Zoho ZUID) */
+  providerUserId: string;
+  /** Which tier was used (mirrors what was configured) */
+  tier: EmailTier;
+}
+
+/** Options for bulk-creating student email accounts */
+export interface EmailBulkCreateOptions {
+  /** Up to 500 students per request */
+  students: EmailCreateOptions[];
+}
+
+/** Result of starting a bulk provisioning job */
+export interface EmailBulkCreateResult {
+  /** UUID of the provisioning job — poll `getJobStatus(jobId)` for progress */
+  jobId: string;
+  tier: EmailTier;
+  totalStudents: number;
+  message: string;
+}
+
+/** Status of a bulk provisioning job */
+export interface EmailJobStatus {
+  jobId: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  type: string;
+  totalStudents: number;
+  processedCount: number;
+  successCount: number;
+  failedCount: number;
+  results?: Array<{
+    studentId: string;
+    email?: string;
+    status: string;
+    error?: string;
+  }>;
+  error?: string;
+  createdAt: number;
+  startedAt?: number;
+  completedAt?: number;
+}
+
+/** A provisioned student email account record */
+export interface StudentEmailAccount {
+  tenantId: string;
+  studentId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  gradeLevel?: string;
+  provider?: "nexa" | "zoho" | "google";
+  providerUserId: string;
+  status: "active" | "suspended" | "deleted" | "deleting";
+  passwordResetRequired: boolean;
+  recoveryEmail?: string;
+  aliases?: string[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 // ─── Webhooks ────────────────────────────────────────────────────────────────
 
 export interface WebhookFileCompleteEvent {

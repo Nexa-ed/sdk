@@ -158,6 +158,13 @@ Kick off the OCR pipeline for an already-uploaded file. Returns immediately with
 POST /api/file-processing/extract
 ```
 
+<Callout type="warn">
+  **Rate limit: 20 requests / minute per tenant.**
+  This endpoint calls Google Document AI and Gemini — it is the most expensive route on the platform.
+  Exceeding the limit returns HTTP `429` with a `Retry-After` header.
+  See [Rate limits](/docs/rest-api#rate-limits) for retry guidance.
+</Callout>
+
 **Headers**
 
 | Header | Required | Value |
