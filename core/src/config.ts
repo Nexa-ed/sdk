@@ -11,18 +11,18 @@ export interface NexaEmailConfig {
    *
    * | Tier | Provider | Domain |
    * |---|---|---|
-   * | `tier-1-nexa` | Nexa-hosted Stalwart | `school.nexaed.com` |
-   * | `tier-2-zoho` | Zoho Mail (own domain) | Your domain via Zoho |
-   * | `tier-3-google` | Google Workspace | Your own domain |
+   * | `tier-1-nexa`     | Nexa-hosted Stalwart        | `school.nexa-ed.com` |
+   * | `tier-2-stalwart` | Stalwart, own domain        | Your domain on Stalwart |
+   * | `tier-3-google`   | Google Workspace            | Your own domain |
    */
   tier: EmailTier;
 
   /**
    * The email domain for student accounts.
    *
-   * - Tier 1: `loretto.nexaed.com` (Nexa provides the domain)
-   * - Tier 2: `loretto.edu.ng` (your school's domain on Zoho)
-   * - Tier 3: `loretto.edu.ng` (your school's domain on Google Workspace)
+   * - Tier 1: `loretto.nexa-ed.com` (Nexa provides the subdomain — pass your school slug)
+   * - Tier 2: `loretto.edu.ng` (your school's own domain on Stalwart)
+   * - Tier 3: `loretto.edu.ng` (your school's own domain on Google Workspace)
    */
   domain: string;
 }
