@@ -282,7 +282,7 @@ export interface GetServicesResponse {
  * Which email infrastructure tier a school is on.
  * Determined by the tenant's subscription — configured once in `createNexa()`.
  */
-export type EmailTier = "tier-1-nexa" | "tier-2-zoho" | "tier-3-google";
+export type EmailTier = "tier-1-nexa" | "tier-2-stalwart" | "tier-3-google";
 
 /** Options for creating a single student email account */
 export interface EmailCreateOptions {
@@ -307,7 +307,7 @@ export interface EmailCreateResult {
   email: string;
   /** Temporary password — student must change on first login */
   temporaryPassword: string;
-  /** Provider-specific user ID (Google userId, Stalwart name, Zoho ZUID) */
+  /** Provider-specific user ID (Google userId, Stalwart name) */
   providerUserId: string;
   /** Which tier was used (mirrors what was configured) */
   tier: EmailTier;
@@ -357,7 +357,7 @@ export interface StudentEmailAccount {
   firstName: string;
   lastName: string;
   gradeLevel?: string;
-  provider?: "nexa" | "zoho" | "google";
+  provider?: "nexa" | "stalwart" | "google";
   providerUserId: string;
   status: "active" | "suspended" | "deleted" | "deleting";
   passwordResetRequired: boolean;

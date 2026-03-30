@@ -30,7 +30,7 @@ export class NexaClient {
    * Student email provisioning — tier-agnostic.
    *
    * Configure the tier once in `createNexa({ email: { tier, domain } })`.
-   * All methods work identically across Tier 1 (Nexa), Tier 2 (Zoho),
+   * All methods work identically across Tier 1 (Nexa), Tier 2 (Stalwart),
    * and Tier 3 (Google Workspace).
    *
    * @example

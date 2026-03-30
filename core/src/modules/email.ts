@@ -24,7 +24,7 @@ function assertEmailConfig(config: ResolvedNexaConfig): {
       "[nexa-ed] email.tier and email.domain are required to use nexa.email.*. " +
         "Add an `email` block to your createNexa() config:\n\n" +
         "  email: {\n" +
-        '    tier: "tier-3-google",   // or "tier-1-nexa" / "tier-2-zoho"\n' +
+        '    tier: "tier-3-google",   // or "tier-1-nexa" / "tier-2-stalwart"\n' +
         '    domain: "yourschool.edu",\n' +
         "  }",
       400,
@@ -39,7 +39,7 @@ function assertEmailConfig(config: ResolvedNexaConfig): {
  *
  * Configure the tier once in `createNexa({ email: { tier, domain } })`.
  * Every method below works identically whether your school is on
- * Tier 1 (Nexa/Stalwart), Tier 2 (Zoho), or Tier 3 (Google Workspace).
+ * Tier 1 (Nexa/Stalwart), Tier 2 (Stalwart), or Tier 3 (Google Workspace).
  *
  * @example
  * // lib/nexa.ts

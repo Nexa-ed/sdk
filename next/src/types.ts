@@ -53,17 +53,17 @@ export interface NexaNextConfig {
    *
    * Required if you use `nexa.email.*` methods.
    * Set this once and all email calls work identically regardless of whether
-   * your school is on Tier 1 (Nexa-hosted), Tier 2 (Zoho), or Tier 3 (Google Workspace).
+   * your school is on Tier 1 (Nexa-hosted), Tier 2 (Stalwart), or Tier 3 (Google Workspace).
    *
    * @example
    * // Tier 3 — Google Workspace with your own domain
    * email: { tier: "tier-3-google", domain: "loretto.edu.ng" }
    *
-   * // Tier 1 — Nexa-hosted subdomain
-   * email: { tier: "tier-1-nexa", domain: "loretto.nexaed.com" }
+   * // Tier 1 — Nexa-hosted subdomain (pass your school slug as the domain)
+   * email: { tier: "tier-1-nexa", domain: "loretto.nexa-ed.com" }
    *
-   * // Tier 2 — Zoho Mail with your own domain
-   * email: { tier: "tier-2-zoho", domain: "loretto.edu.ng" }
+   * // Tier 2 — Stalwart with your own domain
+   * email: { tier: "tier-2-stalwart", domain: "loretto.edu.ng" }
    */
   email?: NexaEmailConfig;
 
