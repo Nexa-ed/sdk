@@ -50,6 +50,16 @@ try {
 | `PAYMENT_VERIFICATION_FAILED` | 422 | Paystack could not verify this reference |
 | `PAYMENT_CONFIG_MISSING` | 500 | Tenant payment config not set up — contact Nexa support |
 
+### Email provisioning errors
+
+| Code | Status | Description |
+|------|--------|-------------|
+| `EMAIL_CONFIG_MISSING` | 400 | `email.tier` or `email.domain` not set in `createNexa()` config |
+| `EMAIL_DOMAIN_NOT_VERIFIED` | 403 | Domain not yet verified — complete DNS setup in dashboard before provisioning |
+| `EMAIL_ACCOUNT_EXISTS` | 409 | An account with this email address already exists |
+| `EMAIL_PROVIDER_ERROR` | 502 | Stalwart or Google Workspace returned an error — check provider status |
+| `EMAIL_JOB_NOT_FOUND` | 404 | No bulk provisioning job with this `jobId` |
+
 ### General errors
 
 | Code | Status | Description |

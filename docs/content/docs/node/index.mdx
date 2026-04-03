@@ -57,6 +57,15 @@ console.log(result.jobId);
 // Verify and retrieve payment
 const payment = await nexa.payments.verify("nxa_ref_xyz");
 console.log(payment.status); // "success"
+
+// Provision a student email account
+const account = await nexa.email.create({
+  studentId: "stu_001",
+  firstName: "John",
+  lastName: "Doe",
+});
+console.log(account.email);             // john.doe@yourschool.edu
+console.log(account.temporaryPassword); // send to student
 ```
 
 ## Low-level webhook verification

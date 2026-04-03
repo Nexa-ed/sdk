@@ -125,6 +125,18 @@ const capabilities = [
     href: "/docs/react/components",
     ref: "react/components",
   },
+  {
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+        <polyline points="22,6 12,13 2,6" />
+      </svg>
+    ),
+    title: "Student Emails",
+    description: "Provision school email accounts on your own domain, via Google Workspace, or on a Nexa subdomain. Bulk-create 500 accounts in one call.",
+    href: "/docs/sdk/emails",
+    ref: "sdk/emails",
+  },
 ];
 
 const stats = [
@@ -160,7 +172,7 @@ export default function HomePage() {
 
         {/* Headline */}
         <h1 className="mb-5 text-[clamp(2.75rem,9vw,6rem)] font-bold leading-none tracking-tight text-fd-foreground">
-          Nexa-ed{" "}
+          Nexa Ed{" "}
           <span
             className="bg-clip-text text-transparent"
             style={{ backgroundImage: "linear-gradient(135deg, hsl(158 64% 58%), hsl(167 82% 50%), hsl(142 76% 42%))" }}
@@ -170,8 +182,8 @@ export default function HomePage() {
         </h1>
 
         {/* Tagline */}
-        <p className="mx-auto mb-9 max-w-lg text-base leading-relaxed text-fd-muted-foreground md:text-lg">
-          Student results processing, payments, and AI document analysis —
+        <p className="mx-auto mb-9 max-w-xl text-base leading-relaxed text-fd-muted-foreground md:text-lg">
+          Student results processing, Paystack payments, student email provisioning, and AI document analysis —
           for any language, any framework, in minutes.
         </p>
 
@@ -295,12 +307,12 @@ export default function HomePage() {
               Everything your school app needs
             </h2>
             <p className="mx-auto max-w-sm text-sm leading-relaxed text-fd-muted-foreground">
-              Three core modules — each with a typed SDK, React hooks, and REST endpoints.
+              Four core modules — each with a typed SDK, React components, and REST endpoints.
             </p>
           </div>
 
-          {/* 3-column capability cards */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {/* Capability cards */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {capabilities.map((cap) => (
               <Link
                 key={cap.title}
@@ -357,7 +369,7 @@ export default function HomePage() {
             </h2>
             <p className="mb-4 text-sm leading-relaxed text-fd-muted-foreground">
               Scaffold a complete school app with routing, auth, results viewer,
-              and payments — in a single command.
+              payments, and email provisioning — in a single command.
             </p>
             <Link
               href="/docs/getting-started/cli"

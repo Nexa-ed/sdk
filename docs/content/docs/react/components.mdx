@@ -215,3 +215,72 @@ import { PaymentStatusDashboard } from "@nexa-ed/react";
 
 <PaymentStatusDashboard defaultPageSize={20} />
 ```
+
+---
+
+## StudentEmailAccountManager
+
+Create, list, suspend, restore, and reset passwords for student email accounts. All actions go through your `/api/student-emails/*` routes — no API key is exposed to the browser.
+
+```tsx
+import { StudentEmailAccountManager } from "@nexa-ed/react";
+
+<StudentEmailAccountManager
+  tier="tier-2-stalwart"
+  domain="loretto.edu.ng"
+  onAccountCreated={(account) => console.log("Created:", account.email)}
+/>
+```
+
+### Props
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `tier` | `EmailTier` | Yes | Email tier: `"tier-1-nexa"` \| `"tier-2-stalwart"` \| `"tier-3-google"` |
+| `domain` | `string` | Yes | Email domain, e.g. `"loretto.edu.ng"` |
+| `basePath` | `string` | No | API proxy base path. Defaults to `""` |
+| `onAccountCreated` | `(account: StudentEmail) => void` | No | Called after successful account creation |
+
+<Callout type="warn">
+  **Live key required.** Accounts created through this component call your live `/api/student-emails/create` endpoint.
+  Use a test key during development — you will receive a sandboxed response with `_testMode: true`.
+</Callout>
+
+---
+
+## EmailBulkProvisioningPanel
+
+Provision up to 500 student accounts at once with live job progress tracking. Fires a bulk job and polls for completion every 3 seconds automatically.
+
+```tsx
+import { EmailBulkProvisioningPanel } from "@nexa-ed/react";
+
+// Option A — paste JSON manually in the textarea
+<EmailBulkProvisioningPanel
+  tier="tier-2-stalwart"
+  domain="loretto.edu.ng"
+  onJobComplete={(progress) =>
+    console.log(`Done: ${progress.successCount}/${progress.totalStudents}`)
+  }
+/>
+
+// Option B — pre-load a students array (skips textarea)
+<EmailBulkProvisioningPanel
+  tier="tier-2-stalwart"
+  domain="loretto.edu.ng"
+  students={[
+    { studentId: "stu_001", firstName: "Amara", lastName: "Obi" },
+    { studentId: "stu_002", firstName: "Chidi", lastName: "Eze" },
+  ]}
+/>
+```
+
+### Props
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `tier` | `EmailTier` | Yes | Email tier |
+| `domain` | `string` | Yes | Email domain |
+| `students` | `EmailCreateFormData[]` | No | Pre-load students array — skips textarea |
+| `basePath` | `string` | No | API proxy base path. Defaults to `""` |
+| `onJobComplete` | `(progress: EmailJobProgress) => void` | No | Called when job reaches `completed` or `failed` |

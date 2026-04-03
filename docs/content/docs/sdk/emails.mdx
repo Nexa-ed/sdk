@@ -1,0 +1,280 @@
+---
+title: Student Emails
+description: Provision, manage, and suspend student email accounts across all three email tiers.
+---
+
+## How it works
+
+1. **Choose a tier** — Nexa-hosted subdomain, your own domain via Stalwart, or Google Workspace
+2. **Configure once** — set `email.tier` and `email.domain` in `createNexa()`
+3. **Create accounts** — call `nexa.email.create()` or `nexa.email.bulkCreate()` — tier-agnostic
+4. **Manage lifecycle** — suspend, restore, and reset passwords without touching the provider directly
+
+Your live API key gates all email delivery. Test keys (`nxa_test_...`) are accepted by the SDK but will be rejected by the email endpoints — use a live key for real provisioning.
+
+---
+
+## Tier guide
+
+| Tier | ID | Domain example | Requirements |
+|------|----|----------------|-------------|
+| Nexa Hosted | `tier-1-nexa` | `loretto.nexa-ed.com` | Nothing — live key unlocked at signup |
+| Custom Domain | `tier-2-stalwart` | `loretto.edu.ng` | Domain verified in dashboard |
+| Google Workspace | `tier-3-google` | `loretto.edu.ng` | GWS credentials saved + domain verified |
+
+Set your tier and domain once in `lib/nexa.ts` — all `nexa.email.*` methods use it automatically.
+
+---
+
+## Setup
+
+```ts
+// lib/nexa.ts
+import { createNexa } from "@nexa-ed/next";
+
+export const nexa = createNexa({
+  apiKey:        process.env.NEXA_API_KEY!,   // must be nxa_live_...
+  webhookSecret: process.env.NEXA_WEBHOOK_SECRET!,
+
+  email: {
+    tier:   "tier-2-stalwart",     // or "tier-1-nexa" / "tier-3-google"
+    domain: "loretto.edu.ng",      // the domain emails will use
+  },
+});
+```
+
+<Callout type="warn">
+  **Live key required.** Test keys (`nxa_test_...`) cannot deliver emails.
+  Set `NEXA_API_KEY` to your `nxa_live_...` key before calling any `nexa.email.*` method.
+</Callout>
+
+---
+
+## nexa.email.create()
+
+Provision a single student email account. The email address is derived from the student's name and your configured domain.
+
+**Server-side only** — your API key must not be exposed to the browser.
+
+```ts
+const account = await nexa.email.create({
+  studentId:     "stu_001",
+  firstName:     "Amara",
+  lastName:      "Obi",
+  gradeLevel:    "JSS2",                        // optional
+  recoveryEmail: "parent@example.com",          // optional
+  // email: "amara.obi@loretto.edu.ng",         // optional — auto-generated if omitted
+});
+
+console.log(account.email);             // "amara.obi@loretto.edu.ng"
+console.log(account.temporaryPassword); // "Tr9x#K2m" — share with student securely
+console.log(account.providerUserId);    // provider-assigned user ID
+```
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `studentId` | `string` | Yes | Your internal student identifier |
+| `firstName` | `string` | Yes | Student's first name |
+| `lastName` | `string` | Yes | Student's last name |
+| `email` | `string` | No | Override the auto-generated address |
+| `gradeLevel` | `string` | No | e.g. `"JSS2"`, `"SS3"` |
+| `recoveryEmail` | `string` | No | Parent/guardian recovery address |
+
+---
+
+## nexa.email.bulkCreate()
+
+Create up to **500 accounts in a single call**. Processing happens in the background — you get a `jobId` to poll for progress.
+
+When the job finishes, Nexa sends an `email.bulk_completed` webhook to your registered endpoint with the final counts. The webhook payload is intentionally lean — use `nexa.email.getJobStatus(jobId)` to fetch the full per-student breakdown.
+
+```ts
+// Kick off the job
+const job = await nexa.email.bulkCreate({
+  students: [
+    { studentId: "stu_001", firstName: "Amara",  lastName: "Obi"    },
+    { studentId: "stu_002", firstName: "Chidi",  lastName: "Eze"    },
+    { studentId: "stu_003", firstName: "Ngozi",  lastName: "Adeyemi" },
+    // ... up to 500
+  ],
+});
+
+console.log(job.jobId);         // "job_a1b2c3"
+console.log(job.totalStudents); // 3
+
+// Poll until done
+let status = await nexa.email.getJobStatus(job.jobId);
+
+while (status.status === "pending" || status.status === "processing") {
+  await new Promise((r) => setTimeout(r, 3000)); // wait 3 seconds
+  status = await nexa.email.getJobStatus(job.jobId);
+}
+
+console.log(`Done: ${status.successCount} created, ${status.failedCount} failed`);
+
+// Per-student results
+for (const result of status.results ?? []) {
+  if (result.status === "success") {
+    console.log(`✓ ${result.email}`);
+  } else {
+    console.log(`✗ ${result.studentId}: ${result.error}`);
+  }
+}
+```
+
+---
+
+## nexa.email.list()
+
+List provisioned email accounts for your tenant. Filter by status and limit results.
+
+```ts
+// All active accounts
+const accounts = await nexa.email.list({ status: "active" });
+
+// All accounts (active + suspended)
+const all = await nexa.email.list({ limit: 200 });
+
+for (const acct of accounts) {
+  console.log(acct.email, acct.status); // "amara.obi@loretto.edu.ng" "active"
+}
+```
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `status` | `"active" \| "suspended" \| "deleted"` | — | Filter by account status |
+| `limit` | `number` | `100` | Max accounts to return (1–500) |
+
+---
+
+## nexa.email.suspend()
+
+Disable a student's email login without deleting their mailbox. All stored messages and data are preserved.
+
+```ts
+await nexa.email.suspend("amara.obi@loretto.edu.ng");
+// Account is now suspended — student cannot log in
+```
+
+---
+
+## nexa.email.restore()
+
+Re-enable a suspended account.
+
+```ts
+await nexa.email.restore("amara.obi@loretto.edu.ng");
+// Account is active again — student can log in
+```
+
+---
+
+## nexa.email.resetPassword()
+
+Generate a new temporary password. Share it securely with the student — they will be prompted to change it on first login.
+
+```ts
+const result = await nexa.email.resetPassword("amara.obi@loretto.edu.ng");
+
+console.log(result.email);             // "amara.obi@loretto.edu.ng"
+console.log(result.temporaryPassword); // "Wk8@Lm3z"
+```
+
+---
+
+## nexa.email.getJobStatus()
+
+Poll the progress of a bulk provisioning job.
+
+```ts
+const status = await nexa.email.getJobStatus("job_a1b2c3");
+```
+
+### Return type
+
+```ts
+{
+  jobId:          string;
+  status:         "pending" | "processing" | "completed" | "failed";
+  type:           string;
+  totalStudents:  number;
+  processedCount: number;
+  successCount:   number;
+  failedCount:    number;
+  results?: Array<{
+    studentId: string;
+    email?:    string;
+    status:    string;
+    error?:    string;
+  }>;
+  error?:       string;
+  createdAt:    number;
+  startedAt?:   number;
+  completedAt?: number;
+}
+```
+
+---
+
+## Type reference
+
+```ts
+type EmailTier =
+  | "tier-1-nexa"
+  | "tier-2-stalwart"
+  | "tier-3-google";
+
+interface EmailCreateOptions {
+  studentId:      string;
+  firstName:      string;
+  lastName:       string;
+  email?:         string;
+  gradeLevel?:    string;
+  recoveryEmail?: string;
+}
+
+interface EmailCreateResult {
+  email:             string;
+  temporaryPassword: string;
+  providerUserId:    string;
+  tier:              EmailTier;
+}
+
+interface StudentEmailAccount {
+  tenantId:              string;
+  studentId:             string;
+  email:                 string;
+  firstName:             string;
+  lastName:              string;
+  gradeLevel?:           string;
+  provider?:             "nexa" | "stalwart" | "google";
+  providerUserId:        string;
+  status:                "active" | "suspended" | "deleted" | "deleting";
+  passwordResetRequired: boolean;
+  recoveryEmail?:        string;
+  aliases?:              string[];
+  createdAt:             number;
+  updatedAt:             number;
+}
+```
+
+---
+
+## React components
+
+For ready-made provisioning UI without building it yourself:
+
+- [`<StudentEmailAccountManager />`](/docs/react/components#studentemailaccountmanager) — create, list, suspend, and restore accounts
+- [`<EmailBulkProvisioningPanel />`](/docs/react/components#emailbulkprovisioningpanel) — bulk import with live job progress
+
+---
+
+## What's next
+
+- [Domain setup](/dashboard/domain) — verify your domain to unlock the live key
+- [REST API — Student Emails](/docs/rest-api/email) — raw HTTP reference for all endpoints
+- [Webhooks](/docs/sdk/webhooks) — receive `email.bulk_completed` when a bulk job finishes; pull full results via `nexa.email.getJobStatus(jobId)`

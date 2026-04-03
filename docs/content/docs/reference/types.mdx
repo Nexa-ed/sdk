@@ -1,6 +1,6 @@
 ---
 title: Types Reference
-description: Complete TypeScript type definitions for the Nexa-ed SDK.
+description: Complete TypeScript type definitions for the Nexa Ed SDK.
 ---
 
 All types are exported from `@nexa-ed/sdk` (and re-exported from `@nexa-ed/next`).
@@ -88,6 +88,76 @@ type PaymentError = {
 };
 ```
 
+## Email provisioning types
+
+```ts
+type EmailTier = "tier-1-nexa" | "tier-2-stalwart" | "tier-3-google";
+
+type EmailCreateOptions = {
+  studentId: string;
+  firstName: string;
+  lastName: string;
+  email?: string;           // Generated from name if omitted
+  gradeLevel?: string;      // e.g. "SS2" — used for Google Workspace OU
+  recoveryEmail?: string;
+};
+
+type EmailCreateResult = {
+  email: string;
+  temporaryPassword: string;
+  providerUserId: string;
+  tier: EmailTier;
+};
+
+type StudentEmailAccount = {
+  email: string;
+  studentId: string;
+  firstName: string;
+  lastName: string;
+  status: "active" | "suspended" | "deleted";
+  tier: EmailTier;
+  provider: "nexa" | "stalwart" | "google";
+  providerUserId: string;
+  gradeLevel?: string;
+  passwordResetRequired: boolean;
+  createdAt: number;
+  updatedAt: number;
+};
+
+type EmailBulkCreateOptions = {
+  students: EmailCreateOptions[];
+};
+
+type EmailBulkCreateResult = {
+  jobId: string;
+  tier: EmailTier;
+  totalStudents: number;
+  message: string;
+};
+
+type EmailJobStatus = {
+  jobId: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  type: string;
+  totalStudents: number;
+  processedCount: number;
+  successCount: number;
+  failedCount: number;
+  results?: Array<{
+    studentId: string;
+    email?: string;
+    status: "created" | "failed";
+    error?: string;
+  }>;
+  error?: string;
+  createdAt: number;
+  startedAt?: number;
+  completedAt?: number;
+};
+```
+
+---
+
 ## Webhook types
 
 ```ts
@@ -119,7 +189,22 @@ type WebhookPaymentEvent = {
   updatedAt: string;
 };
 
-type WebhookEvent = WebhookFileCompleteEvent | WebhookPaymentEvent;
+/** Fired when a bulk email provisioning job finishes — lean counts only */
+type WebhookEmailBulkCompletedEvent = {
+  event: "email.bulk_completed";
+  tenantId: string;
+  jobId: string;
+  status: "completed" | "failed";
+  totalStudents: number;
+  successCount: number;
+  failedCount: number;
+  completedAt: number; // Unix ms
+};
+
+type WebhookEvent =
+  | WebhookFileCompleteEvent
+  | WebhookPaymentEvent
+  | WebhookEmailBulkCompletedEvent;
 ```
 
 ## Analysis types
@@ -175,5 +260,26 @@ const nexaPaymentsSchema = {
   })
     .index("by_reference", ["reference"])
     .index("by_email", ["customerEmail"]),
+};
+
+// nexaStudentEmailsSchema — spread into defineSchema() when using email provisioning
+const nexaStudentEmailsSchema = {
+  studentEmails: defineTable({
+    tenantId: v.string(),
+    studentId: v.string(),
+    email: v.string(),
+    firstName: v.string(),
+    lastName: v.string(),
+    provider: v.optional(v.union(v.literal("nexa"), v.literal("stalwart"), v.literal("google"))),
+    tier: v.optional(v.union(v.literal("tier-1-nexa"), v.literal("tier-2-stalwart"), v.literal("tier-3-google"))),
+    status: v.union(v.literal("active"), v.literal("suspended"), v.literal("deleted")),
+    passwordResetRequired: v.optional(v.boolean()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_email",   ["email"])
+    .index("by_tenant",  ["tenantId"])
+    .index("by_student", ["tenantId", "studentId"])
+    .index("by_status",  ["tenantId", "status"]),
 };
 ```

@@ -1,0 +1,344 @@
+---
+title: Student Emails
+description: Provision and manage student email accounts via the REST API.
+---
+
+All student email endpoints require a **live API key** (`nxa_live_...`). Test keys are rejected with HTTP `403`.
+
+**Base URL:** `https://nexa-ed.com`
+
+---
+
+## Create a student email account
+
+Provision a single student email account on your configured email tier.
+
+```
+POST /api/student-emails/create
+```
+
+<Callout type="warn">
+  **Live key required.** Test keys (`nxa_test_...`) cannot deliver real emails and will be rejected
+  with `403 Live API key required for email delivery`.
+</Callout>
+
+**Headers**
+
+| Header | Required | Value |
+|--------|----------|-------|
+| `x-api-key` | Yes | `nxa_live_...` |
+| `Content-Type` | Yes | `application/json` |
+
+**Body**
+
+```json
+{
+  "studentId":     "stu_001",
+  "firstName":     "Amara",
+  "lastName":      "Obi",
+  "tier":          "tier-2-stalwart",
+  "domain":        "loretto.edu.ng",
+  "gradeLevel":    "JSS2",
+  "recoveryEmail": "parent@example.com"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `studentId` | string | Yes | Your internal student identifier |
+| `firstName` | string | Yes | Student's first name |
+| `lastName` | string | Yes | Student's last name |
+| `tier` | string | Yes | `"tier-1-nexa"` \| `"tier-2-stalwart"` \| `"tier-3-google"` |
+| `domain` | string | Yes | Email domain, e.g. `"loretto.edu.ng"` |
+| `email` | string | No | Override auto-generated address |
+| `gradeLevel` | string | No | e.g. `"JSS2"`, `"SS3"` |
+| `recoveryEmail` | string | No | Parent/guardian recovery address |
+
+**Response `200 OK`**
+
+```json
+{
+  "email":             "amara.obi@loretto.edu.ng",
+  "temporaryPassword": "Tr9x#K2m",
+  "providerUserId":    "stw_user_abc123",
+  "tier":              "tier-2-stalwart"
+}
+```
+
+**Example (cURL)**
+
+```bash
+curl -X POST https://nexa-ed.com/api/student-emails/create \
+  -H "x-api-key: nxa_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "studentId": "stu_001",
+    "firstName": "Amara",
+    "lastName":  "Obi",
+    "tier":      "tier-2-stalwart",
+    "domain":    "loretto.edu.ng"
+  }'
+```
+
+**Example (Python)**
+
+```python
+import requests
+
+resp = requests.post(
+    "https://nexa-ed.com/api/student-emails/create",
+    headers={"x-api-key": "nxa_live_..."},
+    json={
+        "studentId": "stu_001",
+        "firstName": "Amara",
+        "lastName":  "Obi",
+        "tier":      "tier-2-stalwart",
+        "domain":    "loretto.edu.ng",
+    },
+)
+account = resp.json()
+print(account["email"], account["temporaryPassword"])
+```
+
+---
+
+## Bulk provision accounts
+
+Provision up to **500 student accounts** in a single request. Processing happens asynchronously — poll `/api/student-emails/status` with the returned `jobId`.
+
+```
+POST /api/student-emails/bulk
+```
+
+**Headers**
+
+| Header | Required | Value |
+|--------|----------|-------|
+| `x-api-key` | Yes | `nxa_live_...` or `nxa_test_...` |
+| `Content-Type` | Yes | `application/json` |
+
+**Body**
+
+```json
+{
+  "students": [
+    { "studentId": "stu_001", "firstName": "Amara",  "lastName": "Obi"     },
+    { "studentId": "stu_002", "firstName": "Chidi",  "lastName": "Eze"     },
+    { "studentId": "stu_003", "firstName": "Ngozi",  "lastName": "Adeyemi" }
+  ],
+  "tier":   "tier-2-stalwart",
+  "domain": "loretto.edu.ng"
+}
+```
+
+**Response `202 Accepted`**
+
+```json
+{
+  "jobId":         "job_a1b2c3",
+  "tier":          "tier-2-stalwart",
+  "totalStudents": 3,
+  "message":       "Bulk provisioning job started. Poll /api/student-emails/status?jobId=job_a1b2c3 for progress."
+}
+```
+
+Poll the `jobId` using [Get job status](#get-job-status) every 3–5 seconds until `status` is `"completed"` or `"failed"`.
+
+---
+
+## Get job status
+
+Check the progress of a bulk provisioning job.
+
+```
+GET /api/student-emails/status?jobId=job_a1b2c3
+```
+
+**Headers**
+
+| Header | Required | Value |
+|--------|----------|-------|
+| `x-api-key` | Yes | Your tenant API key |
+
+**Response `200 OK`**
+
+```json
+{
+  "jobId":          "job_a1b2c3",
+  "status":         "completed",
+  "type":           "bulk-create",
+  "totalStudents":  3,
+  "processedCount": 3,
+  "successCount":   3,
+  "failedCount":    0,
+  "results": [
+    { "studentId": "stu_001", "email": "amara.obi@loretto.edu.ng",   "status": "success" },
+    { "studentId": "stu_002", "email": "chidi.eze@loretto.edu.ng",   "status": "success" },
+    { "studentId": "stu_003", "email": "ngozi.adeyemi@loretto.edu.ng", "status": "success" }
+  ],
+  "createdAt":    1743000000000,
+  "startedAt":    1743000001000,
+  "completedAt":  1743000012000
+}
+```
+
+`status` values: `"pending"` | `"processing"` | `"completed"` | `"failed"`
+
+---
+
+## List accounts
+
+List student email accounts for your tenant.
+
+```
+GET /api/student-emails/list
+```
+
+**Headers**
+
+| Header | Required | Value |
+|--------|----------|-------|
+| `x-api-key` | Yes | Your tenant API key |
+
+**Query params**
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `status` | string | — | Filter: `"active"` \| `"suspended"` \| `"deleted"` |
+| `limit` | number | `100` | Max results (1–500) |
+
+**Response `200 OK`**
+
+```json
+{
+  "accounts": [
+    {
+      "email":                 "amara.obi@loretto.edu.ng",
+      "studentId":             "stu_001",
+      "firstName":             "Amara",
+      "lastName":              "Obi",
+      "status":                "active",
+      "provider":              "stalwart",
+      "providerUserId":        "stw_user_abc123",
+      "passwordResetRequired": false,
+      "createdAt":             1743000000000,
+      "updatedAt":             1743000000000
+    }
+  ],
+  "total": 1
+}
+```
+
+---
+
+## Suspend an account
+
+Disable a student's email login without deleting their mailbox.
+
+```
+POST /api/student-emails/suspend
+```
+
+**Headers**
+
+| Header | Required | Value |
+|--------|----------|-------|
+| `x-api-key` | Yes | Your tenant API key |
+| `Content-Type` | Yes | `application/json` |
+
+**Body**
+
+```json
+{ "email": "amara.obi@loretto.edu.ng" }
+```
+
+**Response `200 OK`**
+
+```json
+{ "success": true, "email": "amara.obi@loretto.edu.ng", "status": "suspended" }
+```
+
+---
+
+## Restore an account
+
+Re-enable a suspended student account.
+
+```
+POST /api/student-emails/restore
+```
+
+**Headers**
+
+| Header | Required | Value |
+|--------|----------|-------|
+| `x-api-key` | Yes | Your tenant API key |
+| `Content-Type` | Yes | `application/json` |
+
+**Body**
+
+```json
+{ "email": "amara.obi@loretto.edu.ng" }
+```
+
+**Response `200 OK`**
+
+```json
+{ "success": true, "email": "amara.obi@loretto.edu.ng", "status": "active" }
+```
+
+---
+
+## Reset password
+
+Generate a new temporary password for a student account.
+
+```
+POST /api/student-emails/reset-password
+```
+
+**Headers**
+
+| Header | Required | Value |
+|--------|----------|-------|
+| `x-api-key` | Yes | Your tenant API key |
+| `Content-Type` | Yes | `application/json` |
+
+**Body**
+
+```json
+{ "email": "amara.obi@loretto.edu.ng" }
+```
+
+**Response `200 OK`**
+
+```json
+{
+  "email":             "amara.obi@loretto.edu.ng",
+  "temporaryPassword": "Wk8@Lm3z"
+}
+```
+
+Share the temporary password securely with the student. They will be prompted to change it on first login.
+
+---
+
+## Error responses
+
+| Status | Code | Meaning |
+|--------|------|---------|
+| `401` | `unauthorized` | Missing or invalid `x-api-key` |
+| `403` | `live-key-required` | Test key used on an endpoint that requires a live key |
+| `403` | `live-key-not-activated` | Live key exists but domain not yet verified |
+| `404` | `not-found` | Email account does not exist |
+| `409` | `email-exists` | An account with that address already exists |
+| `422` | `validation-error` | Missing required fields |
+| `429` | `rate-limited` | Too many requests — see `Retry-After` header |
+
+---
+
+## What's next
+
+- [SDK — Student Emails](/docs/sdk/emails) — use the typed SDK instead of raw HTTP
+- [Domain setup](/dashboard/domain) — verify your domain to unlock the live key
+- [React components](/docs/react/components#studentemailaccountmanager) — drop-in provisioning UI

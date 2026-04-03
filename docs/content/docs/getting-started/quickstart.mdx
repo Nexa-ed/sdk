@@ -123,12 +123,13 @@ export default function TeacherDashboardPage() {
 
 ## Configure webhook URLs
 
-In the **Nexa dashboard → Webhooks**, register these two URLs so Nexa can call back to your app:
+In the **Nexa dashboard → Webhooks**, register these URLs so Nexa can call back to your app:
 
 | Event | URL |
 |-------|-----|
 | `file.completed` | `https://your-domain.com/api/nexa/webhook` |
 | `payment.completed` | `https://your-domain.com/api/nexa/payments/forward` |
+| `email.bulk_completed` | `https://your-domain.com/api/nexa/email-provisioning/forward` |
 
 Use a tool like [ngrok](https://ngrok.com) to expose localhost during development.
 
@@ -140,5 +141,7 @@ Now that the integration is live, explore what you can build:
 
 - [File Processing](/docs/sdk/files) — submit PDFs, stream OCR progress, retrieve records
 - [Payments](/docs/sdk/payments) — initialize fees, verify transactions, handle webhooks
-- [React Components](/docs/react/components) — upload zone, records table, payment widget
+- [Student Emails](/docs/sdk/emails) — provision student email accounts across all three tiers
+- [Domain Setup](/docs/sdk/domain-setup) — verify your domain to unlock Tier 2/3 and your live key
+- [React Components](/docs/react/components) — upload zone, records table, payment widget, email provisioning UI
 - [React Hooks](/docs/react/hooks) — fine-grained control over every feature

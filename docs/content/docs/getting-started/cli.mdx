@@ -115,6 +115,7 @@ In the Nexa dashboard, add:
 |-------|-----|
 | `file.completed` | `https://your-domain.com/api/nexa/webhook` |
 | `payment.completed` | `https://your-domain.com/api/nexa/payments/forward` |
+| `email.bulk_completed` | `https://your-domain.com/api/nexa/email-provisioning/forward` |
 
 Use [ngrok](https://ngrok.com) to expose `localhost:3000` while developing.
 
@@ -133,4 +134,6 @@ Open [http://localhost:3000/dashboard](http://localhost:3000/dashboard) — your
 - [Quickstart](/docs/getting-started/quickstart) — understand what each generated file does
 - [File Processing](/docs/sdk/files) — submit PDFs and stream OCR progress
 - [Payments](/docs/sdk/payments) — collect enrollment fees
+- [Student Emails](/docs/sdk/emails) — provision student email accounts across all three tiers
+- [Domain Setup](/docs/sdk/domain-setup) — verify your domain to unlock Tier 2/3 email and your live key
 - [React Components](/docs/react/components) — customise the pre-built UI

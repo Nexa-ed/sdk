@@ -104,11 +104,16 @@ pnpm add @nexa-ed/convex
 ```ts
 // convex/schema.ts
 import { defineSchema } from "convex/server";
-import { nexaPaymentsSchema, nexaFilesSchema } from "@nexa-ed/convex/schema";
+import {
+  nexaPaymentsSchema,
+  nexaFilesSchema,
+  nexaStudentEmailsSchema,
+} from "@nexa-ed/convex/schema";
 
 export default defineSchema({
   ...nexaPaymentsSchema,
   ...nexaFilesSchema,
+  ...nexaStudentEmailsSchema,   // optional — add if you use student email provisioning
 });
 ```
 

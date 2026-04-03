@@ -1,4 +1,4 @@
 {
   "title": "SDK",
-  "pages": ["files", "payments", "documents", "webhooks", "services"]
+  "pages": ["files", "payments", "documents", "emails", "domain-setup", "webhooks", "services"]
 }

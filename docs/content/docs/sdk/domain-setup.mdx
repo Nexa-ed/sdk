@@ -1,0 +1,139 @@
+---
+title: Domain Setup
+description: Verify your school domain to unlock Tier 2 and Tier 3 email provisioning and activate your live API key.
+---
+
+Domain verification is a one-time step required before your school can use **Tier 2** (Stalwart on your own domain) or **Tier 3** (Google Workspace) email provisioning. It also unlocks your live API key.
+
+<Callout type="info">
+  **Tier 1 (Nexa subdomain)** does not require domain verification — your live key is unlocked automatically when you sign up.
+</Callout>
+
+---
+
+## Why verification is required
+
+When you provision student emails on your school's domain (e.g. `@loretto.edu.ng`), Nexa needs to confirm that:
+
+1. You control that domain — so no tenant can impersonate another school's address
+2. The correct DNS records are in place — so email is actually delivered
+
+Passing verification unlocks your `nxa_live_...` key and allows `nexa.email.create()` to provision real accounts.
+
+---
+
+## Tier 2 — Custom Domain (Stalwart)
+
+Nexa manages the mail server infrastructure; your school provides the DNS records.
+
+### Step 1 — Enter your domain in the dashboard
+
+Go to **Dashboard → Domain** and enter your school's domain (e.g. `loretto.edu.ng`). Nexa registers the domain with Stalwart and returns the DNS records you need to add.
+
+### Step 2 — Add DNS records at your registrar
+
+You will receive records similar to these. Add them exactly as shown at your domain registrar (GoDaddy, Namecheap, Cloudflare, etc.):
+
+| Type | Host | Value |
+|------|------|-------|
+| `MX` | `loretto.edu.ng` | `10 mail.nexa-ed.com` |
+| `TXT` | `loretto.edu.ng` | `v=spf1 include:nexa-ed.com ~all` |
+| `TXT` | `dkim._domainkey.loretto.edu.ng` | `v=DKIM1; k=rsa; p=MIIBIj...` |
+| `TXT` | `_dmarc.loretto.edu.ng` | `v=DMARC1; p=quarantine; rua=mailto:dmarc@nexa-ed.com` |
+
+DNS changes typically propagate within **5–30 minutes**, though it can take up to 48 hours.
+
+### Step 3 — Click "Verify domain"
+
+Once the records are live, click **Verify domain** in the dashboard. Nexa performs live DNS lookups and confirms all required records resolve correctly.
+
+On success:
+- `emailDomainVerified` is set to `true` on your tenant record
+- Your live API key (`nxa_live_...`) is unlocked
+- You can now use `nexa.email.create()` with `tier: "tier-2-stalwart"`
+
+### Re-verification
+
+If you change DNS providers or DNS records are accidentally removed, click **Re-verify** at any time from the Dashboard → Domain page.
+
+---
+
+## Tier 3 — Google Workspace
+
+Your school's Google Workspace account manages the mailboxes. Nexa uses a service account to provision students programmatically.
+
+### Step 1 — Create a Google service account
+
+In the [Google Cloud Console](https://console.cloud.google.com):
+
+1. Create a project (or use an existing one)
+2. Enable the **Admin SDK API**
+3. Create a **Service Account**
+4. Create a key (JSON format) and download it
+5. In your **Google Workspace Admin Console**, delegate domain-wide authority to the service account with the scope: `https://www.googleapis.com/auth/admin.directory.user`
+
+### Step 2 — Save credentials in the dashboard
+
+Go to **Dashboard → Email Settings** and paste your service account JSON. Nexa:
+
+1. Encrypts the JSON (AES-256-GCM) and stores it in your tenant record
+2. Makes a test API call to Google Admin to confirm the credentials work
+3. On success — stores the credentials, sets `activeTier` to `tier-3-google`, and unlocks your live key
+
+<Callout type="warn">
+  Your service account JSON contains a private key. Nexa encrypts it at rest and never logs it.
+  You can rotate credentials at any time from the Email Settings page.
+</Callout>
+
+### Step 3 — (Optional) Verify your domain
+
+If you also want to use Stalwart (Tier 2) as a fallback, go through the Tier 2 DNS verification steps as well. If you only use Google Workspace, domain DNS verification is not required — Google already controls your domain's email routing.
+
+---
+
+## Switching tiers
+
+You can change email tiers at any time from **Dashboard → Email Settings**:
+
+| From | To | Allowed? | Notes |
+|------|----|----------|-------|
+| Tier 1 | Tier 2 | ✓ if domain verified | |
+| Tier 1 | Tier 3 | ✓ if GWS credentials saved | |
+| Tier 2 | Tier 1 | ✓ always | Live key stays active |
+| Tier 2 | Tier 3 | ✓ if GWS credentials saved | |
+| Tier 3 | Tier 1 | ✓ always | Live key stays active |
+| Tier 3 | Tier 2 | ✓ if domain verified | |
+
+Existing provisioned accounts are **not migrated** when you switch tiers. New accounts created after the switch use the new tier.
+
+---
+
+## API key states
+
+| State | Key available | Condition |
+|-------|--------------|-----------|
+| Test key (`nxa_test_...`) | Always | Issued at signup — returns sandbox responses on email endpoints |
+| Live key (`nxa_live_...`) | After verification | Tier 1: auto-unlocked at signup. Tier 2: after DNS verified. Tier 3: after GWS credentials validated. |
+
+---
+
+## Troubleshooting
+
+**"Verification failed — MX record not found"**
+DNS propagation may not be complete. Wait 15 minutes and try again. Use `dig MX yourdomain.com` to check current DNS resolution.
+
+**"Verification failed — SPF record incorrect"**
+Ensure the TXT record is on the root domain (`yourdomain.com`), not a subdomain. Some registrars show this as `@`.
+
+**"Google credentials invalid"**
+Check that domain-wide delegation is enabled for the service account in Google Workspace Admin. The scope must include `https://www.googleapis.com/auth/admin.directory.user`.
+
+**Live key still shows locked after verification**
+Refresh the dashboard. If it still shows locked, the verification may not have completed — click Re-verify from the Domain page.
+
+---
+
+## What's next
+
+- [Student Emails](/docs/sdk/emails) — start provisioning accounts once your domain is verified
+- [Webhooks](/docs/sdk/webhooks) — receive `email.created` and `email.bulk_completed` events

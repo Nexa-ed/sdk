@@ -1,11 +1,11 @@
 ---
 title: Webhooks
-description: Receive, verify, and handle Nexa webhook events for file processing and payments.
+description: Receive, verify, and handle Nexa webhook events for file processing, payments, and student email provisioning.
 ---
 
 ## How webhooks work
 
-When a file finishes processing or a payment is confirmed, Nexa sends a signed `POST` request to a URL you register in the dashboard. The SDK:
+When a file finishes processing, a payment is confirmed, or a student email account is provisioned, Nexa sends a signed `POST` request to a URL you register in the dashboard. The SDK:
 
 1. Verifies the HMAC-SHA256 signature using your `NEXA_WEBHOOK_SECRET`
 2. Rejects events older than 5 minutes (replay protection)
@@ -24,6 +24,7 @@ All of this happens automatically inside the catch-all route handler — you onl
 |-------|-----|
 | `file.completed` | `https://your-domain.com/api/nexa/webhook` |
 | `payment.completed` | `https://your-domain.com/api/nexa/payments/forward` |
+| `email.bulk_completed` | `https://your-domain.com/api/nexa/email-provisioning/forward` |
 
 **2. Confirm `NEXA_WEBHOOK_SECRET` is set** in your environment:
 
@@ -47,6 +48,17 @@ export const nexa = createNexa({
   onPaymentComplete: async (event) => {
     // called when payment.completed arrives
     await db.payments.upsert({ reference: event.reference, status: event.status });
+  },
+
+  onEmailBulkCompleted: async (event) => {
+    // called when email.bulk_completed arrives (bulk job finished)
+    // event contains counts only — call nexa.email.getJobStatus(event.jobId) for per-student results
+    console.log(`Bulk job ${event.jobId}: ${event.successCount}/${event.totalStudents} created`);
+    if (event.failedCount > 0) {
+      const details = await nexa.email.getJobStatus(event.jobId);
+      const failed = details.results?.filter(r => r.status === "failed");
+      await notifyAdmin(failed);
+    }
   },
 });
 ```
@@ -86,7 +98,8 @@ const event = await nexa.webhooks.verify(request, { maxAgeSeconds: 600 });
 ```ts
 type WebhookEvent =
   | WebhookFileCompleteEvent
-  | WebhookPaymentEvent;
+  | WebhookPaymentEvent
+  | WebhookEmailBulkCompletedEvent;
 ```
 
 ### `WebhookFileCompleteEvent`
@@ -125,6 +138,28 @@ type WebhookPaymentEvent = {
 };
 ```
 
+### `WebhookEmailBulkCompletedEvent`
+
+Fired once when a bulk provisioning job reaches `completed` or `failed`. The payload is lean — counts only. Call `nexa.email.getJobStatus(jobId)` to retrieve the full per-student breakdown (individual emails, error details).
+
+```ts
+type WebhookEmailBulkCompletedEvent = {
+  event: "email.bulk_completed";
+  tenantId: string;
+  jobId: string;
+  status: "completed" | "failed";
+  totalStudents: number;
+  successCount: number;
+  failedCount: number;
+  completedAt: number;  // Unix ms
+};
+```
+
+<Callout type="info">
+  **Why no per-student data in the webhook?**
+  Pushing individual account details for each student in a 500-student job would make the webhook body extremely large and expensive to receive and process. Instead, the webhook tells you the job is done — you pull the full results only when you need them via `nexa.email.getJobStatus(jobId)`.
+</Callout>
+
 ---
 
 ## Convex integration
@@ -145,7 +180,28 @@ export const nexa = createNexa({
 });
 ```
 
-This writes to the `nexaFileResults` and `paymentTransactions` tables defined by `@nexa-ed/convex/schema`.
+This writes to the `nexaFileResults`, `paymentTransactions`, and `studentEmails` tables defined by `@nexa-ed/convex/schema`.
+
+For email bulk completion, use `createStudentEmailHandler` alongside an `onEmailBulkCompleted` callback:
+
+```ts
+import {
+  createFileCompleteHandler,
+  createPaymentCompleteHandler,
+} from "@nexa-ed/convex/handlers";
+
+export const nexa = createNexa({
+  // ...
+  onFileComplete:    createFileCompleteHandler(convex, api),
+  onPaymentComplete: createPaymentCompleteHandler(convex, api),
+
+  onEmailBulkCompleted: async (event) => {
+    // Webhook fires once per job. Pull full results from the API.
+    const details = await nexa.email.getJobStatus(event.jobId);
+    // Sync each provisioned account to your Convex DB, send notifications, etc.
+  },
+});
+```
 
 ---
 
@@ -166,4 +222,5 @@ Register `https://abc123.ngrok.io/api/nexa/webhook` in the Nexa dashboard tempor
 
 - [File Processing](/docs/sdk/files) — submit files and trigger `file.completed` events
 - [Payments](/docs/sdk/payments) — initialize payments and trigger `payment.completed` events
+- [Student Emails](/docs/sdk/emails) — provision accounts and receive `email.created` / `email.bulk_completed` events
 - [Reference — Types](/docs/reference/types) — full type definitions
