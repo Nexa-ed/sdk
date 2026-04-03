@@ -1,5 +1,5 @@
 import type { ConvexHttpClient } from "convex/browser";
-import type { WebhookPaymentEvent, WebhookFileCompleteEvent } from "@nexa-ed/sdk";
+import type { WebhookPaymentEvent, WebhookFileCompleteEvent, StudentEmailAccount } from "@nexa-ed/sdk";
 
 /**
  * The shape `api.nexa` must expose for the payment handler to work.
@@ -36,6 +36,43 @@ interface NexaFileApi {
       tenantId: string;
       status?: "completed" | "failed";
     }) => Promise<unknown>;
+  };
+}
+
+interface NexaStudentEmailApi {
+  nexa: {
+    upsertStudentEmailFromNexa: (args: { payload: StudentEmailAccount }) => Promise<unknown>;
+  };
+}
+
+/**
+ * Creates a handler that persists every `email.created` or `email.status_changed`
+ * webhook to the `studentEmails` Convex table.
+ *
+ * @param convex - A `ConvexHttpClient` instance
+ * @param api    - Your Convex `api` object (from `convex/_generated/api`)
+ *
+ * @example
+ * ```ts
+ * import { createStudentEmailHandler } from "@nexa-ed/convex/handlers";
+ * import { ConvexHttpClient } from "convex/browser";
+ * import { api } from "@/convex/_generated/api";
+ *
+ * const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+ *
+ * // Use in your webhook route or nexa config callback
+ * const handler = createStudentEmailHandler(convex, api);
+ * await handler(emailAccount);
+ * ```
+ */
+export function createStudentEmailHandler(
+  convex: ConvexHttpClient,
+  api: NexaStudentEmailApi,
+): (account: StudentEmailAccount) => Promise<void> {
+  return async (account) => {
+    await convex.mutation(api.nexa.upsertStudentEmailFromNexa as any, {
+      payload: account,
+    });
   };
 }
 

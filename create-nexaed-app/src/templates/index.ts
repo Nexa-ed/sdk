@@ -134,6 +134,14 @@ export function renderNexaLib(opts: ScaffoldOptions): string {
     }
   }
 
+  if (opts.features.emailProvisioning && opts.emailTier && opts.emailDomain) {
+    lines.push(``);
+    lines.push(`  email: {`);
+    lines.push(`    tier:   "${opts.emailTier}",`);
+    lines.push(`    domain: "${opts.emailDomain}",`);
+    lines.push(`  },`);
+  }
+
   lines.push(`});`);
   lines.push(``);
 
@@ -192,6 +200,19 @@ export function renderEnvExample(opts: ScaffoldOptions): string {
       `# Convex — https://dashboard.convex.dev`,
       `# ──────────────────────────────────────────────────────────────────────────`,
       `NEXT_PUBLIC_CONVEX_URL=https://YOUR_PROJECT.convex.cloud`,
+      ``,
+    );
+  }
+
+  if (opts.features.emailProvisioning) {
+    lines.push(
+      `# ──────────────────────────────────────────────────────────────────────────`,
+      `# Student email provisioning`,
+      `# Live key required — test keys (nxa_test_...) cannot deliver real emails`,
+      `# ──────────────────────────────────────────────────────────────────────────`,
+      `# NEXA_API_KEY must be set to your live key (see above)`,
+      `# Email tier: ${opts.emailTier ?? "tier-1-nexa"}`,
+      `# Email domain: ${opts.emailDomain ?? "yourschool.nexa-ed.com"}`,
       ``,
     );
   }

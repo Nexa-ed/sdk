@@ -403,4 +403,56 @@ export interface WebhookPaymentEvent {
   [key: string]: unknown;
 }
 
-export type WebhookEvent = WebhookFileCompleteEvent | WebhookPaymentEvent;
+/** Fired after a single student email account is successfully provisioned */
+export interface WebhookEmailCreatedEvent {
+  event: "email.created";
+  tenantId: string;
+  studentId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  gradeLevel?: string;
+  provider: "nexa" | "stalwart" | "google";
+  providerUserId: string;
+  tier: EmailTier;
+  /** Unix timestamp (ms) */
+  createdAt: number;
+}
+
+/** Fired when an account is suspended or restored */
+export interface WebhookEmailStatusChangedEvent {
+  event: "email.status_changed";
+  tenantId: string;
+  email: string;
+  studentId: string;
+  previousStatus: "active" | "suspended";
+  status: "active" | "suspended";
+  /** Unix timestamp (ms) */
+  changedAt: number;
+}
+
+/**
+ * Fired when a bulk provisioning job reaches completed or failed.
+ *
+ * Payload is intentionally lean — counts only.
+ * Call nexa.email.getJobStatus(jobId) to fetch the full per-student results
+ * (individual emails, error details, etc.).
+ */
+export interface WebhookEmailBulkCompletedEvent {
+  event: "email.bulk_completed";
+  tenantId: string;
+  jobId: string;
+  status: "completed" | "failed";
+  totalStudents: number;
+  successCount: number;
+  failedCount: number;
+  /** Unix timestamp (ms) */
+  completedAt: number;
+}
+
+export type WebhookEvent =
+  | WebhookFileCompleteEvent
+  | WebhookPaymentEvent
+  | WebhookEmailCreatedEvent
+  | WebhookEmailStatusChangedEvent
+  | WebhookEmailBulkCompletedEvent;

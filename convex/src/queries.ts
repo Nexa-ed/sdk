@@ -59,6 +59,74 @@ export const getPaymentsByEmail = queryGeneric({
 });
 
 /**
+ * Look up a single student email account by its email address.
+ *
+ * Mount in `convex/nexa.ts`:
+ * ```ts
+ * export { getStudentEmailByEmail } from "@nexa-ed/convex/queries";
+ * ```
+ */
+export const getStudentEmailByEmail = queryGeneric({
+  args: { email: v.string() },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  handler: async (ctx: any, { email }: any) => {
+    return ctx.db
+      .query("studentEmails")
+      .withIndex("by_email", (q: any) => q.eq("email", email))
+      .unique();
+  },
+});
+
+/**
+ * List all student email accounts for a tenant, newest first.
+ *
+ * Mount in `convex/nexa.ts`:
+ * ```ts
+ * export { listStudentEmailsByTenant } from "@nexa-ed/convex/queries";
+ * ```
+ */
+export const listStudentEmailsByTenant = queryGeneric({
+  args: {
+    tenantId: v.string(),
+    limit:    v.optional(v.number()),
+  },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  handler: async (ctx: any, { tenantId, limit = 100 }: any) => {
+    const results: any[] = await ctx.db
+      .query("studentEmails")
+      .withIndex("by_tenant", (q: any) => q.eq("tenantId", tenantId))
+      .collect();
+    return results.sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
+  },
+});
+
+/**
+ * List student email accounts for a tenant filtered by status.
+ *
+ * Mount in `convex/nexa.ts`:
+ * ```ts
+ * export { listStudentEmailsByStatus } from "@nexa-ed/convex/queries";
+ * ```
+ */
+export const listStudentEmailsByStatus = queryGeneric({
+  args: {
+    tenantId: v.string(),
+    status:   v.union(v.literal("active"), v.literal("suspended"), v.literal("deleted")),
+    limit:    v.optional(v.number()),
+  },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  handler: async (ctx: any, { tenantId, status, limit = 100 }: any) => {
+    const results: any[] = await ctx.db
+      .query("studentEmails")
+      .withIndex("by_status", (q: any) =>
+        q.eq("tenantId", tenantId).eq("status", status),
+      )
+      .collect();
+    return results.sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
+  },
+});
+
+/**
  * Check whether a file pipeline has completed processing.
  * Returns `null` if the file hasn't been recorded yet (still processing).
  *

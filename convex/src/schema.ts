@@ -51,6 +51,61 @@ export const nexaPaymentsSchema = {
 };
 
 /**
+ * Convex table definition for student email accounts provisioned via Nexa.
+ *
+ * Spread this into your `defineSchema()` call:
+ *
+ * ```ts
+ * import { nexaStudentEmailsSchema } from "@nexa-ed/convex/schema";
+ *
+ * export default defineSchema({
+ *   ...nexaStudentEmailsSchema,
+ * });
+ * ```
+ */
+export const nexaStudentEmailsSchema = {
+  studentEmails: defineTable({
+    /** Your internal student identifier */
+    studentId: v.string(),
+    tenantId: v.string(),
+    /** Provisioned email address, e.g. "amara.obi@loretto.edu.ng" */
+    email: v.string(),
+    firstName: v.string(),
+    lastName: v.string(),
+    gradeLevel: v.optional(v.string()),
+    /** Email infrastructure provider */
+    provider: v.optional(
+      v.union(v.literal("nexa"), v.literal("stalwart"), v.literal("google")),
+    ),
+    /** Provider-assigned user ID */
+    providerUserId: v.optional(v.string()),
+    tier: v.optional(
+      v.union(
+        v.literal("tier-1-nexa"),
+        v.literal("tier-2-stalwart"),
+        v.literal("tier-3-google"),
+      ),
+    ),
+    status: v.union(
+      v.literal("active"),
+      v.literal("suspended"),
+      v.literal("deleted"),
+    ),
+    passwordResetRequired: v.optional(v.boolean()),
+    recoveryEmail: v.optional(v.string()),
+    aliases: v.optional(v.array(v.string())),
+    /** Unix timestamp (ms) */
+    createdAt: v.number(),
+    /** Unix timestamp (ms) */
+    updatedAt: v.number(),
+  })
+    .index("by_email",   ["email"])
+    .index("by_tenant",  ["tenantId"])
+    .index("by_student", ["tenantId", "studentId"])
+    .index("by_status",  ["tenantId", "status"]),
+};
+
+/**
  * Convex table definition for file pipeline completions received from Nexa.
  *
  * Spread this into your `defineSchema()` call alongside `nexaPaymentsSchema`.

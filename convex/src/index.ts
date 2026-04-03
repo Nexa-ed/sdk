@@ -28,7 +28,7 @@
  * ```
  */
 
-export { nexaPaymentsSchema, nexaFilesSchema } from "./schema";
-export { upsertPaymentFromNexa, upsertFileResultFromNexa } from "./mutations";
-export { getPaymentByReference, getPaymentsByEmail, getFileResult, getFileResultsByUser } from "./queries";
-export { createPaymentCompleteHandler, createFileCompleteHandler } from "./handlers";
+export { nexaPaymentsSchema, nexaFilesSchema, nexaStudentEmailsSchema } from "./schema";
+export { upsertPaymentFromNexa, upsertFileResultFromNexa, upsertStudentEmailFromNexa } from "./mutations";
+export { getPaymentByReference, getPaymentsByEmail, getFileResult, getFileResultsByUser, getStudentEmailByEmail, listStudentEmailsByTenant, listStudentEmailsByStatus } from "./queries";
+export { createPaymentCompleteHandler, createFileCompleteHandler, createStudentEmailHandler } from "./handlers";

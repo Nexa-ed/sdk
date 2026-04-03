@@ -88,6 +88,20 @@ export type { FileProgressData, AnalysisJobProgress } from "./hooks/useFileProgr
 export type { UploadZoneProps } from "./components/UploadZone";
 export type { PipelineTimelineProps } from "./components/PipelineTimeline";
 
+// Email components
+export { StudentEmailAccountManager } from "./components/StudentEmailAccountManager";
+export type { StudentEmailAccountManagerProps } from "./email-types";
+export { EmailBulkProvisioningPanel } from "./components/EmailBulkProvisioningPanel";
+export type { EmailBulkProvisioningPanelProps } from "./email-types";
+
+// Email types
+export type {
+  EmailTier,
+  StudentEmail,
+  EmailCreateFormData,
+  EmailJobProgress,
+} from "./email-types";
+
 // Payment components
 export { NexaPaymentWidget } from "./components/NexaPaymentWidget";
 export type { NexaPaymentWidgetProps } from "./components/NexaPaymentWidget";
