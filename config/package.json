@@ -1,6 +1,6 @@
 {
   "name": "@nexa-ed/config",
-  "version": "0.0.1-beta.0",
+  "version": "0.0.1-beta.1",
   "private": true,
   "exports": {
     "./tsconfig.base.json": "./tsconfig.base.json"

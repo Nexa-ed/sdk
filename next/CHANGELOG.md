@@ -1,14 +1,29 @@
 # @nexa-ed/next
 
+## 0.2.0-beta.3
+
+### Minor Changes
+
+- e8c8739: ---
+
+### Patch Changes
+
+- 10bb2ff: adjsutments to teh name?
+- Updated dependencies [e8c8739]
+- Updated dependencies [10bb2ff]
+  - @nexa-ed/sdk@0.2.0-beta.3
+
 ## 0.2.0
 
 ### Minor Changes
 
 #### `createNexa()` Factory
+
 - New `createNexa(config)` factory — creates a configured Nexa instance with all route handlers pre-bound
 - Returns a `NexaInstance` with `.handlers` ready to mount in your Next.js `app/api/` directory
 
 #### Route Handlers
+
 - `upload` — handles UploadThing file upload requests from the Nexa UI
 - `prepareUpload` — prepares signed upload metadata before the client begins uploading
 - `progress` — Server-Sent Events (SSE) endpoint for real-time file processing progress
@@ -18,6 +33,7 @@
 - `rpc` — oRPC handler for typed data queries (documents, records, analysis jobs)
 
 #### Route Handler Mounting
+
 - `createRouteHandler(nexaInstance, options)` — mounts all handlers at a single `[...nexa]` catch-all route with one line
 
 ### Patch Changes

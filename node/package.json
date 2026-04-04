@@ -1,6 +1,6 @@
 {
   "name": "@nexa-ed/node",
-  "version": "0.2.0-beta.2",
+  "version": "0.2.0-beta.3",
   "description": "Nexa Education Platform — Node.js & Framework-Agnostic Adapter",
   "license": "MIT",
   "type": "module",
