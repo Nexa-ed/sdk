@@ -1,14 +1,14 @@
 ---
-title: v0.2.0 — Stable Release
-description: The first stable release of the Nexa Ed SDK. Includes the email module, 18 React components, Next.js route handlers, Node.js adapters, and the create-nexaed-app CLI.
+title: v0.2.0-beta.3
+description: Beta release of the Nexa Ed SDK. Includes the email module, 18 React components, Next.js route handlers, Node.js adapters, and the create-nexaed-app CLI.
 ---
 
-**Released:** 2026-04-04
+**Released:** 2026-04-04 — **Beta**
 
-This is the first stable release of the Nexa Ed SDK — graduating all five packages out of beta. It consolidates everything built across the `0.2.0-beta.*` cycle and ships two significant additions: the **email provisioning module** and a substantially expanded **React component + hooks library**.
+Ships two significant additions: the **email provisioning module** and a substantially expanded **React component + hooks library**.
 
 <Callout type="info">
-  Upgrading from `0.2.0-beta.2`? No breaking changes. Drop the beta tag and you're done.
+  Upgrading from `0.2.0-beta.2`? No breaking changes.
 </Callout>
 
 ---
@@ -231,21 +231,21 @@ The interactive CLI prompts for your project name, Convex URL, Clerk keys, email
 
 | Package | Version |
 |---|---|
-| `@nexa-ed/sdk` | `0.2.0` |
-| `@nexa-ed/react` | `0.2.0` |
-| `@nexa-ed/next` | `0.2.0` |
-| `@nexa-ed/convex` | `0.2.0` |
-| `@nexa-ed/node` | `0.2.0` |
-| `create-nexaed-app` | `0.2.0` |
+| `@nexa-ed/sdk` | `0.2.0-beta.3` |
+| `@nexa-ed/react` | `0.2.0-beta.3` |
+| `@nexa-ed/next` | `0.2.0-beta.3` |
+| `@nexa-ed/convex` | `0.2.0-beta.3` |
+| `@nexa-ed/node` | `0.2.0-beta.3` |
+| `create-nexaed-app` | `0.2.0-beta.3` |
 
 ---
 
-## Upgrading from Beta
+## Upgrading from beta.2
 
-No breaking changes from `0.2.0-beta.2`. Update your `package.json` dependencies:
+No breaking changes. Update your `package.json` dependencies:
 
 ```bash
-pnpm add @nexa-ed/sdk@0.2.0 @nexa-ed/react@0.2.0 @nexa-ed/next@0.2.0 @nexa-ed/convex@0.2.0
+pnpm add @nexa-ed/sdk@0.2.0-beta.3 @nexa-ed/react@0.2.0-beta.3 @nexa-ed/next@0.2.0-beta.3 @nexa-ed/convex@0.2.0-beta.3
 ```
 
-If you were using beta-only import paths, those are unchanged.
+Import paths are unchanged.
