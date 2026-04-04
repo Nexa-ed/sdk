@@ -1,6 +1,6 @@
 {
   "name": "@nexa-ed/next",
-  "version": "0.2.0-beta.2",
+  "version": "0.2.0-beta.3",
   "description": "Nexa Education Platform — Next.js Adapter",
   "license": "MIT",
   "type": "module",

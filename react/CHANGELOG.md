@@ -1,10 +1,24 @@
 # @nexa-ed/react
 
+## 0.2.0-beta.3
+
+### Minor Changes
+
+- e8c8739: ---
+
+### Patch Changes
+
+- 10bb2ff: adjsutments to teh name?
+- Updated dependencies [e8c8739]
+- Updated dependencies [10bb2ff]
+  - @nexa-ed/sdk@0.2.0-beta.3
+
 ## 0.2.0
 
 ### Minor Changes
 
 #### New Components
+
 - `StudentEmailAccountManager` — UI for viewing and managing student email accounts
 - `EmailBulkProvisioningPanel` — step-through UI for bulk-provisioning email accounts via async job
 - `EnrollmentPaymentFlow` — complete enrollment + payment flow component
@@ -24,6 +38,7 @@
 - `UploadZone` — drag-and-drop file upload zone
 
 #### New Hooks
+
 - `useUploadFile` — upload files to Nexa with progress tracking
 - `useFileProgress` — subscribe to real-time file processing progress
 - `useGetUserDocuments` — fetch the current user's documents
@@ -39,13 +54,16 @@
 - `useColumnSort` / `useGridNavigation` — table/grid UX helpers
 
 #### Email Types
+
 - Added `email-types.ts` — all email provisioning types consumed by email components
 
 #### Payment Utilities
+
 - `feeCalculation` — Paystack fee breakdown helpers
 - `paymentMetadata` — utilities for building Paystack metadata payloads
 
 #### Primitives
+
 - `Badge`, `HelpModal`, `LoadingSpinner`, `RowsPerPageSelect`, `SectionHeader`, `SortIcon`
 
 ### Patch Changes
