@@ -1,0 +1,77 @@
+---
+title: Changelog
+description: A record of notable changes to the Nexa Ed platform, REST API, and SDK packages.
+---
+
+All notable changes to Nexa Ed are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+SDK package versions follow [Semantic Versioning](https://semver.org/). Platform API changes are listed by date.
+
+---
+
+## Platform — 2025-04-01
+
+### Added
+- **Billing system** — monthly usage-based billing via Paystack reusable authorisations. Charges run automatically at 02:00 UTC each day for subscriptions due.
+- **Transactional email** — billing receipts, card-saved confirmations, tier-switch notifications, and welcome emails are now sent via Resend.
+- **Rate limiting** — sliding-window rate limits applied to all API endpoints (file processing, payments, RPC routes). Limits are communicated via standard `X-RateLimit-*` headers.
+
+### Changed
+- `POST /api/file-processing/extract` now returns HTTP `202 Accepted` immediately and processes documents asynchronously. Poll `GET /api/file-processing/status/:jobId` for completion.
+
+---
+
+## SDK — v1.0.0 (2025-03-21)
+
+Initial public release of all five SDK packages.
+
+### `@nexa-ed/sdk`
+- Core HTTP client with automatic retry on `429` using `Retry-After`
+- Methods: `files.upload`, `files.getStatus`, `payments.initialize`, `payments.verify`, `documents.list`, `documents.get`, `emails.provision`, `services.list`
+
+### `@nexa-ed/next`
+- Next.js Server Action wrappers for all SDK methods
+- `NexaProvider` — injects SDK client into RSC context
+- `createNexaHandler` — API route factory for incoming webhooks
+
+### `@nexa-ed/react`
+- UI components: `PaymentButton`, `PaymentModal`, `PaymentStatus`, `PaymentHistory`
+- Hooks: `usePayment`, `useDocuments`, `useServices`
+
+### `@nexa-ed/convex`
+- Convex schema fragments for tenants, subscriptions, and service catalog
+- Mutation/query factory helpers compatible with Convex `v1`
+
+### `create-nexaed-app`
+- CLI scaffolder: `npx create-nexaed-app my-school`
+- Templates: `next-minimal`, `next-full`, `node`
+
+---
+
+## Platform — 2025-03-17
+
+### Added
+- **oRPC data API** — typed `POST /api/rpc/[...orpc]` endpoints for querying student records, analysis jobs, and document chunks. Authenticated via Clerk JWT.
+- **Auth hardening** — FastAPI now accepts Clerk JWTs (RS256, JWKS cached 1 hour) as well as internal shared-secret headers. Worker routes are secured via `x-internal-secret`.
+
+---
+
+## Platform — 2025-03-10
+
+### Added
+- **Document AI pipeline** — async pipeline: upload → Trigger.dev → FastAPI OCR → Mastra agents → NeonDB. Supports PDF and image uploads.
+- **Student records schema** — `student_records`, `subject_categories`, `results_analysis_jobs` tables in NeonDB via Drizzle ORM.
+- **Clerk → NeonDB bridge** — `POST /internal/provision-user` on the worker provisions Clerk users into NeonDB on first document upload.
+
+---
+
+## Platform — 2025-02-15
+
+### Added
+- Multi-tenant SaaS platform launch — tenant registration, provisioning, and API key management.
+- Paystack payment gateway integration — fee collection, webhook verification, subscription management.
+- Student email provisioning — Tier 1 (Nexa subdomain), Tier 2 (custom domain via Stalwart), Tier 3 (Google Workspace managed).
+
+<Callout type="info">
+  For SDK-level changelogs and migration guides, see each package's `CHANGELOG.md` in the [GitHub repository](https://github.com/nexiumlabs/nexa-ed).
+</Callout>
