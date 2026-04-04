@@ -64,9 +64,14 @@ export const metadata: Metadata = {
     "open school platform SDK",
     // Brand
     "Nexa-Ed",
+    "Nexium Labs",
+    "Nexium Labs SDK",
     "create-nexaed-app",
   ],
-  authors: [{ name: "Nexa-Ed", url: MAIN_URL }],
+  authors: [
+    { name: "Nexa-Ed", url: MAIN_URL },
+    { name: "Nexium Labs" },
+  ],
   robots: {
     index: true,
     follow: true,
@@ -114,6 +119,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       url: MAIN_URL,
       logo: `${MAIN_URL}/icon-512.png`,
       areaServed: ["Nigeria", "Ghana", "Kenya", "South Africa", "Africa", "Worldwide"],
+      parentOrganization: {
+        "@type": "Organization",
+        name: "Nexium Labs",
+      },
     },
     keywords:
       "school management SDK, school management API, student results API, school portal development, Paystack school payments, edtech SDK, school management worldwide",
