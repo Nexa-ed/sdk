@@ -21,30 +21,32 @@ SDK package versions follow [Semantic Versioning](https://semver.org/). Platform
 
 ---
 
-## SDK — v1.0.0 (2025-03-21)
+## SDK — v0.2.0 (2026-04-04)
 
-Initial public release of all five SDK packages.
+First stable release — all five packages graduate out of beta. See the [full release notes](/docs/releases/v0.2.0) for migration guidance and code examples.
 
 ### `@nexa-ed/sdk`
-- Core HTTP client with automatic retry on `429` using `Retry-After`
-- Methods: `files.upload`, `files.getStatus`, `payments.initialize`, `payments.verify`, `documents.list`, `documents.get`, `emails.provision`, `services.list`
-
-### `@nexa-ed/next`
-- Next.js Server Action wrappers for all SDK methods
-- `NexaProvider` — injects SDK client into RSC context
-- `createNexaHandler` — API route factory for incoming webhooks
+- **New:** `nexa.email` module — `create`, `bulkCreate`, `getJobStatus`, `list`
+- New types: `EmailCreateOptions`, `EmailCreateResult`, `EmailBulkCreateOptions`, `EmailBulkCreateResult`, `EmailJobStatus`, `StudentEmailAccount`
 
 ### `@nexa-ed/react`
-- UI components: `PaymentButton`, `PaymentModal`, `PaymentStatus`, `PaymentHistory`
-- Hooks: `usePayment`, `useDocuments`, `useServices`
+- **18 components** total — email provisioning (`StudentEmailAccountManager`, `EmailBulkProvisioningPanel`), payments (`NexaPaymentWidget`, `EnrollmentPaymentFlow`, `PaymentStatusDashboard`, `PaymentConfigPanel`), document/results (`UploadZone`, `StudentRecordsTable`, `ResultsViewerSheet`, `AnalysisJobPanel`, `PipelineTimeline`)
+- **15+ hooks** — `useUploadFile`, `useFileProgress`, `useGetUserDocuments`, `useGetFileStudentRecords`, `useGetPageRecords`, `useGetAnalysisJob`, `useGetFileStats`, `useRefinePageWithLLM`, `useUpdatePageRecord`, `useDeletePageRecord`, `useColumnSort`, `useGridNavigation`
+
+### `@nexa-ed/next`
+- Single `createRouteHandler(nexa)` wires all routes: file uploads, SSE progress, Paystack webhooks, payment forwarding, oRPC queries
 
 ### `@nexa-ed/convex`
-- Convex schema fragments for tenants, subscriptions, and service catalog
-- Mutation/query factory helpers compatible with Convex `v1`
+- `nexaStudentEmailSchema` schema fragment
+- `makePaymentWebhookHandler` factory
+
+### `@nexa-ed/node`
+- Express, Fastify, and Hono adapters (`createExpressAdapter`, `createFastifyPlugin`, `createHonoAdapter`)
+- Standalone `verifyPaystackWebhook` helper
 
 ### `create-nexaed-app`
-- CLI scaffolder: `npx create-nexaed-app my-school`
-- Templates: `next-minimal`, `next-full`, `node`
+- Interactive CLI — prompts for Convex URL, Clerk keys, email tier, and domain
+- Scaffolds Next.js + Convex app with all packages pre-wired
 
 ---
 
