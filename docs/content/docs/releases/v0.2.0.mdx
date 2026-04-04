@@ -1,0 +1,251 @@
+---
+title: v0.2.0 — Stable Release
+description: The first stable release of the Nexa Ed SDK. Includes the email module, 18 React components, Next.js route handlers, Node.js adapters, and the create-nexaed-app CLI.
+---
+
+**Released:** 2026-04-04
+
+This is the first stable release of the Nexa Ed SDK — graduating all five packages out of beta. It consolidates everything built across the `0.2.0-beta.*` cycle and ships two significant additions: the **email provisioning module** and a substantially expanded **React component + hooks library**.
+
+<Callout type="info">
+  Upgrading from `0.2.0-beta.2`? No breaking changes. Drop the beta tag and you're done.
+</Callout>
+
+---
+
+## What's New
+
+### `@nexa-ed/sdk` — Email Module
+
+The core SDK now ships a fully typed `nexa.email` module for provisioning and managing student email accounts through the Nexa platform.
+
+```ts
+import { createNexa } from "@nexa-ed/sdk";
+
+const nexa = createNexa({
+  apiKey: process.env.NEXA_API_KEY!,
+  tenantId: process.env.NEXA_TENANT_ID!,
+  email: {
+    tier: "tier-3-google",   // "tier-1-nexa" | "tier-2-stalwart" | "tier-3-google"
+    domain: "yourschool.edu",
+  },
+});
+
+// Provision a single account
+const account = await nexa.email.create({
+  studentName: "Amara Osei",
+  username: "amara.osei",
+});
+
+// Bulk provision from a list
+const job = await nexa.email.bulkCreate({ students: [...] });
+
+// Poll job completion
+const status = await nexa.email.getJobStatus(job.jobId);
+
+// List all accounts
+const { accounts } = await nexa.email.list({ page: 1, pageSize: 20 });
+```
+
+**Email tiers:**
+
+| Tier | Description | Domain |
+|---|---|---|
+| `tier-1-nexa` | Hosted on Nexa's shared mail infrastructure | `student.nexa-ed.com` |
+| `tier-2-stalwart` | Your own domain via Stalwart mail server | Your domain |
+| `tier-3-google` | Google Workspace — full Gmail experience | Your domain |
+
+**New types exported from `@nexa-ed/sdk`:**
+`EmailCreateOptions`, `EmailCreateResult`, `EmailBulkCreateOptions`, `EmailBulkCreateResult`, `EmailJobStatus`, `StudentEmailAccount`
+
+---
+
+### `@nexa-ed/react` — Components & Hooks
+
+18 ready-to-use components and 15+ hooks for building school dashboards on top of Nexa.
+
+#### Email Components
+
+```tsx
+import {
+  StudentEmailAccountManager,
+  EmailBulkProvisioningPanel,
+} from "@nexa-ed/react";
+
+// Manage individual accounts
+<StudentEmailAccountManager tenantId={tenantId} />
+
+// Step-through bulk provisioning UI
+<EmailBulkProvisioningPanel
+  onComplete={(job) => console.log(job.jobId)}
+/>
+```
+
+#### Payment Components
+
+```tsx
+import {
+  NexaPaymentWidget,
+  EnrollmentPaymentFlow,
+  PaymentStatusDashboard,
+  PaymentConfigPanel,
+} from "@nexa-ed/react";
+
+<EnrollmentPaymentFlow
+  studentId={student.id}
+  amount={50000}           // kobo
+  onSuccess={(ref) => {}}
+/>
+```
+
+#### Document & Results Components
+
+```tsx
+import {
+  UploadZone,
+  StudentRecordsTable,
+  ResultsViewerSheet,
+  AnalysisJobPanel,
+  PipelineTimeline,
+} from "@nexa-ed/react";
+
+<UploadZone onUpload={(file) => {}} />
+<StudentRecordsTable fileId={fileId} />
+<ResultsViewerSheet open={open} fileId={fileId} />
+```
+
+#### Hooks
+
+| Hook | Description |
+|---|---|
+| `useUploadFile` | Upload a file with progress tracking |
+| `useFileProgress` | Subscribe to real-time processing progress (SSE) |
+| `useGetUserDocuments` | Fetch the current user's uploaded documents |
+| `useGetFileStudentRecords` | Fetch student records extracted from a file |
+| `useGetPageRecords` | Fetch records for a specific document page |
+| `useGetAnalysisJob` | Poll or subscribe to an analysis job |
+| `useGetFileStats` | Summary statistics for a processed file |
+| `useRefinePageWithLLM` | Trigger LLM refinement on a page |
+| `useUpdatePageRecord` | Update a single record field |
+| `useDeletePageRecord` | Remove a record from a page |
+| `useColumnSort` | Sortable column state for tables |
+| `useGridNavigation` | Keyboard navigation for data grids |
+
+---
+
+### `@nexa-ed/convex` — Schema & Handlers
+
+Drop-in Convex schema fragments, mutations, queries, and webhook handler factories.
+
+```ts
+// convex/schema.ts
+import { defineSchema } from "convex/server";
+import {
+  nexaPaymentsSchema,
+  nexaFilesSchema,
+  nexaStudentEmailSchema,
+} from "@nexa-ed/convex/schema";
+
+export default defineSchema({
+  ...nexaPaymentsSchema,
+  ...nexaFilesSchema,
+  ...nexaStudentEmailSchema,
+});
+```
+
+```ts
+// convex/http.ts
+import { makePaymentWebhookHandler } from "@nexa-ed/convex";
+
+const paymentWebhook = makePaymentWebhookHandler({
+  paystackSecret: process.env.PAYSTACK_SECRET_KEY!,
+});
+
+export default httpRouter;
+```
+
+---
+
+### `@nexa-ed/next` — Route Handlers
+
+A single `createNexa()` call wires up all Nexa route handlers in your Next.js app.
+
+```ts
+// app/api/nexa/[...nexa]/route.ts
+import { createNexa, createRouteHandler } from "@nexa-ed/next";
+
+const nexa = createNexa({
+  apiKey: process.env.NEXA_API_KEY!,
+  tenantId: process.env.NEXA_TENANT_ID!,
+});
+
+export const { GET, POST } = createRouteHandler(nexa);
+```
+
+This single route handles: file uploads, upload preparation, SSE progress streaming, Paystack webhook verification, payment forwarding, and oRPC data queries.
+
+---
+
+### `@nexa-ed/node` — Framework Adapters
+
+Mount Nexa handlers in Express, Fastify, or Hono with a single adapter call.
+
+```ts
+// Express
+import express from "express";
+import { createNexa } from "@nexa-ed/sdk";
+import { createExpressAdapter } from "@nexa-ed/node";
+
+const app = express();
+const nexa = createNexa({ apiKey: "...", tenantId: "..." });
+
+app.use("/api/nexa", createExpressAdapter(nexa));
+```
+
+```ts
+// Hono
+import { Hono } from "hono";
+import { createHonoAdapter } from "@nexa-ed/node";
+
+const app = new Hono();
+app.route("/api/nexa", createHonoAdapter(nexa));
+```
+
+Also ships `verifyPaystackWebhook(payload, signature, secret)` for standalone webhook verification.
+
+---
+
+### `create-nexaed-app` — CLI Scaffolder
+
+Bootstrap a new Nexa-powered school app with one command.
+
+```bash
+npx create-nexaed-app my-school
+```
+
+The interactive CLI prompts for your project name, Convex URL, Clerk keys, email tier, and domain, then scaffolds a Next.js + Convex app with `@nexa-ed/next`, `@nexa-ed/react`, and `@nexa-ed/convex` pre-wired and all env placeholders filled in.
+
+---
+
+## Package Versions
+
+| Package | Version |
+|---|---|
+| `@nexa-ed/sdk` | `0.2.0` |
+| `@nexa-ed/react` | `0.2.0` |
+| `@nexa-ed/next` | `0.2.0` |
+| `@nexa-ed/convex` | `0.2.0` |
+| `@nexa-ed/node` | `0.2.0` |
+| `create-nexaed-app` | `0.2.0` |
+
+---
+
+## Upgrading from Beta
+
+No breaking changes from `0.2.0-beta.2`. Update your `package.json` dependencies:
+
+```bash
+pnpm add @nexa-ed/sdk@0.2.0 @nexa-ed/react@0.2.0 @nexa-ed/next@0.2.0 @nexa-ed/convex@0.2.0
+```
+
+If you were using beta-only import paths, those are unchanged.
