@@ -22,6 +22,11 @@ const NexaLogo = () => (
 
 const links: LinkItemType[] = [
   {
+    type: "main",
+    url: "/builder",
+    text: "Builder",
+  },
+  {
     type: "icon",
     url: "https://github.com",
     text: "GitHub",
