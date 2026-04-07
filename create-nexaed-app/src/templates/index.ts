@@ -282,12 +282,15 @@ export function renderDashboardPage(opts: ScaffoldOptions): string {
 export function renderProvidersFile(opts: ScaffoldOptions): string {
   const lines: string[] = [`"use client";`, ``];
 
+  lines.push(`import type { ReactNode } from "react";`);
   lines.push(`import { QueryClient, QueryClientProvider } from "@tanstack/react-query";`);
   lines.push(`import { NexaProvider } from "@nexa-ed/react";`);
 
   if (opts.authProvider === "clerk") {
     lines.push(`import { ClerkProvider } from "@clerk/nextjs";`);
-  } else if (opts.features.convex) {
+  }
+
+  if (opts.features.convex) {
     lines.push(`import { ConvexProvider, ConvexReactClient } from "convex/react";`);
   }
 
@@ -299,18 +302,18 @@ export function renderProvidersFile(opts: ScaffoldOptions): string {
   }
 
   lines.push(``);
-  lines.push(`export function Providers({ children }: { children: React.ReactNode }) {`);
+  lines.push(`export function Providers({ children }: { children: ReactNode }) {`);
 
   const wrappers: Array<[string, string]> = [];
 
   if (opts.authProvider === "clerk") {
     wrappers.push(["<ClerkProvider>", "</ClerkProvider>"]);
   }
-  wrappers.push(["<QueryClientProvider client={queryClient}>", "</QueryClientProvider>"]);
-  wrappers.push(["<NexaProvider>", "</NexaProvider>"]);
-  if (opts.features.convex && opts.authProvider !== "clerk") {
+  if (opts.features.convex) {
     wrappers.push([`<ConvexProvider client={convex}>`, `</ConvexProvider>`]);
   }
+  wrappers.push(["<QueryClientProvider client={queryClient}>", "</QueryClientProvider>"]);
+  wrappers.push(["<NexaProvider>", "</NexaProvider>"]);
 
   const indent = (n: number) => "  ".repeat(n);
   lines.push(`  return (`);
