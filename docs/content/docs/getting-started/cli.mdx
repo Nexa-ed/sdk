@@ -11,6 +11,19 @@ description: Generate a production-ready Nexa-connected school app with one comm
 
 ---
 
+## Commands
+
+```bash
+npx create-nexaed-app                      # scaffold a new school app (default)
+npx create-nexaed-app init my-school       # explicit init
+npx create-nexaed-app doctor               # validate an existing app
+npx create-nexaed-app upgrade              # upgrade @nexa-ed/* deps to @latest
+npx create-nexaed-app telemetry on|off     # manage telemetry preference
+npx create-nexaed-app help                 # print usage
+```
+
+---
+
 ## Run the scaffolder
 
 ```bash
@@ -33,6 +46,67 @@ The CLI asks four questions:
 | Auth provider | Clerk · NextAuth · None |
 | Features | File processing, Payments, Student email provisioning |
 | Nexa API key | Optional — can be added to `.env.local` later |
+
+---
+
+## Non-interactive / CI mode
+
+All prompts can be bypassed with flags. Use this in CI pipelines, Dockerfiles, or shell scripts:
+
+```bash
+npx create-nexaed-app my-school \
+  --auth clerk \
+  --features file-processing,payments \
+  --email-tier tier-1-nexa \
+  --api-key nxa_live_... \
+  --pm pnpm
+```
+
+| Flag | Description |
+|------|-------------|
+| `--auth` | `clerk` · `nextauth` · `none` |
+| `--features` | Comma-separated: `file-processing`, `payments`, `student-email` |
+| `--email-tier` | `tier-1-nexa` · `tier-2-stalwart` · `tier-3-google` |
+| `--email-domain` | Your school domain (required for tier 2/3) |
+| `--api-key` | Pre-fill the Nexa API key in `.env.local` |
+| `--pm` | `pnpm` · `npm` · `yarn` · `bun` |
+| `--no-install` | Skip dependency installation |
+
+When stdin is not a TTY, the non-interactive fast path activates automatically — no flags needed in most CI environments.
+
+---
+
+## `doctor` — validate an existing app
+
+Run `doctor` inside an existing Nexa-powered school app to check for common setup issues:
+
+```bash
+cd my-school
+npx create-nexaed-app doctor
+```
+
+Runs 5 checks:
+
+| Check | What it verifies |
+|-------|-----------------|
+| **Env vars** | `NEXA_API_KEY` and `NEXA_WEBHOOK_SECRET` present in `.env.local` |
+| **Packages** | Required `@nexa-ed/*` packages listed in `package.json` |
+| **Route** | Catch-all `app/api/nexa/[...nexaed]/route.ts` exists |
+| **SDK version** | Your installed version vs latest on npm |
+| **API key** | Live request to the Nexa platform confirms the key is valid |
+
+---
+
+## `upgrade` — update SDK packages
+
+Updates all `@nexa-ed/*` dependencies in the current project to `@latest`:
+
+```bash
+cd my-school
+npx create-nexaed-app upgrade
+```
+
+The package manager is detected automatically from your lockfile.
 
 ---
 

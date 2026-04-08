@@ -1,0 +1,164 @@
+---
+title: v0.2.0-beta.4
+description: Patch release adding CLI subcommands, non-interactive mode, doctor, upgrade, telemetry, and an update notifier to create-nexaed-app.
+---
+
+**Released:** 2026-04-08 — **Beta patch**
+
+This is a patch release for `create-nexaed-app` only. All other SDK packages (`@nexa-ed/sdk`, `@nexa-ed/react`, `@nexa-ed/next`, `@nexa-ed/convex`, `@nexa-ed/node`) remain at `0.2.0-beta.3`.
+
+<Callout type="info">
+  Upgrading from `0.2.0-beta.3`? No breaking changes. Update the CLI with `npx create-nexaed-app@latest` or run `nexaed upgrade` if you have it installed globally.
+</Callout>
+
+---
+
+## What Changed
+
+### `create-nexaed-app` — CLI commands and CI support
+
+#### Non-interactive mode
+
+All prompts can now be bypassed with flags. This lets `create-nexaed-app` run in CI pipelines, Dockerfiles, and shell scripts without a TTY.
+
+```bash
+npx create-nexaed-app my-school \
+  --auth clerk \
+  --features file-processing,payments \
+  --email-tier tier-1-nexa \
+  --api-key nxa_live_... \
+  --pm pnpm
+```
+
+**Supported flags:**
+
+| Flag | Description |
+|------|-------------|
+| `--auth <provider>` | `clerk` · `nextauth` · `none` |
+| `--features <list>` | Comma-separated: `file-processing`, `payments`, `student-email` |
+| `--email-tier <tier>` | `tier-1-nexa` · `tier-2-stalwart` · `tier-3-google` |
+| `--email-domain <domain>` | Your school domain (required for tier 2/3) |
+| `--api-key <key>` | Pre-fill the Nexa API key in `.env.local` |
+| `--pm <manager>` | `pnpm` · `npm` · `yarn` · `bun` |
+| `--no-install` | Skip dependency installation |
+
+When stdin is not a TTY (detected automatically), the non-interactive fast path activates and skips clack entirely — no manual flag passing required in most CI environments.
+
+---
+
+#### Command router
+
+The CLI now dispatches to subcommands. `init` (scaffold) remains the default when no subcommand is given.
+
+```bash
+npx create-nexaed-app                     # init (default)
+npx create-nexaed-app init my-school      # explicit init
+npx create-nexaed-app doctor              # validate existing app
+npx create-nexaed-app upgrade             # upgrade @nexa-ed/* deps
+npx create-nexaed-app telemetry on        # enable telemetry
+npx create-nexaed-app telemetry off       # disable telemetry
+npx create-nexaed-app help                # print usage
+```
+
+---
+
+#### `doctor` command
+
+Validates an existing Nexa-powered school app against 5 checks:
+
+```bash
+cd my-school
+npx create-nexaed-app doctor
+```
+
+| Check | What it verifies |
+|-------|-----------------|
+| **Env vars** | `NEXA_API_KEY` and `NEXA_WEBHOOK_SECRET` are present in `.env.local` |
+| **Packages** | All required `@nexa-ed/*` packages are listed in `package.json` |
+| **Route** | The catch-all `app/api/nexa/[...nexaed]/route.ts` exists |
+| **SDK version** | Your installed version vs the latest on npm |
+| **API key** | Makes a live request to the Nexa platform to confirm the key is valid |
+
+Each check prints a pass/fail indicator. Run `doctor` after upgrading or when debugging a broken integration.
+
+---
+
+#### `upgrade` command
+
+Updates all `@nexa-ed/*` dependencies in the current project to `@latest` using whichever package manager the project uses.
+
+```bash
+cd my-school
+npx create-nexaed-app upgrade
+```
+
+Equivalent to running:
+
+```bash
+pnpm add @nexa-ed/sdk@latest @nexa-ed/react@latest @nexa-ed/next@latest ...
+```
+
+The package manager is detected from `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, or `bun.lockb`.
+
+---
+
+#### Opt-in telemetry
+
+The CLI asks once on the first interactive run whether you want to share anonymous usage data. The preference is saved to `~/.nexaed/config.json` and never asked again.
+
+- **Skipped automatically in CI** (non-TTY environments)
+- **Fire-and-forget** — never delays the CLI or throws on failure
+- **What is collected:** command name, node version, OS platform — no project contents or API keys
+
+Toggle at any time:
+
+```bash
+npx create-nexaed-app telemetry on
+npx create-nexaed-app telemetry off
+```
+
+---
+
+#### Update notifier
+
+On every run, the CLI checks npm in the background for a newer version of `create-nexaed-app`. If one is found, a one-line notice prints after the outro:
+
+```
+  ╭─────────────────────────────────────────╮
+  │  Update available: 0.2.0-beta.3 → 0.2.0-beta.4    │
+  │  Run: npx create-nexaed-app@latest      │
+  ╰─────────────────────────────────────────╯
+```
+
+The check is background-only and never blocks the main flow.
+
+---
+
+## Package Versions
+
+| Package | Version |
+|---------|---------|
+| `create-nexaed-app` | `0.2.0-beta.4` |
+| `@nexa-ed/sdk` | `0.2.0-beta.3` |
+| `@nexa-ed/react` | `0.2.0-beta.3` |
+| `@nexa-ed/next` | `0.2.0-beta.3` |
+| `@nexa-ed/convex` | `0.2.0-beta.3` |
+| `@nexa-ed/node` | `0.2.0-beta.3` |
+
+---
+
+## Upgrading from beta.3
+
+Only `create-nexaed-app` changed. No dependency updates required in your school app — all `@nexa-ed/*` import paths and APIs are unchanged.
+
+To get the latest CLI when scaffolding a new project:
+
+```bash
+npx create-nexaed-app@latest my-school
+```
+
+To upgrade an existing project's CLI-adjacent tooling, use the new `upgrade` command:
+
+```bash
+npx create-nexaed-app upgrade
+```
