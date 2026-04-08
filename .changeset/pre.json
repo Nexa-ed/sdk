@@ -12,6 +12,7 @@
     "nexaed-docs": "0.1.0"
   },
   "changesets": [
+    "cli-v024-patch",
     "long-ads-create",
     "six-foxes-begin",
     "upset-poets-speak",
