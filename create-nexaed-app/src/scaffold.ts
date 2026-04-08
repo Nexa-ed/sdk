@@ -48,6 +48,9 @@ export async function scaffold(opts: ScaffoldOptions): Promise<void> {
   await write(projectDir, "tailwind.config.ts", tailwindConfig());
   await write(projectDir, "postcss.config.mjs", postcssConfig());
 
+  // ── Middleware ────────────────────────────────────────────────────────────────
+  await write(projectDir, "middleware.ts", renderMiddleware(opts));
+
   // ── tsconfig ─────────────────────────────────────────────────────────────────
   await write(projectDir, "tsconfig.json", tsconfig());
 }
@@ -99,9 +102,18 @@ function globalsCss(): string {
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --nexa-primary: 158 64% 52%;
+    --nexa-primary-foreground: 0 0% 100%;
+    --nexa-primary-dark: 158 64% 40%;
+    --nexa-surface: 158 30% 97%;
+    --nexa-border: 158 20% 88%;
+  }
+
   html {
     @apply antialiased;
   }
+
   body {
     @apply bg-white text-gray-900;
   }
@@ -127,7 +139,7 @@ function renderRootPage(opts: ScaffoldOptions): string {
   const featureGrid = featureItems.length === 0 ? "" : `
         {/* Features */}
         <div className="mt-16 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-${Math.min(featureItems.length, 3)} w-full max-w-3xl">
-${featureItems.map((f) => `          <div className="rounded-xl border border-gray-100 bg-gray-50 p-5">
+${featureItems.map((f) => `          <div className="rounded-xl border border-[hsl(var(--nexa-border))] bg-[hsl(var(--nexa-surface))] p-5 transition-colors hover:border-[hsl(var(--nexa-primary)/0.4)]">
             <span className="text-2xl">${f.icon}</span>
             <h3 className="mt-3 text-sm font-semibold text-gray-900">${f.label}</h3>
             <p className="mt-1 text-sm text-gray-500">${f.desc}</p>
@@ -140,12 +152,12 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
       {/* Nav */}
-      <header className="border-b border-gray-100 bg-white">
+      <header className="border-b border-[hsl(var(--nexa-border))] bg-white">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
           <span className="text-sm font-semibold text-gray-900">${displayName}</span>
           <Link
             href="/dashboard"
-            className="rounded-lg bg-gray-900 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-gray-700"
+            className="rounded-lg bg-[hsl(var(--nexa-primary))] px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[hsl(var(--nexa-primary-dark))]"
           >
             Dashboard →
           </Link>
@@ -154,8 +166,8 @@ export default function Home() {
 
       {/* Hero */}
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-24 text-center">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-500">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[hsl(var(--nexa-border))] bg-[hsl(var(--nexa-surface))] px-3 py-1 text-xs font-medium text-gray-500">
+          <span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--nexa-primary))]" />
           Powered by Nexa Ed
         </div>
 
@@ -170,7 +182,7 @@ export default function Home() {
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/dashboard"
-            className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-gray-700"
+            className="rounded-lg bg-[hsl(var(--nexa-primary))] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[hsl(var(--nexa-primary-dark))]"
           >
             Go to Dashboard
           </Link>
@@ -178,7 +190,7 @@ export default function Home() {
             href="https://docs.nexa-ed.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+            className="rounded-lg border border-[hsl(var(--nexa-border))] bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-[hsl(var(--nexa-surface))]"
           >
             View Docs
           </a>
@@ -187,13 +199,13 @@ ${featureGrid}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-100 py-6 text-center text-xs text-gray-400">
+      <footer className="border-t border-[hsl(var(--nexa-border))] py-6 text-center text-xs text-gray-400">
         Built with{" "}
         <a
           href="https://nexa-ed.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-gray-500 hover:underline"
+          className="text-[hsl(var(--nexa-primary))] hover:underline"
         >
           Nexa Ed SDK
         </a>
@@ -201,6 +213,50 @@ ${featureGrid}
     </div>
   );
 }
+`;
+}
+
+function renderMiddleware(opts: ScaffoldOptions): string {
+  if (opts.authProvider === "clerk") {
+    return `import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+
+const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
+
+export default clerkMiddleware(async (auth, req) => {
+  if (isProtectedRoute(req)) await auth.protect();
+});
+
+export const config = {
+  matcher: [
+    // Skip Next.js internals and static files
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // Always run for API routes
+    "/(api|trpc)(.*)",
+  ],
+};
+`;
+  }
+
+  if (opts.authProvider === "nextauth") {
+    return `export { default } from "next-auth/middleware";
+
+export const config = {
+  matcher: ["/dashboard/:path*"],
+};
+`;
+  }
+
+  // no auth — passthrough
+  return `import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+export function middleware(_req: NextRequest) {
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ["/dashboard/:path*"],
+};
 `;
 }
 
@@ -215,7 +271,14 @@ export default {
     "./node_modules/@nexa-ed/react/dist/**/*.js",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        "nexa-primary": "hsl(var(--nexa-primary) / <alpha-value>)",
+        "nexa-primary-dark": "hsl(var(--nexa-primary-dark) / <alpha-value>)",
+        "nexa-surface": "hsl(var(--nexa-surface) / <alpha-value>)",
+        "nexa-border": "hsl(var(--nexa-border) / <alpha-value>)",
+      },
+    },
   },
   plugins: [],
 } satisfies Config;
