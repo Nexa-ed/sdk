@@ -48,6 +48,9 @@ export async function scaffold(opts: ScaffoldOptions): Promise<void> {
   await write(projectDir, "tailwind.config.ts", tailwindConfig(opts));
   await write(projectDir, "postcss.config.mjs", postcssConfig());
 
+  // ── Theme toggle component ───────────────────────────────────────────────────
+  await write(projectDir, "components/ThemeToggle.tsx", renderThemeToggle());
+
   // ── UI library extras ─────────────────────────────────────────────────────────
   if (opts.uiLibrary === "shadcn") {
     await write(projectDir, "components.json",  renderComponentsJson());
@@ -126,34 +129,8 @@ function globalsCss(opts: ScaffoldOptions): string {
     --ring: 240 5.9% 10%;
     --radius: 0.5rem;` : "";
 
-  const shadcnDark = opts.uiLibrary === "shadcn" ? `
-  .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-  }` : "";
-
   const borderReset = opts.uiLibrary === "shadcn"
     ? `\n  * {\n    @apply border-border;\n  }\n` : "";
-  const bodyClasses = opts.uiLibrary === "shadcn"
-    ? "bg-background text-foreground"
-    : "bg-white text-gray-900";
 
   return `@tailwind base;
 @tailwind components;
@@ -166,15 +143,45 @@ function globalsCss(opts: ScaffoldOptions): string {
     --nexa-primary-foreground: 0 0% 100%;
     --nexa-primary-dark: 158 64% 40%;
     --nexa-surface: 158 30% 97%;
-    --nexa-border: 158 20% 88%;${shadcnVars}
-  }${shadcnDark}
+    --nexa-border: 158 20% 88%;
+
+    /* Semantic */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 4%;${shadcnVars}
+  }
+
+  .dark {
+    --nexa-surface: 158 20% 8%;
+    --nexa-border: 158 15% 18%;
+
+    /* Semantic */
+    --background: 224 14% 10%;
+    --foreground: 0 0% 95%;${opts.uiLibrary === "shadcn" ? `
+    --card: 224 14% 10%;
+    --card-foreground: 0 0% 95%;
+    --popover: 224 14% 10%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;` : ""}
+  }
 ${borderReset}
   html {
     @apply antialiased;
   }
 
   body {
-    @apply ${bodyClasses};
+    @apply bg-background text-foreground;
   }
 }
 `;
@@ -200,40 +207,44 @@ function renderRootPage(opts: ScaffoldOptions): string {
         <div className="mt-16 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-${Math.min(featureItems.length, 3)} w-full max-w-3xl">
 ${featureItems.map((f) => `          <div className="rounded-xl border border-[hsl(var(--nexa-border))] bg-[hsl(var(--nexa-surface))] p-5 transition-colors hover:border-[hsl(var(--nexa-primary)/0.4)]">
             <span className="text-2xl">${f.icon}</span>
-            <h3 className="mt-3 text-sm font-semibold text-gray-900">${f.label}</h3>
-            <p className="mt-1 text-sm text-gray-500">${f.desc}</p>
+            <h3 className="mt-3 text-sm font-semibold text-foreground">${f.label}</h3>
+            <p className="mt-1 text-sm text-foreground/60">${f.desc}</p>
           </div>`).join("\n")}
         </div>`;
 
   return `import Link from "next/link";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       {/* Nav */}
-      <header className="border-b border-[hsl(var(--nexa-border))] bg-white">
+      <header className="border-b border-[hsl(var(--nexa-border))] bg-background/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
-          <span className="text-sm font-semibold text-gray-900">${displayName}</span>
-          <Link
-            href="/dashboard"
-            className="rounded-lg bg-[hsl(var(--nexa-primary))] px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[hsl(var(--nexa-primary-dark))]"
-          >
-            Dashboard →
-          </Link>
+          <span className="text-sm font-semibold text-foreground">${displayName}</span>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <Link
+              href="/dashboard"
+              className="rounded-lg bg-[hsl(var(--nexa-primary))] px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[hsl(var(--nexa-primary-dark))]"
+            >
+              Dashboard →
+            </Link>
+          </div>
         </div>
       </header>
 
       {/* Hero */}
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-24 text-center">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[hsl(var(--nexa-border))] bg-[hsl(var(--nexa-surface))] px-3 py-1 text-xs font-medium text-gray-500">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[hsl(var(--nexa-border))] bg-[hsl(var(--nexa-surface))] px-3 py-1 text-xs font-medium text-foreground/60">
           <span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--nexa-primary))]" />
           Powered by Nexa Ed
         </div>
 
-        <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
+        <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
           Welcome to ${displayName}
         </h1>
-        <p className="mt-4 max-w-md text-base text-gray-500">
+        <p className="mt-4 max-w-md text-base text-foreground/60">
           Your school management portal is ready. Sign in to access the dashboard,
           manage students, and use all your configured features.
         </p>
@@ -249,7 +260,7 @@ export default function Home() {
             href="https://docs.nexa-ed.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-lg border border-[hsl(var(--nexa-border))] bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-[hsl(var(--nexa-surface))]"
+            className="rounded-lg border border-[hsl(var(--nexa-border))] bg-background px-5 py-2.5 text-sm font-semibold text-foreground/80 shadow-sm transition-colors hover:bg-[hsl(var(--nexa-surface))]"
           >
             View Docs
           </a>
@@ -258,7 +269,7 @@ ${featureGrid}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[hsl(var(--nexa-border))] py-6 text-center text-xs text-gray-400">
+      <footer className="border-t border-[hsl(var(--nexa-border))] py-6 text-center text-xs text-foreground/40">
         Built with{" "}
         <a
           href="https://nexa-ed.com"
@@ -320,7 +331,7 @@ export const config = {
 }
 
 function tailwindConfig(opts: ScaffoldOptions): string {
-  const darkMode = opts.uiLibrary === "shadcn" ? `\n  darkMode: ["class"],` : "";
+  const darkMode = `\n  darkMode: ["class"],`;
 
   const shadcnColors = opts.uiLibrary === "shadcn" ? `
         background: "hsl(var(--background))",
@@ -379,12 +390,58 @@ export default {${darkMode}
         "nexa-primary": "hsl(var(--nexa-primary) / <alpha-value>)",
         "nexa-primary-dark": "hsl(var(--nexa-primary-dark) / <alpha-value>)",
         "nexa-surface": "hsl(var(--nexa-surface) / <alpha-value>)",
-        "nexa-border": "hsl(var(--nexa-border) / <alpha-value>)",${shadcnColors}
+        "nexa-border": "hsl(var(--nexa-border) / <alpha-value>)",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",${shadcnColors}
       },${shadcnRadius}
     },
   },
   plugins: [],
 } satisfies Config;
+`;
+}
+
+function renderThemeToggle(): string {
+  return `"use client";
+
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
+
+export function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      aria-label="Toggle theme"
+      className="flex h-8 w-8 items-center justify-center rounded-lg border border-[hsl(var(--nexa-border))] bg-transparent text-foreground/60 transition-colors hover:border-[hsl(var(--nexa-primary)/0.4)] hover:text-[hsl(var(--nexa-primary))]"
+    >
+      {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+    </button>
+  );
+}
+
+function SunIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+}
 `;
 }
 

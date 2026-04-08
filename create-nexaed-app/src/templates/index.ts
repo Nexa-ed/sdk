@@ -23,6 +23,8 @@ export function renderPackageJson(opts: ScaffoldOptions): string {
     deps["@nexa-ed/convex"]  = "latest";
   }
 
+  deps["next-themes"] = "^0.4.0";
+
   if (opts.uiLibrary === "shadcn") {
     deps["class-variance-authority"] = "^0.7.0";
     deps["clsx"]                     = "^2.1.1";
@@ -293,6 +295,7 @@ export function renderProvidersFile(opts: ScaffoldOptions): string {
   const lines: string[] = [`"use client";`, ``];
 
   lines.push(`import type { ReactNode } from "react";`);
+  lines.push(`import { ThemeProvider } from "next-themes";`);
   lines.push(`import { QueryClient, QueryClientProvider } from "@tanstack/react-query";`);
   lines.push(`import { NexaProvider } from "@nexa-ed/react";`);
 
@@ -315,6 +318,11 @@ export function renderProvidersFile(opts: ScaffoldOptions): string {
   lines.push(`export function Providers({ children }: { children: ReactNode }) {`);
 
   const wrappers: Array<[string, string]> = [];
+
+  wrappers.push([
+    `<ThemeProvider attribute="class" defaultTheme="dark" enableSystem>`,
+    `</ThemeProvider>`,
+  ]);
 
   if (opts.authProvider === "clerk") {
     wrappers.push(["<ClerkProvider>", "</ClerkProvider>"]);
@@ -364,7 +372,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <Providers>{children}</Providers>
       </body>
