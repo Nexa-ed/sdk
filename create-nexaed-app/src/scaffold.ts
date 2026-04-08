@@ -115,57 +115,8 @@ function globalsCss(opts: ScaffoldOptions): string {
 @tailwind utilities;
 
 @layer base {
-  /* ── Dark theme (default) — matches Nexa platform ── */
+  /* ── Light theme (default :root) ── */
   :root {
-    --background: 0 0% 1%;
-    --foreground: 0 0% 98%;
-
-    --card: 0 0% 4%;
-    --card-foreground: 0 0% 98%;
-
-    --popover: 0 0% 4%;
-    --popover-foreground: 0 0% 98%;
-
-    --muted: 0 0% 8%;
-    --muted-foreground: 0 0% 65%;
-
-    --border: 0 0% 12%;
-    --input: 0 0% 12%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-
-    /* Nexa Ed brand — primary */
-    --nexa-primary: 158 64% 52%;
-    --nexa-primary-foreground: 0 0% 8%;
-    --nexa-primary-dark: 158 64% 40%;
-    --nexa-primary-glow: 167 82% 45%;
-
-    --primary: 158 64% 52%;
-    --primary-foreground: 0 0% 8%;
-
-    --secondary: 142 76% 36%;
-    --secondary-foreground: 0 0% 98%;
-
-    --accent: 158 64% 52%;
-    --accent-foreground: 0 0% 98%;
-
-    --ring: 158 64% 52%;
-
-    /* Surfaces */
-    --nexa-surface: 0 0% 4%;
-    --nexa-border: 0 0% 12%;
-
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(158 64% 52%), hsl(167 82% 45%));
-    --gradient-glow: linear-gradient(135deg, hsl(158 64% 52% / 0.15), hsl(167 82% 45% / 0.08));
-
-    --glass-bg: rgba(255, 255, 255, 0.04);
-    --glass-border: rgba(255, 255, 255, 0.08);${shadcnRadius}
-  }
-
-  /* ── Light theme override ── */
-  .light {
     --background: 240 20% 99%;
     --foreground: 220 15% 12%;
 
@@ -207,7 +158,53 @@ function globalsCss(opts: ScaffoldOptions): string {
     --gradient-glow: linear-gradient(135deg, hsl(158 64% 48% / 0.12), hsl(167 82% 42% / 0.06));
 
     --glass-bg: rgba(255, 255, 255, 0.75);
-    --glass-border: rgba(30, 30, 30, 0.08);
+    --glass-border: rgba(30, 30, 30, 0.08);${shadcnRadius}
+  }
+
+  /* ── Dark theme — matches Nexa platform exactly ── */
+  .dark {
+    --background: 0 0% 1%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 4%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 4%;
+    --popover-foreground: 0 0% 98%;
+
+    --muted: 0 0% 8%;
+    --muted-foreground: 0 0% 65%;
+
+    --border: 0 0% 12%;
+    --input: 0 0% 12%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --nexa-primary: 158 64% 52%;
+    --nexa-primary-foreground: 0 0% 8%;
+    --nexa-primary-dark: 158 64% 40%;
+    --nexa-primary-glow: 167 82% 45%;
+
+    --primary: 158 64% 52%;
+    --primary-foreground: 0 0% 8%;
+
+    --secondary: 142 76% 36%;
+    --secondary-foreground: 0 0% 98%;
+
+    --accent: 158 64% 52%;
+    --accent-foreground: 0 0% 98%;
+
+    --ring: 158 64% 52%;
+
+    --nexa-surface: 0 0% 4%;
+    --nexa-border: 0 0% 12%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(158 64% 52%), hsl(167 82% 45%));
+    --gradient-glow: linear-gradient(135deg, hsl(158 64% 52% / 0.15), hsl(167 82% 45% / 0.08));
+
+    --glass-bg: rgba(255, 255, 255, 0.04);
+    --glass-border: rgba(255, 255, 255, 0.08);
   }
 ${borderReset}
   html {

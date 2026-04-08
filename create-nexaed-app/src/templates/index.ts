@@ -319,10 +319,8 @@ export function renderProvidersFile(opts: ScaffoldOptions): string {
 
   const wrappers: Array<[string, string]> = [];
 
-  // Dark is the default (:root) — no class applied.
-  // Light mode adds the .light class, matching the Nexa platform convention.
   wrappers.push([
-    `<ThemeProvider attribute="class" defaultTheme="dark" enableSystem value={{ dark: "", light: "light" }}>`,
+    `<ThemeProvider attribute="class" defaultTheme="dark" enableSystem>`,
     `</ThemeProvider>`,
   ]);
 
