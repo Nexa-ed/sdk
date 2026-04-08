@@ -6,21 +6,29 @@
   "type": "module",
   "exports": {
     ".": {
-      "default": "./src/index.ts"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
     },
     "./express": {
-      "default": "./src/adapters/express.ts"
+      "import": "./dist/express.js",
+      "require": "./dist/express.cjs",
+      "types": "./dist/express.d.ts"
     },
     "./fastify": {
-      "default": "./src/adapters/fastify.ts"
+      "import": "./dist/fastify.js",
+      "require": "./dist/fastify.cjs",
+      "types": "./dist/fastify.d.ts"
     },
     "./hono": {
-      "default": "./src/adapters/hono.ts"
+      "import": "./dist/hono.js",
+      "require": "./dist/hono.cjs",
+      "types": "./dist/hono.d.ts"
     }
   },
-  "main": "./src/index.ts",
-  "module": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist",
     "CHANGELOG.md"
@@ -35,28 +43,28 @@
     "access": "public",
     "exports": {
       ".": {
-        "import": "./dist/index.mjs",
+        "import": "./dist/index.js",
         "require": "./dist/index.cjs",
         "types": "./dist/index.d.ts"
       },
       "./express": {
-        "import": "./dist/express.mjs",
+        "import": "./dist/express.js",
         "require": "./dist/express.cjs",
         "types": "./dist/express.d.ts"
       },
       "./fastify": {
-        "import": "./dist/fastify.mjs",
+        "import": "./dist/fastify.js",
         "require": "./dist/fastify.cjs",
         "types": "./dist/fastify.d.ts"
       },
       "./hono": {
-        "import": "./dist/hono.mjs",
+        "import": "./dist/hono.js",
         "require": "./dist/hono.cjs",
         "types": "./dist/hono.d.ts"
       }
     },
     "main": "./dist/index.cjs",
-    "module": "./dist/index.mjs",
+    "module": "./dist/index.js",
     "types": "./dist/index.d.ts"
   },
   "dependencies": {
