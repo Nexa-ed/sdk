@@ -34,13 +34,19 @@ export async function scaffold(opts: ScaffoldOptions): Promise<void> {
   await write(projectDir, "next.config.ts", nextConfig());
 
   // ── App router structure ─────────────────────────────────────────────────────
-  await write(projectDir, "app/layout.tsx",         renderRootLayout(opts));
+  await write(projectDir, "app/globals.css",         globalsCss());
+  await write(projectDir, "app/layout.tsx",          renderRootLayout(opts));
+  await write(projectDir, "app/page.tsx",            renderRootPage());
   await write(projectDir, "app/providers.tsx",       renderProvidersFile(opts));
   await write(projectDir, "app/dashboard/page.tsx",  renderDashboardPage(opts));
 
   // ── Nexa-ed SDK wiring ───────────────────────────────────────────────────────
   await write(projectDir, "lib/nexa.ts",                         renderNexaLib(opts));
   await write(projectDir, "app/api/nexa/[...nexaed]/route.ts",   renderCatchAllRoute());
+
+  // ── Tailwind + PostCSS ───────────────────────────────────────────────────────
+  await write(projectDir, "tailwind.config.ts", tailwindConfig());
+  await write(projectDir, "postcss.config.mjs", postcssConfig());
 
   // ── tsconfig ─────────────────────────────────────────────────────────────────
   await write(projectDir, "tsconfig.json", tsconfig());
@@ -85,6 +91,50 @@ function gitignore(): string {
     "dist/",
     ".DS_Store",
   ].join("\n") + "\n";
+}
+
+function globalsCss(): string {
+  return `@tailwind base;
+@tailwind components;
+@tailwind utilities;
+`;
+}
+
+function renderRootPage(): string {
+  return `import { redirect } from "next/navigation";
+
+export default function Home() {
+  redirect("/dashboard");
+}
+`;
+}
+
+function tailwindConfig(): string {
+  return `import type { Config } from "tailwindcss";
+
+export default {
+  content: [
+    "./app/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./lib/**/*.{ts,tsx}",
+    "./node_modules/@nexa-ed/react/dist/**/*.js",
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+} satisfies Config;
+`;
+}
+
+function postcssConfig(): string {
+  return `export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+`;
 }
 
 function nextConfig(): string {
