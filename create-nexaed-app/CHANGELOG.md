@@ -1,5 +1,13 @@
 # create-nexaed-app
 
+## 0.2.0-beta.5
+
+### Patch Changes
+
+- 9332750: all round update
+- 95b2dd2: made some adjustments to the cli
+- 890f1c9: patches to the packages for easier flow and maintainablility
+
 ## 0.2.0-beta.4
 
 ### Patch Changes
