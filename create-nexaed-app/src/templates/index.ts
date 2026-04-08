@@ -335,13 +335,20 @@ export function renderProvidersFile(opts: ScaffoldOptions): string {
 // ── app/layout.tsx ───────────────────────────────────────────────────────────
 
 export function renderRootLayout(opts: ScaffoldOptions): string {
+  const displayName = opts.projectName
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (c: string) => c.toUpperCase());
+
   return `import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import { Providers } from "./providers";
 import "./globals.css";
 
+const inter = Inter({ subsets: ["latin"] });
+
 export const metadata: Metadata = {
-  title: "${opts.projectName}",
-  description: "Powered by Nexa Education Platform",
+  title: "${displayName}",
+  description: "School management portal powered by Nexa Ed",
 };
 
 export default function RootLayout({
@@ -351,7 +358,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className={inter.className}>
         <Providers>{children}</Providers>
       </body>
     </html>
