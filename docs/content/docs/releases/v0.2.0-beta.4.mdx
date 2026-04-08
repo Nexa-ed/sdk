@@ -1,15 +1,60 @@
 ---
 title: v0.2.0-beta.4
-description: Patch release adding CLI subcommands, non-interactive mode, doctor, upgrade, telemetry, and an update notifier to create-nexaed-app.
+description: Critical package resolution fix for all SDK packages, plus CLI subcommands, non-interactive mode, doctor, upgrade, telemetry, and an update notifier for create-nexaed-app.
 ---
 
-**Released:** 2026-04-08 — **Beta patch**
+**Released:** 2026-04-08 — **Beta**
 
-This is a patch release for `create-nexaed-app` only. All other SDK packages (`@nexa-ed/sdk`, `@nexa-ed/react`, `@nexa-ed/next`, `@nexa-ed/convex`, `@nexa-ed/node`) remain at `0.2.0-beta.3`.
-
-<Callout type="info">
-  Upgrading from `0.2.0-beta.3`? No breaking changes. Update the CLI with `npx create-nexaed-app@latest` or run `nexaed upgrade` if you have it installed globally.
+<Callout type="warn">
+  **Action required if you scaffolded an app with `v0.2.0-beta.3`.** All SDK packages installed from npm were unresolvable due to a bug in the `package.json` exports map. Update all `@nexa-ed/*` dependencies to `0.2.0-beta.4` immediately — see the [migration section](#upgrading-from-beta3) below.
 </Callout>
+
+---
+
+## Bug Fixes
+
+### All packages — `package.json` exports map was broken
+
+**Affected:** `@nexa-ed/sdk` · `@nexa-ed/next` · `@nexa-ed/react` · `@nexa-ed/convex` · `@nexa-ed/node`
+
+Two compounding bugs made every SDK package unresolvable when installed from npm:
+
+**Bug 1 — Regular exports pointed to TypeScript source.**
+All packages had `exports`, `main`, and `module` pointing to `./src/index.ts`. Since `files` only includes `dist/`, the `src/` directory is never in the published tarball. Any scaffolded app received a package referencing a file that does not exist on disk.
+
+**Bug 2 — `publishConfig` referenced `.mjs` but tsup outputs `.js`.**
+Because `"type": "module"` is declared in each package, tsup writes the ESM bundle as `dist/index.js` — not `dist/index.mjs`. The `publishConfig` pointed to `./dist/index.mjs`, a file that was never generated, so Next.js webpack threw:
+```
+Module not found: Can't resolve '@nexa-ed/react'
+```
+
+**Bug 3 — `types` condition was ordered after `import`/`require`.**
+TypeScript requires the `types` condition to come first in the exports map so it can resolve type declarations. With `types` listed last, TypeScript silently failed to find declarations for workspace packages, which caused downstream DTS builds (e.g. `@nexa-ed/node` generating types for `express.ts`) to error with `Cannot find module '@nexa-ed/sdk'` — even though the package was present.
+
+**Fix applied to all 5 packages:**
+
+```diff
+  "exports": {
+    ".": {
+-     "default": "./src/index.ts"
++     "types":   "./dist/index.d.ts",
++     "import":  "./dist/index.js",
++     "require": "./dist/index.cjs"
+    }
+  },
+- "main":  "./src/index.ts",
+- "module": "./src/index.ts",
+- "types": "./src/index.ts"
++ "main":  "./dist/index.cjs",
++ "module": "./dist/index.js",
++ "types": "./dist/index.d.ts"
+```
+
+`publishConfig` was updated in the same way (`.mjs` → `.js`).
+
+### Publish workflow — pre-publish typecheck gate
+
+A `Type-check all SDK packages` step now runs after the build and before changesets publishes. A broken DTS will fail the workflow immediately with a clear TypeScript error rather than blowing up inside `changeset publish` with a cryptic `ELIFECYCLE` exit code.
 
 ---
 
@@ -138,27 +183,31 @@ The check is background-only and never blocks the main flow.
 
 | Package | Version |
 |---------|---------|
-| `create-nexaed-app` | `0.2.0-beta.4` |
-| `@nexa-ed/sdk` | `0.2.0-beta.3` |
-| `@nexa-ed/react` | `0.2.0-beta.3` |
-| `@nexa-ed/next` | `0.2.0-beta.3` |
-| `@nexa-ed/convex` | `0.2.0-beta.3` |
-| `@nexa-ed/node` | `0.2.0-beta.3` |
+| `@nexa-ed/sdk` | `0.2.0-beta.4` |
+| `@nexa-ed/react` | `0.2.0-beta.4` |
+| `@nexa-ed/next` | `0.2.0-beta.4` |
+| `@nexa-ed/convex` | `0.2.0-beta.4` |
+| `@nexa-ed/node` | `0.2.0-beta.4` |
+| `create-nexaed-app` | `0.2.0-beta.5` |
 
 ---
 
 ## Upgrading from beta.3
 
-Only `create-nexaed-app` changed. No dependency updates required in your school app — all `@nexa-ed/*` import paths and APIs are unchanged.
-
-To get the latest CLI when scaffolding a new project:
+**If you scaffolded an app with `0.2.0-beta.3`**, update all `@nexa-ed/*` packages immediately — they were broken when installed from npm:
 
 ```bash
-npx create-nexaed-app@latest my-school
+pnpm add @nexa-ed/sdk@0.2.0-beta.4 \
+         @nexa-ed/next@0.2.0-beta.4 \
+         @nexa-ed/react@0.2.0-beta.4 \
+         @nexa-ed/convex@0.2.0-beta.4 \
+         @nexa-ed/node@0.2.0-beta.4
 ```
 
-To upgrade an existing project's CLI-adjacent tooling, use the new `upgrade` command:
+Or use the new `upgrade` command from inside your project:
 
 ```bash
 npx create-nexaed-app upgrade
 ```
+
+All import paths and API signatures are unchanged from `0.2.0-beta.3`.

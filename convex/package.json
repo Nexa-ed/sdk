@@ -6,29 +6,29 @@
   "type": "module",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.cjs",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.cjs"
     },
     "./schema": {
+      "types": "./dist/schema.d.ts",
       "import": "./dist/schema.js",
-      "require": "./dist/schema.cjs",
-      "types": "./dist/schema.d.ts"
+      "require": "./dist/schema.cjs"
     },
     "./mutations": {
+      "types": "./dist/mutations.d.ts",
       "import": "./dist/mutations.js",
-      "require": "./dist/mutations.cjs",
-      "types": "./dist/mutations.d.ts"
+      "require": "./dist/mutations.cjs"
     },
     "./queries": {
+      "types": "./dist/queries.d.ts",
       "import": "./dist/queries.js",
-      "require": "./dist/queries.cjs",
-      "types": "./dist/queries.d.ts"
+      "require": "./dist/queries.cjs"
     },
     "./handlers": {
+      "types": "./dist/handlers.d.ts",
       "import": "./dist/handlers.js",
-      "require": "./dist/handlers.cjs",
-      "types": "./dist/handlers.d.ts"
+      "require": "./dist/handlers.cjs"
     }
   },
   "main": "./dist/index.cjs",
@@ -48,29 +48,29 @@
     "access": "public",
     "exports": {
       ".": {
+        "types": "./dist/index.d.ts",
         "import": "./dist/index.js",
-        "require": "./dist/index.cjs",
-        "types": "./dist/index.d.ts"
+        "require": "./dist/index.cjs"
       },
       "./schema": {
+        "types": "./dist/schema.d.ts",
         "import": "./dist/schema.js",
-        "require": "./dist/schema.cjs",
-        "types": "./dist/schema.d.ts"
+        "require": "./dist/schema.cjs"
       },
       "./mutations": {
+        "types": "./dist/mutations.d.ts",
         "import": "./dist/mutations.js",
-        "require": "./dist/mutations.cjs",
-        "types": "./dist/mutations.d.ts"
+        "require": "./dist/mutations.cjs"
       },
       "./queries": {
+        "types": "./dist/queries.d.ts",
         "import": "./dist/queries.js",
-        "require": "./dist/queries.cjs",
-        "types": "./dist/queries.d.ts"
+        "require": "./dist/queries.cjs"
       },
       "./handlers": {
+        "types": "./dist/handlers.d.ts",
         "import": "./dist/handlers.js",
-        "require": "./dist/handlers.cjs",
-        "types": "./dist/handlers.d.ts"
+        "require": "./dist/handlers.cjs"
       }
     },
     "main": "./dist/index.cjs",

@@ -21,6 +21,27 @@ SDK package versions follow [Semantic Versioning](https://semver.org/). Platform
 
 ---
 
+## SDK — v0.2.0-beta.4 (2026-04-08)
+
+See the [release notes](/docs/releases/v0.2.0-beta.4) for full detail.
+
+### All packages (`@nexa-ed/sdk`, `@nexa-ed/next`, `@nexa-ed/react`, `@nexa-ed/convex`, `@nexa-ed/node`)
+- **Fix:** `exports`/`main`/`module` now reference `./dist/*.js` / `./dist/*.cjs` — packages were unresolvable when installed from npm due to `src/` paths and incorrect `.mjs` references in `publishConfig`
+- **Fix:** `types` condition moved to first position in all exports entries — previously listed after `import`/`require`, which broke TypeScript declaration resolution for downstream packages
+
+### `create-nexaed-app` → `0.2.0-beta.5`
+- **New:** Command router — `init`, `doctor`, `upgrade`, `telemetry`, `help` subcommands
+- **New:** Non-interactive / CI mode — all prompts bypassable via flags; auto-activates when stdin is not a TTY
+- **New:** `doctor` command — validates env vars, packages, catch-all route, SDK version, and API key
+- **New:** `upgrade` command — updates all `@nexa-ed/*` deps to `@latest` using the detected package manager
+- **New:** Opt-in telemetry — anonymous usage collection, toggle with `telemetry on|off`
+- **New:** Update notifier — background check for newer CLI version on each run
+
+### Publish workflow
+- **New:** `Type-check all SDK packages` step runs after build and before `changeset publish` — catches broken DTS early with a clear error instead of a silent `ELIFECYCLE` failure
+
+---
+
 ## SDK — v0.2.0-beta.3 (2026-04-04)
 
 Beta release. See the [release notes](/docs/releases/v0.2.0-beta.3) for full code examples.

@@ -43,14 +43,27 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Build in strict dependency order so every downstream DTS build can
+      # resolve @nexa-ed/sdk types before it tries to use them.
       - name: Build all SDK packages
         run: |
           pnpm --filter "@nexa-ed/sdk" build
-          pnpm --filter "@nexa-ed/node" build
           pnpm --filter "@nexa-ed/next" build
           pnpm --filter "@nexa-ed/react" build
           pnpm --filter "@nexa-ed/convex" build
+          pnpm --filter "@nexa-ed/node" build
           pnpm --filter "create-nexaed-app" build
+
+      # Type-check every package after building so a bad DTS fails loudly
+      # here rather than silently blowing up inside changeset publish.
+      - name: Type-check all SDK packages
+        run: |
+          pnpm --filter "@nexa-ed/sdk" check-types
+          pnpm --filter "@nexa-ed/next" check-types
+          pnpm --filter "@nexa-ed/react" check-types
+          pnpm --filter "@nexa-ed/convex" check-types
+          pnpm --filter "@nexa-ed/node" check-types
+          pnpm --filter "create-nexaed-app" check-types
 
       # ── Changesets action ──────────────────────────────────────────────────
       # On every push to master this does ONE of two things:
