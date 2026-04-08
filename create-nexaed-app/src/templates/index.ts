@@ -23,6 +23,13 @@ export function renderPackageJson(opts: ScaffoldOptions): string {
     deps["@nexa-ed/convex"]  = "latest";
   }
 
+  if (opts.uiLibrary === "shadcn") {
+    deps["class-variance-authority"] = "^0.7.0";
+    deps["clsx"]                     = "^2.1.1";
+    deps["tailwind-merge"]           = "^2.5.2";
+    deps["lucide-react"]             = "^0.460.0";
+  }
+
   return JSON.stringify(
     {
       name:    opts.projectName,

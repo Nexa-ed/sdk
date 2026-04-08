@@ -5,10 +5,13 @@ export type AuthProvider = "clerk" | "nextauth" | "none";
 
 export type EmailTier = "tier-1-nexa" | "tier-2-stalwart" | "tier-3-google";
 
+export type UiLibrary = "shadcn" | "none";
+
 export interface ScaffoldOptions {
   projectName: string;
   projectDir: string;
   authProvider: AuthProvider;
+  uiLibrary: UiLibrary;
   features: {
     fileProcessing: boolean;
     payments: boolean;
@@ -22,6 +25,7 @@ export interface ScaffoldOptions {
 
 export interface Prefill {
   auth?: string;
+  ui?: string;
   features?: string[];
   emailTier?: string;
   emailDomain?: string;
@@ -40,6 +44,7 @@ const VALID_FEATURES = new Set<string>([
   "convex",
   "emailProvisioning",
 ]);
+const VALID_UI = new Set<string>(["shadcn", "none"]);
 
 /**
  * Build ScaffoldOptions directly from prefill without any interactive prompts.
@@ -71,10 +76,14 @@ function buildFromPrefill(nameArg: string, prefill: Prefill): ScaffoldOptions {
           (emailTier === "tier-1-nexa" ? `${projectName}.nexa-ed.com` : ""))
       : undefined;
 
+  const uiLibrary: UiLibrary =
+    prefill.ui && VALID_UI.has(prefill.ui) ? (prefill.ui as UiLibrary) : "none";
+
   return {
     projectName,
     projectDir: path.resolve(process.cwd(), projectName),
     authProvider,
+    uiLibrary,
     features: {
       fileProcessing: selectedFeatures.includes("fileProcessing"),
       payments: selectedFeatures.includes("payments"),
@@ -185,6 +194,34 @@ export async function runPrompts(
     selectedFeatures = featureSet as FeatureKey[];
   }
 
+  // ── UI library ────────────────────────────────────────────────────────────────
+  let uiLibrary: UiLibrary;
+  const prefillUi =
+    prefill.ui && VALID_UI.has(prefill.ui) ? (prefill.ui as UiLibrary) : undefined;
+
+  if (prefillUi) {
+    uiLibrary = prefillUi;
+    p.log.step(`UI library: ${uiLibrary}`);
+  } else {
+    const ui = await p.select<UiLibrary>({
+      message: "Which UI library do you want?",
+      options: [
+        {
+          value: "none",
+          label: "None       — plain Tailwind",
+          hint: "Use @nexa-ed/react components as-is",
+        },
+        {
+          value: "shadcn",
+          label: "shadcn/ui  — recommended",
+          hint: "Accessible components, copy-paste pattern",
+        },
+      ],
+    });
+    if (p.isCancel(ui)) cancel();
+    uiLibrary = ui as UiLibrary;
+  }
+
   // ── Email provisioning config ─────────────────────────────────────────────────
   let emailTier: EmailTier | undefined;
   let emailDomain: string | undefined;
@@ -259,6 +296,7 @@ export async function runPrompts(
     projectName,
     projectDir,
     authProvider,
+    uiLibrary,
     features: {
       fileProcessing: selectedFeatures.includes("fileProcessing"),
       payments: selectedFeatures.includes("payments"),

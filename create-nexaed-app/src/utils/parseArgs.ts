@@ -2,6 +2,7 @@ export interface ParsedArgs {
   command: "init" | "doctor" | "upgrade" | "help" | "telemetry";
   projectName?: string;
   auth?: string;
+  ui?: string;
   features?: string[];
   emailTier?: string;
   emailDomain?: string;
@@ -43,6 +44,9 @@ export function parseArgs(argv: string[]): ParsedArgs {
     switch (arg) {
       case "--auth":
         result.auth = argv[++i];
+        break;
+      case "--ui":
+        result.ui = argv[++i];
         break;
       case "--features":
         result.features = (argv[++i] ?? "")

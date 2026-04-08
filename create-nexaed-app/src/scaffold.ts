@@ -34,7 +34,7 @@ export async function scaffold(opts: ScaffoldOptions): Promise<void> {
   await write(projectDir, "next.config.ts", nextConfig());
 
   // ── App router structure ─────────────────────────────────────────────────────
-  await write(projectDir, "app/globals.css",         globalsCss());
+  await write(projectDir, "app/globals.css",         globalsCss(opts));
   await write(projectDir, "app/layout.tsx",          renderRootLayout(opts));
   await write(projectDir, "app/page.tsx",            renderRootPage(opts));
   await write(projectDir, "app/providers.tsx",       renderProvidersFile(opts));
@@ -45,8 +45,14 @@ export async function scaffold(opts: ScaffoldOptions): Promise<void> {
   await write(projectDir, "app/api/nexa/[...nexaed]/route.ts",   renderCatchAllRoute());
 
   // ── Tailwind + PostCSS ───────────────────────────────────────────────────────
-  await write(projectDir, "tailwind.config.ts", tailwindConfig());
+  await write(projectDir, "tailwind.config.ts", tailwindConfig(opts));
   await write(projectDir, "postcss.config.mjs", postcssConfig());
+
+  // ── UI library extras ─────────────────────────────────────────────────────────
+  if (opts.uiLibrary === "shadcn") {
+    await write(projectDir, "components.json",  renderComponentsJson());
+    await write(projectDir, "lib/utils.ts",     renderLibUtils());
+  }
 
   // ── Middleware ────────────────────────────────────────────────────────────────
   await write(projectDir, "middleware.ts", renderMiddleware(opts));
@@ -96,26 +102,79 @@ function gitignore(): string {
   ].join("\n") + "\n";
 }
 
-function globalsCss(): string {
+function globalsCss(opts: ScaffoldOptions): string {
+  const shadcnVars = opts.uiLibrary === "shadcn" ? `
+    /* shadcn/ui tokens */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.5rem;` : "";
+
+  const shadcnDark = opts.uiLibrary === "shadcn" ? `
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+  }` : "";
+
+  const borderReset = opts.uiLibrary === "shadcn"
+    ? `\n  * {\n    @apply border-border;\n  }\n` : "";
+  const bodyClasses = opts.uiLibrary === "shadcn"
+    ? "bg-background text-foreground"
+    : "bg-white text-gray-900";
+
   return `@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
+    /* Nexa Ed brand */
     --nexa-primary: 158 64% 52%;
     --nexa-primary-foreground: 0 0% 100%;
     --nexa-primary-dark: 158 64% 40%;
     --nexa-surface: 158 30% 97%;
-    --nexa-border: 158 20% 88%;
-  }
-
+    --nexa-border: 158 20% 88%;${shadcnVars}
+  }${shadcnDark}
+${borderReset}
   html {
     @apply antialiased;
   }
 
   body {
-    @apply bg-white text-gray-900;
+    @apply ${bodyClasses};
   }
 }
 `;
@@ -260,10 +319,54 @@ export const config = {
 `;
 }
 
-function tailwindConfig(): string {
+function tailwindConfig(opts: ScaffoldOptions): string {
+  const darkMode = opts.uiLibrary === "shadcn" ? `\n  darkMode: ["class"],` : "";
+
+  const shadcnColors = opts.uiLibrary === "shadcn" ? `
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",` : "";
+
+  const shadcnRadius = opts.uiLibrary === "shadcn" ? `
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },` : "";
+
   return `import type { Config } from "tailwindcss";
 
-export default {
+export default {${darkMode}
   content: [
     "./app/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
@@ -276,12 +379,50 @@ export default {
         "nexa-primary": "hsl(var(--nexa-primary) / <alpha-value>)",
         "nexa-primary-dark": "hsl(var(--nexa-primary-dark) / <alpha-value>)",
         "nexa-surface": "hsl(var(--nexa-surface) / <alpha-value>)",
-        "nexa-border": "hsl(var(--nexa-border) / <alpha-value>)",
-      },
+        "nexa-border": "hsl(var(--nexa-border) / <alpha-value>)",${shadcnColors}
+      },${shadcnRadius}
     },
   },
   plugins: [],
 } satisfies Config;
+`;
+}
+
+function renderComponentsJson(): string {
+  return JSON.stringify(
+    {
+      $schema: "https://ui.shadcn.com/schema.json",
+      style: "new-york",
+      rsc: true,
+      tsx: true,
+      tailwind: {
+        config: "tailwind.config.ts",
+        css: "app/globals.css",
+        baseColor: "neutral",
+        cssVariables: true,
+        prefix: "",
+      },
+      aliases: {
+        components: "@/components",
+        utils: "@/lib/utils",
+        ui: "@/components/ui",
+        lib: "@/lib",
+        hooks: "@/hooks",
+      },
+      iconLibrary: "lucide",
+    },
+    null,
+    2,
+  ) + "\n";
+}
+
+function renderLibUtils(): string {
+  return `import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 `;
 }
 

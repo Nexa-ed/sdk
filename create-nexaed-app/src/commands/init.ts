@@ -31,6 +31,7 @@ function makeSpinner() {
 export async function runInit(args: ParsedArgs): Promise<void> {
   const opts = await runPrompts(args.projectName, {
     auth: args.auth,
+    ui: args.ui,
     features: args.features,
     emailTier: args.emailTier,
     emailDomain: args.emailDomain,
@@ -74,15 +75,25 @@ export async function runInit(args: ParsedArgs): Promise<void> {
     }
   }
 
+  const shadcnHint =
+    opts.uiLibrary === "shadcn"
+      ? [pc.dim(`     Then add components: pnpm dlx shadcn@latest add button`)]
+      : [];
+
   const steps = [
     pc.cyan(`  1. cd ${opts.projectName}`),
     ...(args.noInstall
       ? [
           pc.cyan(`  2. ${pm} install`),
           pc.cyan(`  3. Fill in .env.local`),
-          pc.cyan(`  4. pnpm dev`),
+          pc.cyan(`  4. ${pm} dev`),
+          ...shadcnHint,
         ]
-      : [pc.cyan(`  2. Fill in .env.local`), pc.cyan(`  3. pnpm dev`)]),
+      : [
+          pc.cyan(`  2. Fill in .env.local`),
+          pc.cyan(`  3. ${pm} dev`),
+          ...shadcnHint,
+        ]),
   ];
 
   const outroLines = [
