@@ -106,29 +106,7 @@ function gitignore(): string {
 }
 
 function globalsCss(opts: ScaffoldOptions): string {
-  const shadcnVars = opts.uiLibrary === "shadcn" ? `
-    /* shadcn/ui tokens */
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-    --radius: 0.5rem;` : "";
-
+  const shadcnRadius = opts.uiLibrary === "shadcn" ? `\n    --radius: 1rem;` : "";
   const borderReset = opts.uiLibrary === "shadcn"
     ? `\n  * {\n    @apply border-border;\n  }\n` : "";
 
@@ -137,43 +115,99 @@ function globalsCss(opts: ScaffoldOptions): string {
 @tailwind utilities;
 
 @layer base {
+  /* ── Dark theme (default) — matches Nexa platform ── */
   :root {
-    /* Nexa Ed brand */
-    --nexa-primary: 158 64% 52%;
-    --nexa-primary-foreground: 0 0% 100%;
-    --nexa-primary-dark: 158 64% 40%;
-    --nexa-surface: 158 30% 97%;
-    --nexa-border: 158 20% 88%;
+    --background: 0 0% 1%;
+    --foreground: 0 0% 98%;
 
-    /* Semantic */
-    --background: 0 0% 100%;
-    --foreground: 240 10% 4%;${shadcnVars}
+    --card: 0 0% 4%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 4%;
+    --popover-foreground: 0 0% 98%;
+
+    --muted: 0 0% 8%;
+    --muted-foreground: 0 0% 65%;
+
+    --border: 0 0% 12%;
+    --input: 0 0% 12%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Nexa Ed brand — primary */
+    --nexa-primary: 158 64% 52%;
+    --nexa-primary-foreground: 0 0% 8%;
+    --nexa-primary-dark: 158 64% 40%;
+    --nexa-primary-glow: 167 82% 45%;
+
+    --primary: 158 64% 52%;
+    --primary-foreground: 0 0% 8%;
+
+    --secondary: 142 76% 36%;
+    --secondary-foreground: 0 0% 98%;
+
+    --accent: 158 64% 52%;
+    --accent-foreground: 0 0% 98%;
+
+    --ring: 158 64% 52%;
+
+    /* Surfaces */
+    --nexa-surface: 0 0% 4%;
+    --nexa-border: 0 0% 12%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(158 64% 52%), hsl(167 82% 45%));
+    --gradient-glow: linear-gradient(135deg, hsl(158 64% 52% / 0.15), hsl(167 82% 45% / 0.08));
+
+    --glass-bg: rgba(255, 255, 255, 0.04);
+    --glass-border: rgba(255, 255, 255, 0.08);${shadcnRadius}
   }
 
-  .dark {
-    --nexa-surface: 158 20% 8%;
-    --nexa-border: 158 15% 18%;
+  /* ── Light theme override ── */
+  .light {
+    --background: 240 20% 99%;
+    --foreground: 220 15% 12%;
 
-    /* Semantic */
-    --background: 224 14% 10%;
-    --foreground: 0 0% 95%;${opts.uiLibrary === "shadcn" ? `
-    --card: 224 14% 10%;
-    --card-foreground: 0 0% 95%;
-    --popover: 224 14% 10%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;` : ""}
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 12%;
+
+    --muted: 220 15% 95%;
+    --muted-foreground: 220 10% 45%;
+
+    --border: 220 15% 90%;
+    --input: 220 15% 92%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --nexa-primary: 158 64% 48%;
+    --nexa-primary-foreground: 0 0% 8%;
+    --nexa-primary-dark: 158 64% 36%;
+    --nexa-primary-glow: 167 82% 42%;
+
+    --primary: 158 64% 48%;
+    --primary-foreground: 0 0% 8%;
+
+    --secondary: 142 76% 34%;
+    --secondary-foreground: 0 0% 100%;
+
+    --accent: 158 64% 48%;
+    --accent-foreground: 0 0% 100%;
+
+    --ring: 158 64% 48%;
+
+    --nexa-surface: 220 15% 96%;
+    --nexa-border: 220 15% 90%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(158 64% 48%), hsl(167 82% 42%));
+    --gradient-glow: linear-gradient(135deg, hsl(158 64% 48% / 0.12), hsl(167 82% 42% / 0.06));
+
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-border: rgba(30, 30, 30, 0.08);
   }
 ${borderReset}
   html {
@@ -408,20 +442,22 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
 
+  const isDark = resolvedTheme !== "light";
+
   return (
     <button
       type="button"
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label="Toggle theme"
       className="flex h-8 w-8 items-center justify-center rounded-lg border border-[hsl(var(--nexa-border))] bg-transparent text-foreground/60 transition-colors hover:border-[hsl(var(--nexa-primary)/0.4)] hover:text-[hsl(var(--nexa-primary))]"
     >
-      {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+      {isDark ? <SunIcon /> : <MoonIcon />}
     </button>
   );
 }
