@@ -75,9 +75,17 @@ export async function runInit(args: ParsedArgs): Promise<void> {
     }
   }
 
+  const dlx: Record<string, string> = {
+    pnpm: "pnpm dlx",
+    yarn: "yarn dlx",
+    bun:  "bunx",
+    npm:  "npx",
+  };
+  const exec = dlx[pm] ?? "npx";
+
   const shadcnHint =
     opts.uiLibrary === "shadcn"
-      ? [pc.dim(`     Then add components: pnpm dlx shadcn@latest add button`)]
+      ? [pc.dim(`     Then add components: ${exec} shadcn@latest add button`)]
       : [];
 
   const steps = [
