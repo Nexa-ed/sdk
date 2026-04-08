@@ -28,14 +28,14 @@ const MAIN_URL = "https://nexa-ed.com";
 export const metadata: Metadata = {
   metadataBase: new URL(DOCS_URL),
   title: {
-    default: "Nexa-Ed SDK Docs — School Management API & SDK",
-    template: "%s — Nexa-Ed Docs",
+    default: "Nexa Ed SDK Docs — School Management API & SDK",
+    template: "%s — Nexa Ed Docs",
   },
   description:
-    "Official SDK & API documentation for Nexa-Ed — the school management platform for any school, anywhere. Integrate student results processing, payments, email provisioning, and AI document analysis in minutes. Works with Next.js, React, Node.js, Vue, Svelte, and any REST client.",
+    "Official SDK & API documentation for Nexa Ed — the school management platform for any school, anywhere. Integrate student results processing, payments, email provisioning, and AI document analysis in minutes. Works with Next.js, React, Node.js, Vue, Svelte, and any REST client.",
   keywords: [
     // SDK / developer keywords
-    "Nexa-Ed SDK",
+    "Nexa Ed SDK",
     "school management SDK",
     "school management API",
     "student results API",
@@ -63,13 +63,13 @@ export const metadata: Metadata = {
     "school ERP API",
     "open school platform SDK",
     // Brand
-    "Nexa-Ed",
+    "Nexa Ed",
     "Nexium Labs",
     "Nexium Labs SDK",
     "create-nexaed-app",
   ],
   authors: [
-    { name: "Nexa-Ed", url: MAIN_URL },
+    { name: "Nexa Ed", url: MAIN_URL },
     { name: "Nexium Labs" },
   ],
   robots: {
@@ -82,8 +82,8 @@ export const metadata: Metadata = {
     locale: "en_US",
     alternateLocale: ["en_NG", "en_GB"],
     url: DOCS_URL,
-    siteName: "Nexa-Ed Docs",
-    title: "Nexa-Ed SDK & API Documentation — School Management for Any Stack",
+    siteName: "Nexa Ed Docs",
+    title: "Nexa Ed SDK & API Documentation — School Management for Any Stack",
     description:
       "Integrate school management into any app in minutes. Student results, payments, email provisioning, AI OCR — REST API + typed SDKs for Next.js, React, Node, Vue, and Svelte.",
     images: [
@@ -91,15 +91,15 @@ export const metadata: Metadata = {
         url: `${MAIN_URL}/og-image.png`,
         width: 1200,
         height: 630,
-        alt: "Nexa-Ed SDK Documentation",
+        alt: "Nexa Ed SDK Documentation",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Nexa-Ed SDK & API Docs — School Management for Any Stack",
+    title: "Nexa Ed SDK & API Docs — School Management for Any Stack",
     description:
-      "Official docs for the Nexa-Ed SDK — student portals, payments, OCR, and more. Any framework, any country.",
+      "Official docs for the Nexa Ed SDK — student portals, payments, OCR, and more. Any framework, any country.",
     images: [`${MAIN_URL}/og-image.png`],
     creator: "@nexaed",
   },
@@ -109,13 +109,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "TechArticle",
-    name: "Nexa-Ed SDK & API Documentation",
+    name: "Nexa Ed SDK & API Documentation",
     url: DOCS_URL,
     description:
-      "Official SDK & API documentation for the Nexa-Ed school management platform. Supports Next.js, React, Node.js, Vue, Svelte, and any REST client. Available worldwide.",
+      "Official SDK & API documentation for the Nexa Ed school management platform. Supports Next.js, React, Node.js, Vue, Svelte, and any REST client. Available worldwide.",
     publisher: {
       "@type": "Organization",
-      name: "Nexa-Ed",
+      name: "Nexa Ed",
       url: MAIN_URL,
       logo: `${MAIN_URL}/icon-512.png`,
       areaServed: ["Nigeria", "Ghana", "Kenya", "South Africa", "Africa", "Worldwide"],
