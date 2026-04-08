@@ -61,17 +61,18 @@ export async function runInit(args: ParsedArgs): Promise<void> {
   }
 
   if (!args.noInstall) {
-    spinner.start(`Installing dependencies with ${pm}…`);
+    // Print a plain log line — the spinner must not run while the package manager
+    // writes its own output to the same terminal.
+    p.log.step(`Installing dependencies with ${pm}…`);
     const result = spawnSync(pm, ["install"], {
       cwd: opts.projectDir,
       stdio: "inherit",
       shell: process.platform === "win32",
     });
     if (result.status !== 0) {
-      spinner.stop("Dependency install failed — run it manually.");
-      console.warn(`Run: cd ${opts.projectName} && ${pm} install`);
+      p.log.warn(`Dependency install failed. Run manually: cd ${opts.projectName} && ${pm} install`);
     } else {
-      spinner.stop("Dependencies installed.");
+      p.log.success("Dependencies installed.");
     }
   }
 
