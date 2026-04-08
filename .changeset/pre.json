@@ -13,8 +13,11 @@
   },
   "changesets": [
     "cli-v024-patch",
+    "dull-pens-wait",
     "long-ads-create",
+    "nine-apes-tease",
     "six-foxes-begin",
+    "tough-towns-like",
     "upset-poets-speak",
     "warm-rockets-rest"
   ]
