@@ -10,12 +10,14 @@ type Auth = "clerk" | "nextauth" | "none";
 type Feature = "fileProcessing" | "payments" | "convex" | "emailProvisioning";
 type EmailTier = "tier-1-nexa" | "tier-2-stalwart" | "tier-3-google";
 type PM = "pnpm" | "npm" | "yarn" | "bun";
+type UiLibrary = "none" | "shadcn";
 
 interface BuilderState {
   name: string;
   auth: Auth;
   features: Feature[];
   emailTier: EmailTier;
+  ui: UiLibrary;
   pm: PM;
 }
 
@@ -24,6 +26,7 @@ const DEFAULTS: BuilderState = {
   auth: "clerk",
   features: [],
   emailTier: "tier-1-nexa",
+  ui: "none",
   pm: "pnpm",
 };
 
@@ -47,6 +50,7 @@ function buildCommand(s: BuilderState): string {
   if (s.auth !== "none") parts.push(`--auth ${s.auth}`);
   if (s.features.length > 0) parts.push(`--features ${s.features.join(",")}`);
   if (hasEmail) parts.push(`--email-tier ${s.emailTier}`);
+  if (s.ui === "shadcn") parts.push(`--ui shadcn`);
   if (s.pm !== "pnpm" && s.pm !== "npm") parts.push(`--pm ${s.pm}`);
   if (s.pm === "npm") parts.push(`--pm npm`);
 
@@ -62,6 +66,7 @@ function stateToParams(s: BuilderState): URLSearchParams {
   if (s.features.length > 0) p.set("features", s.features.join(","));
   if (s.features.includes("emailProvisioning") && s.emailTier !== DEFAULTS.emailTier)
     p.set("emailTier", s.emailTier);
+  if (s.ui !== DEFAULTS.ui) p.set("ui", s.ui);
   if (s.pm !== DEFAULTS.pm) p.set("pm", s.pm);
   return p;
 }
@@ -72,18 +77,21 @@ function paramsToState(params: URLSearchParams): BuilderState {
     auth: (params.get("auth") as Auth) ?? DEFAULTS.auth,
     features: (params.get("features")?.split(",").filter(Boolean) as Feature[]) ?? [],
     emailTier: (params.get("emailTier") as EmailTier) ?? DEFAULTS.emailTier,
+    ui: (params.get("ui") as UiLibrary) ?? DEFAULTS.ui,
     pm: (params.get("pm") as PM) ?? DEFAULTS.pm,
   };
   // Validate to prevent URL-injected garbage
   const validAuth: Auth[] = ["clerk", "nextauth", "none"];
   const validFeatures: Feature[] = ["fileProcessing", "payments", "convex", "emailProvisioning"];
   const validTiers: EmailTier[] = ["tier-1-nexa", "tier-2-stalwart", "tier-3-google"];
+  const validUIs: UiLibrary[] = ["none", "shadcn"];
   const validPMs: PM[] = ["pnpm", "npm", "yarn", "bun"];
   return {
     name: raw.name.slice(0, 60).replace(/[^a-z0-9_-]/gi, "-") || DEFAULTS.name,
     auth: validAuth.includes(raw.auth) ? raw.auth : DEFAULTS.auth,
     features: raw.features.filter((f) => validFeatures.includes(f)),
     emailTier: validTiers.includes(raw.emailTier) ? raw.emailTier : DEFAULTS.emailTier,
+    ui: validUIs.includes(raw.ui) ? raw.ui : DEFAULTS.ui,
     pm: validPMs.includes(raw.pm) ? raw.pm : DEFAULTS.pm,
   };
 }
@@ -297,6 +305,7 @@ export default function BuilderUI() {
     };
     stackTags.push({ label: tierLabels[state.emailTier], key: "emailTier" });
   }
+  if (state.ui === "shadcn") stackTags.push({ label: "shadcn/ui", key: "ui" });
   stackTags.push({ label: state.pm, key: "pm" });
 
   return (
@@ -529,6 +538,35 @@ export default function BuilderUI() {
             </section>
           )}
 
+          {/* UI LIBRARY */}
+          <section>
+            <SectionHeader label="UI Library" />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <OptionCard
+                title="None"
+                description="Plain Tailwind CSS. Use @nexa-ed/react components as-is. Best if you already have a design system or want full control."
+                badge="Default"
+                selected={state.ui === "none"}
+                onClick={() => setState((p) => ({ ...p, ui: "none" }))}
+              />
+              <OptionCard
+                title="shadcn/ui"
+                description="Accessible, copy-paste components built on Radix UI. Scaffolds components.json, lib/utils.ts (cn helper), and wires Tailwind with shadcn CSS tokens."
+                badge="Recommended"
+                selected={state.ui === "shadcn"}
+                onClick={() => setState((p) => ({ ...p, ui: "shadcn" }))}
+              />
+            </div>
+            {state.ui === "shadcn" && (
+              <p className="mt-3 text-xs text-fd-muted-foreground">
+                After scaffolding, add your first component:{" "}
+                <code className="rounded border border-fd-border bg-fd-background px-1.5 py-0.5 font-mono text-[11px] text-fd-foreground">
+                  {state.pm === "pnpm" ? "pnpm dlx" : state.pm === "yarn" ? "yarn dlx" : state.pm === "bun" ? "bunx" : "npx"} shadcn@latest add button
+                </code>
+              </p>
+            )}
+          </section>
+
           {/* PACKAGE MANAGER */}
           <section>
             <SectionHeader label="Package Manager" />
@@ -607,9 +645,22 @@ export default function BuilderUI() {
                   from the Nexa dashboard.
                 </span>
               </li>
+              {state.ui === "shadcn" && (
+                <li className="flex gap-3">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-nexa-primary/30 bg-nexa-primary/10 font-mono text-[10px] font-bold text-nexa-primary">
+                    3
+                  </span>
+                  <span>
+                    Add your first shadcn component:{" "}
+                    <code className="rounded border border-fd-border bg-fd-background px-1.5 py-0.5 font-mono text-[11px] text-fd-foreground">
+                      {state.pm === "pnpm" ? "pnpm dlx" : state.pm === "yarn" ? "yarn dlx" : state.pm === "bun" ? "bunx" : "npx"} shadcn@latest add button
+                    </code>
+                  </span>
+                </li>
+              )}
               <li className="flex gap-3">
                 <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-nexa-primary/30 bg-nexa-primary/10 font-mono text-[10px] font-bold text-nexa-primary">
-                  3
+                  {state.ui === "shadcn" ? 4 : 3}
                 </span>
                 <span>
                   Run{" "}
@@ -656,8 +707,9 @@ function FileTree({ state }: { state: BuilderState }) {
   const hasEmail = state.features.includes("emailProvisioning");
   const hasClerk = state.auth === "clerk";
   const hasNextAuth = state.auth === "nextauth";
+  const hasShadcn = state.ui === "shadcn";
 
-  const lines: string[] = [
+  const lines = [
     `<span class="text-fd-foreground font-semibold">${name}/</span>`,
     `├── app/`,
     `│   ├── api/nexa/[...nexaed]/`,
@@ -671,11 +723,14 @@ function FileTree({ state }: { state: BuilderState }) {
     `│   └── providers.tsx`,
     `├── lib/`,
     `│   ├── <span class="text-nexa-primary">nexa.ts</span>             ← SDK client${hasClerk ? " (Clerk)" : hasNextAuth ? " (NextAuth)" : ""}`,
+    hasShadcn ? `│   └── <span class="text-nexa-primary">utils.ts</span>             ← cn() helper` : "",
     hasConvex ? `│   └── convex/schema.ts        ← Nexa schema fragments` : "",
+    state.auth !== "none" ? `├── <span class="text-nexa-primary">middleware.ts</span>             ← auth route protection` : "",
+    hasShadcn ? `├── <span class="text-nexa-primary">components.json</span>          ← shadcn/ui config` : "",
     `├── .env.local                ← NEXA_API_KEY, NEXA_WEBHOOK_SECRET`,
     `├── .env.example`,
     `├── package.json`,
-    `└── README.md`,
+    `└── tsconfig.json`,
   ]
     .filter(Boolean)
     .join("\n");
