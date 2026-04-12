@@ -1,5 +1,18 @@
 # create-nexaed-app
 
+## 0.2.0-beta.5
+
+### Minor Changes
+
+- fc4f679: added in workos and patched global.css bugs accordingly
+
+### Patch Changes
+
+- 9332750: all round update
+- e03965c: Add shadcn/ui library option (--ui shadcn|none), auth-aware middleware.ts generation, dark-mode-first scaffold with next-themes and a ThemeToggle component on the navbar. The generated app's design tokens
+- 95b2dd2: made some adjustments to the cli
+- 890f1c9: patches to the packages for easier flow and maintainablility
+
 ## 0.2.0-beta.4
 
 ### Patch Changes
