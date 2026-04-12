@@ -1,18 +1,35 @@
 # @nexa-ed/node
 
+## 0.2.0-beta.4
+
+### Patch Changes
+
+- 9332750: all round update
+- 01a862e: fix: correct package.json exports map — types condition ordering and dist path references
+- fc4f679: added in workos and patched global.css bugs accordingly
+- 890f1c9: patches to the packages for easier flow and maintainablility
+- Updated dependencies [9332750]
+- Updated dependencies [01a862e]
+- Updated dependencies [fc4f679]
+- Updated dependencies [890f1c9]
+  - @nexa-ed/sdk@0.2.0-beta.4
+
 ## 0.2.0
 
 ### Minor Changes
 
 #### Framework Adapters
+
 - `createExpressAdapter(nexaInstance)` — mount Nexa handlers as Express middleware
 - `createFastifyAdapter(nexaInstance)` — mount Nexa handlers as a Fastify plugin
 - `createHonoAdapter(nexaInstance)` — mount Nexa handlers as a Hono app route group
 
 #### Webhook Verification
+
 - `verifyPaystackWebhook(payload, signature, secret)` — verify Paystack HMAC-SHA512 webhook signatures in any Node.js environment
 
 #### Progress Streaming
+
 - `createProgressStream(jobId, options)` — create an SSE-compatible readable stream for file processing progress; works with any HTTP framework
 
 ### Patch Changes
