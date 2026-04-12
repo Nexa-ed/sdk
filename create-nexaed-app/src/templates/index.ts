@@ -12,7 +12,10 @@ export function renderPackageJson(opts: ScaffoldOptions): string {
     "@tanstack/react-query": "^5.0.0",
   };
 
-  if (opts.authProvider === "clerk") {
+  if (opts.authProvider === "workos") {
+    deps["@workos-inc/authkit-nextjs"] = "^0.x.x";
+    deps["@workos-inc/authkit-react"]  = "^0.x.x";
+  } else if (opts.authProvider === "clerk") {
     deps["@clerk/nextjs"] = "^6.0.0";
   } else if (opts.authProvider === "nextauth") {
     deps["next-auth"] = "^5.0.0";
@@ -66,7 +69,9 @@ export function renderNexaLib(opts: ScaffoldOptions): string {
 
   lines.push(`import { createNexa } from "@nexa-ed/next";`);
 
-  if (opts.authProvider === "clerk") {
+  if (opts.authProvider === "workos") {
+    lines.push(`import { getUser } from "@workos-inc/authkit-nextjs";`);
+  } else if (opts.authProvider === "clerk") {
     lines.push(`import { auth } from "@clerk/nextjs/server";`);
   } else if (opts.authProvider === "nextauth") {
     lines.push(`import { getServerSession } from "next-auth";`);
@@ -95,7 +100,13 @@ export function renderNexaLib(opts: ScaffoldOptions): string {
 
   // Build getUser
   let getUserBody: string;
-  if (opts.authProvider === "clerk") {
+  if (opts.authProvider === "workos") {
+    getUserBody = [
+      `    const { user } = await getUser();`,
+      `    if (!user?.id) throw new Error("Unauthorized");`,
+      `    return { userId: user.id };`,
+    ].join("\n");
+  } else if (opts.authProvider === "clerk") {
     getUserBody = [
       `    const { userId } = await auth();`,
       `    if (!userId) throw new Error("Unauthorized");`,
@@ -186,7 +197,19 @@ export function renderEnvExample(opts: ScaffoldOptions): string {
     ``,
   ];
 
-  if (opts.authProvider === "clerk") {
+  if (opts.authProvider === "workos") {
+    lines.push(
+      `# ──────────────────────────────────────────────────────────────────────────`,
+      `# WorkOS AuthKit — https://dashboard.workos.com`,
+      `# ──────────────────────────────────────────────────────────────────────────`,
+      `WORKOS_API_KEY=sk_YOUR_WORKOS_API_KEY`,
+      `WORKOS_CLIENT_ID=client_YOUR_WORKOS_CLIENT_ID`,
+      `NEXT_PUBLIC_WORKOS_CLIENT_ID=client_YOUR_WORKOS_CLIENT_ID`,
+      `WORKOS_REDIRECT_URI=http://localhost:3000/callback`,
+      `WORKOS_COOKIE_PASSWORD=your_32_char_minimum_secret_for_iron_session_encryption`,
+      ``,
+    );
+  } else if (opts.authProvider === "clerk") {
     lines.push(
       `# ──────────────────────────────────────────────────────────────────────────`,
       `# Clerk — https://dashboard.clerk.com`,
@@ -299,7 +322,9 @@ export function renderProvidersFile(opts: ScaffoldOptions): string {
   lines.push(`import { QueryClient, QueryClientProvider } from "@tanstack/react-query";`);
   lines.push(`import { NexaProvider } from "@nexa-ed/react";`);
 
-  if (opts.authProvider === "clerk") {
+  if (opts.authProvider === "workos") {
+    lines.push(`import { AuthKitProvider } from "@workos-inc/authkit-react";`);
+  } else if (opts.authProvider === "clerk") {
     lines.push(`import { ClerkProvider } from "@clerk/nextjs";`);
   }
 
@@ -324,7 +349,12 @@ export function renderProvidersFile(opts: ScaffoldOptions): string {
     `</ThemeProvider>`,
   ]);
 
-  if (opts.authProvider === "clerk") {
+  if (opts.authProvider === "workos") {
+    wrappers.push([
+      `<AuthKitProvider clientId={process.env.NEXT_PUBLIC_WORKOS_CLIENT_ID!}>`,
+      `</AuthKitProvider>`,
+    ]);
+  } else if (opts.authProvider === "clerk") {
     wrappers.push(["<ClerkProvider>", "</ClerkProvider>"]);
   }
   if (opts.features.convex) {

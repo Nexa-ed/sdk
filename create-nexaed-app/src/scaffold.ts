@@ -60,6 +60,11 @@ export async function scaffold(opts: ScaffoldOptions): Promise<void> {
   // ── Middleware ────────────────────────────────────────────────────────────────
   await write(projectDir, "middleware.ts", renderMiddleware(opts));
 
+  // ── Auth callback route (WorkOS only) ────────────────────────────────────────
+  if (opts.authProvider === "workos") {
+    await write(projectDir, "app/callback/route.ts", renderWorkosCallbackRoute());
+  }
+
   // ── tsconfig ─────────────────────────────────────────────────────────────────
   await write(projectDir, "tsconfig.json", tsconfig());
 }
@@ -79,6 +84,17 @@ function renderEnvLocal(opts: ScaffoldOptions): string {
     `NEXA_WEBHOOK_SECRET=whsec_YOUR_SECRET_HERE`,
     ``,
   ];
+  if (opts.authProvider === "workos") {
+    lines.push(
+      `# WorkOS AuthKit`,
+      `WORKOS_API_KEY=sk_YOUR_KEY`,
+      `WORKOS_CLIENT_ID=client_YOUR_CLIENT_ID`,
+      `NEXT_PUBLIC_WORKOS_CLIENT_ID=client_YOUR_CLIENT_ID`,
+      `WORKOS_REDIRECT_URI=http://localhost:3000/callback`,
+      `WORKOS_COOKIE_PASSWORD=your_32_char_minimum_secret_for_iron_session_encryption`,
+      ``,
+    );
+  }
   if (opts.authProvider === "clerk") {
     lines.push(
       `# Clerk`,
@@ -318,6 +334,25 @@ ${featureGrid}
 }
 
 function renderMiddleware(opts: ScaffoldOptions): string {
+  if (opts.authProvider === "workos") {
+    return `import { authkitMiddleware } from "@workos-inc/authkit-nextjs";
+
+export default authkitMiddleware({
+  middlewareAuth: {
+    enabled: true,
+    unauthenticatedPaths: ["/", "/api/nexa/(.*)"],
+  },
+});
+
+export const config = {
+  matcher: [
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
+  ],
+};
+`;
+  }
+
   if (opts.authProvider === "clerk") {
     return `import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
@@ -358,6 +393,13 @@ export function middleware(_req: NextRequest) {
 export const config = {
   matcher: ["/dashboard/:path*"],
 };
+`;
+}
+
+function renderWorkosCallbackRoute(): string {
+  return `import { handleAuth } from "@workos-inc/authkit-nextjs";
+
+export const GET = handleAuth();
 `;
 }
 

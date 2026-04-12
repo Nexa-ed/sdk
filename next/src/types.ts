@@ -30,6 +30,15 @@ export interface NexaNextConfig {
    * or any session system you use:
    *
    * @example
+   * // WorkOS AuthKit (recommended)
+   * import { getSession } from "@workos-inc/authkit-nextjs";
+   * getUser: async () => {
+   *   const session = await getSession();
+   *   if (!session?.user?.id) throw new Error("Unauthorized");
+   *   return { userId: session.user.id };
+   * },
+   *
+   * @example
    * // Clerk
    * import { auth } from "@clerk/nextjs/server";
    * getUser: async () => {

@@ -1,7 +1,7 @@
 import * as p from "@clack/prompts";
 import path from "node:path";
 
-export type AuthProvider = "clerk" | "nextauth" | "none";
+export type AuthProvider = "workos" | "clerk" | "nextauth" | "none";
 
 export type EmailTier = "tier-1-nexa" | "tier-2-stalwart" | "tier-3-google";
 
@@ -32,7 +32,7 @@ export interface Prefill {
   apiKey?: string;
 }
 
-const VALID_AUTH = new Set<string>(["clerk", "nextauth", "none"]);
+const VALID_AUTH = new Set<string>(["workos", "clerk", "nextauth", "none"]);
 const VALID_TIERS = new Set<string>([
   "tier-1-nexa",
   "tier-2-stalwart",
@@ -140,9 +140,10 @@ export async function runPrompts(
     const auth = await p.select<AuthProvider>({
       message: "Which auth provider does your app use?",
       options: [
-        { value: "clerk", label: "Clerk     — recommended, zero config" },
+        { value: "workos",   label: "WorkOS    — recommended: enterprise SSO, SCIM, 1M MAU free" },
+        { value: "clerk",    label: "Clerk     — zero config, great DX" },
         { value: "nextauth", label: "NextAuth  — bring your own session" },
-        { value: "none", label: "None      — I'll add auth myself" },
+        { value: "none",     label: "None      — I'll add auth myself" },
       ],
     });
     if (p.isCancel(auth)) cancel();

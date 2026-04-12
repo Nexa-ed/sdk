@@ -8,15 +8,15 @@ import type { NexaNextConfig, NexaInstance } from "./types";
  * @example
  * // lib/nexa.ts
  * import { createNexa } from "@nexa-ed/next";
- * import { auth } from "@clerk/nextjs/server";
+ * import { getSession } from "@workos-inc/authkit-nextjs";
  *
  * export const nexa = createNexa({
  *   apiKey: process.env.NEXA_API_KEY!,
  *   webhookSecret: process.env.NEXA_WEBHOOK_SECRET!,
  *   getUser: async () => {
- *     const { userId } = await auth();
- *     if (!userId) throw new Error("Unauthorized");
- *     return { userId };
+ *     const session = await getSession();
+ *     if (!session?.user?.id) throw new Error("Unauthorized");
+ *     return { userId: session.user.id };
  *   },
  *   onFileComplete: async ({ fileId, userId }) => {
  *     // sync records into your database here
