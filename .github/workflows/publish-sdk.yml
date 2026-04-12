@@ -1,80 +1,82 @@
-name: Publish SDK
+name: SDK Release
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
+# One release at a time — never cancel mid-publish
 concurrency:
-  group: publish-sdk-${{ github.sha }}
+  group: sdk-release
   cancel-in-progress: false
 
 jobs:
-  publish:
-    name: Version or publish
+  release:
+    name: Version or Publish
     runs-on: ubuntu-latest
     permissions:
-      contents: write       # to push the Version Packages branch + tag releases
-      pull-requests: write  # to open the Version Packages PR
-      id-token: write       # for npm provenance attestation
+      contents: write       # push Version Packages branch + create tags
+      pull-requests: write  # open / update the Version Packages PR
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # Full history required for changesets to diff correctly
-          fetch-depth: 0
+          fetch-depth: 0  # changesets needs full history to diff correctly
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          run_install: false
+          version: 10.11.1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: pnpm
+          # registry-url writes a project-level .npmrc that npm reads,
+          # but pnpm needs its own auth line — see the step below.
           registry-url: "https://registry.npmjs.org"
-          cache: "pnpm"
+
+      # pnpm does NOT automatically inherit the .npmrc written by setup-node.
+      # Writing the auth token directly into pnpm's config fixes publish auth.
+      - name: Authenticate pnpm with npm registry
+        run: pnpm config set //registry.npmjs.org/:_authToken "${{ secrets.NPM_TOKEN }}"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Build in strict dependency order so every downstream DTS build can
-      # resolve @nexa-ed/sdk types before it tries to use them.
-      - name: Build all SDK packages
+      # Build in strict dependency order — downstream DTS builds (next, react,
+      # convex, node) require @nexa-ed/sdk types to already exist in dist/.
+      - name: Build SDK packages
         run: |
-          pnpm --filter "@nexa-ed/sdk" build
-          pnpm --filter "@nexa-ed/next" build
-          pnpm --filter "@nexa-ed/react" build
-          pnpm --filter "@nexa-ed/convex" build
-          pnpm --filter "@nexa-ed/node" build
-          pnpm --filter "create-nexaed-app" build
+          pnpm --filter "@nexa-ed/sdk"        build
+          pnpm --filter "@nexa-ed/next"       build
+          pnpm --filter "@nexa-ed/react"      build
+          pnpm --filter "@nexa-ed/convex"     build
+          pnpm --filter "@nexa-ed/node"       build
+          pnpm --filter "create-nexaed-app"   build
 
-      # Type-check every package after building so a bad DTS fails loudly
-      # here rather than silently blowing up inside changeset publish.
-      - name: Type-check all SDK packages
+      # Type-check every package after building. Catches broken DTS before
+      # changeset publish runs so failures are loud and obvious.
+      - name: Type-check SDK packages
         run: |
-          pnpm --filter "@nexa-ed/sdk" check-types
-          pnpm --filter "@nexa-ed/next" check-types
-          pnpm --filter "@nexa-ed/react" check-types
-          pnpm --filter "@nexa-ed/convex" check-types
-          pnpm --filter "@nexa-ed/node" check-types
-          pnpm --filter "create-nexaed-app" check-types
+          pnpm --filter "@nexa-ed/sdk"        check-types
+          pnpm --filter "@nexa-ed/next"       check-types
+          pnpm --filter "@nexa-ed/react"      check-types
+          pnpm --filter "@nexa-ed/convex"     check-types
+          pnpm --filter "@nexa-ed/node"       check-types
+          pnpm --filter "create-nexaed-app"   check-types
 
-      # ── Changesets action ──────────────────────────────────────────────────
+      # ── Changesets action ───────────────────────────────────────────────────
       # On every push to master this does ONE of two things:
       #
-      #   A) If there are pending .changeset/* files:
+      #   A) Pending .changeset/*.md files exist
       #      → Opens (or updates) a "Version Packages" PR that bumps
-      #        versions and writes CHANGELOGs. Nothing is published yet.
+      #        package.json versions and writes CHANGELOGs. No publish yet.
       #
-      #   B) If the "Version Packages" PR was just merged:
-      #      → Publishes every package whose version changed to npm.
-      #      → Creates a GitHub release + tag for each published package.
+      #   B) The "Version Packages" PR was just merged
+      #      → Publishes every package whose version is not yet on npm.
+      #      → Creates a GitHub release + tag per published package.
       #
       - name: Create Version PR or publish to npm
         uses: changesets/action@v1
