@@ -190,11 +190,11 @@ importers:
         specifier: ^4.21.0
         version: 4.22.1
       fastify:
-        specifier: ^5.0.0
+        specifier: ^5.8.3
         version: 5.8.4
       hono:
-        specifier: ^4.7.0
-        version: 4.12.9
+        specifier: ^4.12.12
+        version: 4.12.12
       tsup:
         specifier: 'catalog:'
         version: 8.5.1(jiti@1.21.7)(postcss@8.5.8)(typescript@5.9.3)
@@ -2303,8 +2303,8 @@ packages:
   hast-util-whitespace@3.0.0:
     resolution: {integrity: sha512-88JUN06ipLwsnv+dVn+OIYOvAuvBMy/Qoi6O7mQHxdPXpjy+Cd6xRkWwux7DKO+4sYILtLBRIKgsdpS2gQc7qw==}
 
-  hono@4.12.9:
-    resolution: {integrity: sha512-wy3T8Zm2bsEvxKZM5w21VdHDDcwVS1yUFFY6i8UobSsKfFceT7TOwhbhfKsDyx7tYQlmRM5FLpIuYvNFyjctiA==}
+  hono@4.12.12:
+    resolution: {integrity: sha512-p1JfQMKaceuCbpJKAPKVqyqviZdS0eUxH9v82oWo1kb9xjQ5wA6iP3FNVAPDFlz5/p7d45lO+BpSk1tuSZMF4Q==}
     engines: {node: '>=16.9.0'}
 
   html-void-elements@3.0.0:
@@ -5494,7 +5494,7 @@ snapshots:
     dependencies:
       '@types/hast': 3.0.4
 
-  hono@4.12.9: {}
+  hono@4.12.12: {}
 
   html-void-elements@3.0.0: {}
 
