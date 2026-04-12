@@ -1,5 +1,11 @@
 # create-nexaed-app
 
+## 0.2.0-beta.6
+
+### Minor Changes
+
+- 290d72c: chore update
+
 ## 0.2.0-beta.5
 
 ### Minor Changes
