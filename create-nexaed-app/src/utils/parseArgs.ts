@@ -10,6 +10,7 @@ export interface ParsedArgs {
   noInstall: boolean;
   pm?: string;
   telemetryValue?: "on" | "off";
+  git?: boolean;
 }
 
 const COMMANDS = new Set(["doctor", "upgrade", "help", "telemetry"]);
@@ -68,6 +69,12 @@ export function parseArgs(argv: string[]): ParsedArgs {
         break;
       case "--pm":
         result.pm = argv[++i];
+        break;
+      case "--git":
+        result.git = true;
+        break;
+      case "--no-git":
+        result.git = false;
         break;
     }
     i++;

@@ -317,15 +317,28 @@ ${featureGrid}
 
       {/* Footer */}
       <footer className="border-t border-[hsl(var(--nexa-border))] py-6 text-center text-xs text-foreground/40">
-        Built with{" "}
-        <a
-          href="https://nexa-ed.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[hsl(var(--nexa-primary))] hover:underline"
-        >
-          Nexa Ed SDK
-        </a>
+        <span>© ${new Date().getFullYear()} ${displayName}</span>
+        <span className="mx-2 opacity-30">·</span>
+        <span>
+          Built with{" "}
+          <a
+            href="https://nexa-ed.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[hsl(var(--nexa-primary))] hover:underline"
+          >
+            Nexa Ed
+          </a>
+          {" "}—{" "}
+          <a
+            href="https://nexiumlabs.dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:underline hover:text-foreground/60 transition-colors"
+          >
+            a product by Nexium Labs
+          </a>
+        </span>
       </footer>
     </div>
   );
@@ -338,6 +351,7 @@ function renderMiddleware(opts: ScaffoldOptions): string {
     return `import { authkitMiddleware } from "@workos-inc/authkit-nextjs";
 
 export default authkitMiddleware({
+  redirectUri: process.env.WORKOS_REDIRECT_URI,
   middlewareAuth: {
     enabled: true,
     unauthenticatedPaths: ["/", "/api/nexa/(.*)"],

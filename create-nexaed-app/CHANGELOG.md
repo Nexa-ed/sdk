@@ -1,5 +1,13 @@
 # create-nexaed-app
 
+## 0.3.0-beta.0
+
+### Minor Changes
+
+- **Fix:** WorkOS middleware now includes `redirectUri: process.env.WORKOS_REDIRECT_URI` — previously omitted, which caused the callback redirect to fail on every WorkOS-authenticated app
+- **New:** Git opt-in — interactive prompt asks "Initialize a git repository?" (default: yes); also exposed as `--git` / `--no-git` CLI flags. When enabled, runs `git init`, `git add -A`, and an initial commit after scaffolding
+- **New:** Nexium Labs attribution in generated landing page footer — `© {year} {ProjectName} · Built with Nexa Ed — a product by Nexium Labs`
+
 ## 0.2.0-beta.6
 
 ### Minor Changes
