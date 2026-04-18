@@ -38,14 +38,15 @@ pnpm create nexaed-app my-school
 
 ## Interactive prompts
 
-The CLI asks five questions:
+The CLI asks six questions:
 
 | Prompt | Options |
 |--------|---------|
 | School name | Used as directory name and `package.json#name` |
-| Auth provider | Clerk · NextAuth · None |
+| Auth provider | WorkOS · Clerk · NextAuth · None |
 | Features | File processing, Payments, Convex integration, Student email provisioning |
 | UI library | None (plain Tailwind) · shadcn/ui |
+| Initialize git? | Yes (default) · No |
 | Nexa API key | Optional — can be added to `.env.local` later |
 
 ---
@@ -66,7 +67,7 @@ npx create-nexaed-app my-school \
 
 | Flag | Description |
 |------|-------------|
-| `--auth` | `clerk` · `nextauth` · `none` |
+| `--auth` | `workos` · `clerk` · `nextauth` · `none` |
 | `--features` | Comma-separated: `fileProcessing`, `payments`, `convex`, `emailProvisioning` |
 | `--ui` | `none` (default) · `shadcn` |
 | `--email-tier` | `tier-1-nexa` · `tier-2-stalwart` · `tier-3-google` |
@@ -74,6 +75,8 @@ npx create-nexaed-app my-school \
 | `--api-key` | Pre-fill the Nexa API key in `.env.local` |
 | `--pm` | `pnpm` · `npm` · `yarn` · `bun` |
 | `--no-install` | Skip dependency installation |
+| `--git` | Initialize a git repository and create an initial commit |
+| `--no-git` | Skip git initialization |
 
 When stdin is not a TTY, the non-interactive fast path activates automatically — no flags needed in most CI environments.
 

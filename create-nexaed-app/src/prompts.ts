@@ -21,6 +21,7 @@ export interface ScaffoldOptions {
   emailTier?: EmailTier;
   emailDomain?: string;
   apiKey: string;
+  git: boolean;
 }
 
 export interface Prefill {
@@ -30,6 +31,7 @@ export interface Prefill {
   emailTier?: string;
   emailDomain?: string;
   apiKey?: string;
+  git?: boolean;
 }
 
 const VALID_AUTH = new Set<string>(["workos", "clerk", "nextauth", "none"]);
@@ -93,6 +95,7 @@ function buildFromPrefill(nameArg: string, prefill: Prefill): ScaffoldOptions {
     emailTier,
     emailDomain,
     apiKey: prefill.apiKey ?? "",
+    git: prefill.git !== false,
   };
 }
 
@@ -223,6 +226,20 @@ export async function runPrompts(
     uiLibrary = ui as UiLibrary;
   }
 
+  // ── Git initialization ────────────────────────────────────────────────────────
+  let git: boolean;
+  if (prefill.git !== undefined) {
+    git = prefill.git;
+    p.log.step(`Git: ${git ? "yes" : "no"}`);
+  } else {
+    const gitAnswer = await p.confirm({
+      message: "Initialize a git repository?",
+      initialValue: true,
+    });
+    if (p.isCancel(gitAnswer)) cancel();
+    git = gitAnswer as boolean;
+  }
+
   // ── Email provisioning config ─────────────────────────────────────────────────
   let emailTier: EmailTier | undefined;
   let emailDomain: string | undefined;
@@ -307,6 +324,7 @@ export async function runPrompts(
     emailTier,
     emailDomain,
     apiKey,
+    git,
   };
 }
 

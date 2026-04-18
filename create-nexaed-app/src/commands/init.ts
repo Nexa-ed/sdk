@@ -36,6 +36,7 @@ export async function runInit(args: ParsedArgs): Promise<void> {
     emailTier: args.emailTier,
     emailDomain: args.emailDomain,
     apiKey: args.apiKey,
+    git: args.git,
   });
 
   const pm = args.pm ?? detectPackageManager();
@@ -58,6 +59,32 @@ export async function runInit(args: ParsedArgs): Promise<void> {
     spinner.stop("Failed.");
     console.error(err.message ?? String(err));
     process.exit(1);
+  }
+
+  if (opts.git) {
+    const gitEnv = {
+      ...process.env,
+      GIT_AUTHOR_NAME: "create-nexaed-app",
+      GIT_AUTHOR_EMAIL: "scaffold@nexa-ed.com",
+      GIT_COMMITTER_NAME: "create-nexaed-app",
+      GIT_COMMITTER_EMAIL: "scaffold@nexa-ed.com",
+    };
+    const initResult = spawnSync("git", ["init"], { cwd: opts.projectDir, stdio: "ignore" });
+    if (initResult.error || initResult.status !== 0) {
+      p.log.warn("Git not found — skipping repository initialisation. Install git and run `git init` manually.");
+    } else {
+      spawnSync("git", ["add", "-A"], { cwd: opts.projectDir, stdio: "ignore" });
+      const commitResult = spawnSync(
+        "git",
+        ["commit", "-m", "Initial commit (create-nexaed-app)"],
+        { cwd: opts.projectDir, stdio: "ignore", env: gitEnv },
+      );
+      if (commitResult.status !== 0) {
+        p.log.warn("Git repository initialised but initial commit failed. Run `git commit` manually.");
+      } else {
+        p.log.success("Git repository initialised.");
+      }
+    }
   }
 
   if (!args.noInstall) {

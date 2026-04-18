@@ -1,0 +1,143 @@
+---
+title: v0.3.0-beta.0
+description: WorkOS middleware fix, git repository opt-in, and Nexium Labs attribution in generated apps.
+---
+
+**Released:** 2026-04-18 — **Beta**
+
+This release is `create-nexaed-app`-only. All other SDK packages (`@nexa-ed/sdk`, `@nexa-ed/next`, `@nexa-ed/react`, `@nexa-ed/convex`, `@nexa-ed/node`) remain at `0.2.0-beta.4` — no changes were made to them.
+
+---
+
+## Bug Fixes
+
+### WorkOS — generated `middleware.ts` was missing `redirectUri`
+
+**Affected:** every app scaffolded with `--auth workos`
+
+The `authkitMiddleware` call in the generated `middleware.ts` did not include a `redirectUri`, so WorkOS AuthKit had no callback URL to redirect to after authentication. The symptom was a broken redirect loop or a blank page on sign-in — Clerk-based apps were unaffected.
+
+**Before:**
+
+```ts title="middleware.ts (broken)"
+import { authkitMiddleware } from "@workos-inc/authkit-nextjs";
+
+export default authkitMiddleware({
+  middlewareAuth: {
+    enabled: true,
+    unauthenticatedPaths: ["/", "/api/nexa/(.*)"],
+  },
+});
+```
+
+**After:**
+
+```ts title="middleware.ts (fixed)"
+import { authkitMiddleware } from "@workos-inc/authkit-nextjs";
+
+export default authkitMiddleware({
+  redirectUri: process.env.WORKOS_REDIRECT_URI,
+  middlewareAuth: {
+    enabled: true,
+    unauthenticatedPaths: ["/", "/api/nexa/(.*)"],
+  },
+});
+```
+
+`WORKOS_REDIRECT_URI` is already written into the generated `.env.local` as `http://localhost:3000/callback` — no extra setup needed. Update it to your production domain before deploying.
+
+**If you scaffolded a WorkOS app on an earlier version:** add the `redirectUri` line manually to your `middleware.ts`.
+
+---
+
+## What's New
+
+### Git repository initialisation
+
+The scaffolder now asks whether you want to initialise a git repository:
+
+```
+✔ Initialize a git repository? › Yes
+```
+
+When enabled (the default), it runs after files are written and before dependencies install:
+
+```
+git init
+git add -A
+git commit -m "Initial commit (create-nexaed-app)"
+```
+
+You land in a clean working tree, ready to start committing.
+
+**Opt out interactively** — select "No" at the prompt.
+
+**Opt out in CI / non-interactive mode:**
+
+```bash
+npx create-nexaed-app my-school --auth workos --no-git
+```
+
+**Force it on in CI:**
+
+```bash
+npx create-nexaed-app my-school --auth workos --git
+```
+
+When `--git` / `--no-git` is not passed and stdin is not a TTY, git initialisation defaults to **on**.
+
+---
+
+### Nexium Labs attribution in the generated landing page
+
+The footer of the generated `app/page.tsx` now includes a copyright line and a tasteful credit linking back to both Nexa Ed and Nexium Labs:
+
+```tsx
+<footer>
+  © {year} {ProjectName}
+  · Built with Nexa Ed — a product by Nexium Labs
+</footer>
+```
+
+- **Nexa Ed** links to `https://nexa-ed.com` and is highlighted in the Nexa teal colour
+- **Nexium Labs** links to `https://nexiumlabs.dev` in the same muted footer style — visible on hover
+- The copyright year is stamped at scaffold time
+
+This is generated content only — feel free to edit or remove it from your own app.
+
+---
+
+## Package Versions
+
+| Package | Version |
+|---------|---------|
+| `create-nexaed-app` | `0.3.0-beta.0` |
+| `@nexa-ed/sdk` | `0.2.0-beta.4` _(unchanged)_ |
+| `@nexa-ed/react` | `0.2.0-beta.4` _(unchanged)_ |
+| `@nexa-ed/next` | `0.2.0-beta.4` _(unchanged)_ |
+| `@nexa-ed/convex` | `0.2.0-beta.4` _(unchanged)_ |
+| `@nexa-ed/node` | `0.2.0-beta.4` _(unchanged)_ |
+
+---
+
+## Upgrading
+
+No changes to installed SDK packages — only the CLI scaffolder changed. Re-run the CLI to scaffold new apps with the fixes applied.
+
+**If you have an existing WorkOS app** scaffolded before this release, apply the middleware fix manually:
+
+```ts title="middleware.ts"
+export default authkitMiddleware({
+  redirectUri: process.env.WORKOS_REDIRECT_URI, // ← add this line
+  middlewareAuth: {
+    enabled: true,
+    unauthenticatedPaths: ["/", "/api/nexa/(.*)"],
+  },
+});
+```
+
+And add to `.env.local`:
+
+```bash
+WORKOS_REDIRECT_URI=http://localhost:3000/callback
+```
