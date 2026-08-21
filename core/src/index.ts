@@ -35,6 +35,9 @@ export type {
   PaymentStatus,
   PaymentTransaction,
   PaymentStatsResponse,
+  BankTransferIntentOptions,
+  BankTransferIntentResult,
+  ConfirmBankTransferSentResult,
 
   // Tenant services
   TenantService,

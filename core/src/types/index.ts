@@ -250,6 +250,44 @@ export interface PaymentSyncResult {
   payload?: PaymentTransaction & Record<string, unknown>;
 }
 
+export interface BankTransferIntentOptions {
+  /** Student ID / payer reference this transfer is for */
+  referenceId: string;
+  /** Amount expected, in the smallest currency unit (e.g. kobo for NGN) */
+  expectedAmount: number;
+  /** Human-readable description (e.g. "Term 2 tuition") */
+  description?: string;
+  customerEmail?: string;
+  /** Defaults to 72 hours */
+  expiresInHours?: number;
+}
+
+export interface BankTransferIntentResult {
+  success: boolean;
+  intentId: string;
+  expiresAt: number;
+  /**
+   * The exact amount to show the payer — may differ from the requested
+   * expectedAmount by a few kobo. Nexa nudges amounts that would otherwise
+   * collide with another pending intent for the same tenant (e.g. a flat fee
+   * shared by many students) so bank-transfer matching can tell payers apart
+   * on their very first payment. Always display this value, not the amount
+   * you requested.
+   */
+  expectedAmount: number;
+  dedicatedAccount: {
+    accountNumber: string;
+    accountName: string;
+    bankName: string;
+  };
+}
+
+export interface ConfirmBankTransferSentResult {
+  success: boolean;
+  matched: boolean;
+  transaction?: PaymentTransaction & Record<string, unknown>;
+}
+
 export interface PaymentStatsResponse {
   totalRevenue: number;
   successfulCount: number;

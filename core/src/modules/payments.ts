@@ -8,6 +8,9 @@ import type {
   PaymentSyncResult,
   PaymentStatsResponse,
   PaymentTransaction,
+  BankTransferIntentOptions,
+  BankTransferIntentResult,
+  ConfirmBankTransferSentResult,
 } from "../types";
 
 export class PaymentsModule {
@@ -111,5 +114,48 @@ export class PaymentsModule {
    */
   async getStats(): Promise<PaymentStatsResponse> {
     return nexaFetch(this.config, "/api/payments/stats");
+  }
+
+  /**
+   * Declare an intent to pay a fee by bank transfer, before the payer
+   * actually transfers. Returns the tenant's dedicated bank-transfer account
+   * details — no code to relay to the payer, attribution happens
+   * automatically on Nexa's side once the transfer arrives.
+   *
+   * @example
+   * const { expectedAmount, dedicatedAccount } = await nexa.payments.createBankTransferIntent({
+   *   referenceId: "stu_123",
+   *   expectedAmount: 50_000_00,
+   *   description: "Term 2 tuition",
+   * });
+   * // Always show `expectedAmount` to the payer, not the amount you
+   * // requested — Nexa may nudge it by a few kobo so payers with an
+   * // identical fee (e.g. flat tuition) can be told apart on their first
+   * // payment instead of only after a repeat transfer.
+   */
+  async createBankTransferIntent(
+    options: BankTransferIntentOptions,
+  ): Promise<BankTransferIntentResult> {
+    return nexaFetch<BankTransferIntentResult>(
+      this.config,
+      "/api/payments/dva/intent",
+      { method: "POST", body: options },
+    );
+  }
+
+  /**
+   * Payer-facing "I've sent it" — triggers an immediate check against
+   * Paystack instead of waiting for the next reconciliation pass, so the UI
+   * can show instant feedback.
+   *
+   * @example
+   * const { matched, transaction } = await nexa.payments.confirmBankTransferSent(intentId);
+   */
+  async confirmBankTransferSent(intentId: string): Promise<ConfirmBankTransferSentResult> {
+    return nexaFetch<ConfirmBankTransferSentResult>(
+      this.config,
+      "/api/payments/dva/confirm-sent",
+      { method: "POST", body: { intentId } },
+    );
   }
 }
