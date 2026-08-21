@@ -12,6 +12,7 @@
     "nexaed-docs": "0.1.0"
   },
   "changesets": [
+    "bank-transfer-intents",
     "blue-wings-clean",
     "cli-v024-patch",
     "cute-peaches-create",

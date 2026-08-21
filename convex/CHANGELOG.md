@@ -1,5 +1,12 @@
 # @nexa-ed/convex
 
+## 0.2.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [1e9350a]
+  - @nexa-ed/sdk@0.2.0-beta.5
+
 ## 0.2.0-beta.4
 
 ### Patch Changes
