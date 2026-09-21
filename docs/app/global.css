@@ -69,3 +69,46 @@
     @apply bg-fd-background text-fd-foreground;
   }
 }
+
+/*
+ * ─── Sidebar / content layout fix ───────────────────────────────────────────
+ *
+ * Problem: fumadocs' flex row leaves the sidebar without a hard flex-basis, so
+ * both the sidebar (basis:auto/268px) and #nd-page (basis:100%) fight over
+ * space and shrink proportionally. On many laptop viewports the sidebar ends
+ * up narrower than its inner div, which then overflows at z-30 and covers the
+ * first ~200 px of the content — exactly the "sidebar above content" bug.
+ *
+ * Fix:
+ *   1. Pin the sidebar to exactly --fd-sidebar-width with flex-shrink:0 so it
+ *      never loses its allocated 268 px.
+ *   2. Give #nd-page flex:1 1 0 so it cleanly takes all remaining space.
+ *   3. Guarantee the sidebar is sticky (not fixed) at md+.
+ *   4. Disable the collapsed-hover z-50 overlay (pointer-events trick) while
+ *      keeping the collapse-toggle button clickable.
+ */
+@media (min-width: 768px) {
+  /* 1 + 3 — sidebar: fixed width, sticky, never shrinks */
+  #nd-sidebar {
+    position: sticky !important;
+    flex: 0 0 var(--fd-sidebar-width, 268px) !important;
+    width: var(--fd-sidebar-width, 268px) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  /* 2 — content: take every pixel the sidebar leaves */
+  #nd-page {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    overflow-x: clip !important;
+  }
+
+  /* 4 — prevent collapsed-sidebar hover from flying out as z-50 overlay */
+  #nd-sidebar[data-collapsed="true"] {
+    pointer-events: none;
+  }
+  #nd-sidebar[data-collapsed="true"] button[data-collapsed] {
+    pointer-events: auto;
+  }
+}

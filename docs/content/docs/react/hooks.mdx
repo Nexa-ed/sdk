@@ -1,6 +1,6 @@
 ---
 title: Hooks
-description: React hooks for file progress streaming and document data fetching.
+description: React hooks for file progress, document data fetching, and OCR records mutations.
 ---
 
 ## useFileProgress
@@ -55,6 +55,148 @@ function MyComponent() {
 ```
 
 This hook is used internally by all components — you rarely need it directly.
+
+---
+
+## OCR records hooks
+
+All hooks below are exported from `@nexa-ed/react` and are `"use client"` — import them only in client components. They wire optimistic cache updates into the TanStack Query cache keyed by `getFileStudentRecords`.
+
+<Callout type="info">
+  The cache key is always built from `orpc.documents.getFileStudentRecords.queryOptions({ input: { fileId, page, limit, hasWarnings } }).queryKey`. Pass **identical values** to the hooks and to your `useQuery` call — they must target the same cache entry for optimistic updates to work.
+</Callout>
+
+### Optimistic update pattern
+
+All mutating hooks follow the same three-step pattern internally:
+
+1. **Cancel in-flight queries** for the affected cache key — prevents a stale refetch from overwriting the optimistic state.
+2. **Patch the cache immediately** — the UI updates without waiting for the server.
+3. **Roll back on error** — the previous data (saved in `onMutate`) is restored.
+
+---
+
+<Screenshot caption="Optimistic update flow — cell edited, row immediately reflects new value before server responds, then confirmed or rolled back" />
+
+### `useColumnSort`
+
+Client-side column sort state for `RecordDataGrid`. Cycles through `null → "asc" → "desc" → null` on each `toggleSort(col)` call. Numeric columns (where > 80% of values parse as numbers) use numeric comparison; all others use `localeCompare`. Null/empty values always sort last.
+
+```ts
+import { useColumnSort } from "@nexa-ed/react";
+
+const { sortCol, sortDir, toggleSort, sortedRecords } = useColumnSort();
+const displayed = sortedRecords(rawRecords); // sorted copy, original untouched
+
+<RecordDataGrid
+  records={displayed}
+  sortCol={sortCol}
+  sortDir={sortDir}
+  onToggleSort={toggleSort}
+/>
+```
+
+<Screenshot caption="Column header with sort arrow active — numeric column sorted as numbers, nulls last" />
+
+---
+
+### `useUpdateRecordInList`
+
+Optimistic mutation for updating a single record inside the paginated list cache. Rolls back on error.
+
+```ts
+import { useUpdateRecordInList } from "@nexa-ed/react";
+
+const updateMutation = useUpdateRecordInList(fileId, page, limit, hasWarnings);
+await updateMutation.mutateAsync({ recordId, recordData });
+```
+
+---
+
+### `useAddRowsToList`
+
+Optimistically appends new rows to the paginated cache, then creates them on the server. Returns a `handleAddRows` function rather than a raw `mutateAsync` — it accepts the **target page number** (not necessarily the current page) so rows land on the correct page in the cache.
+
+```ts
+import { useAddRowsToList } from "@nexa-ed/react";
+
+const { handleAddRows, isPending, isError } = useAddRowsToList(fileId, page, limit, hasWarnings);
+await handleAddRows(targetPageNumber, [{ name: "Alice", score: "92" }]);
+```
+
+---
+
+### `useDeleteRecordFromList`
+
+Optimistic delete from the paginated cache. Updates the `total` count in the pagination metadata immediately.
+
+```ts
+import { useDeleteRecordFromList } from "@nexa-ed/react";
+
+const deleteMutation = useDeleteRecordFromList(fileId, page, limit, hasWarnings);
+await deleteMutation.mutateAsync({ recordId });
+```
+
+---
+
+### `useSerialRenumber`
+
+Batch-renumbers a numeric column across all visible records on the current page. Optimistically patches the cache, sends server updates in chunks of 500, rolls back on error.
+
+**Unusual signature:** requires an external `QueryClient` and `batchMutateAsync` so it can share the parent component's mutation instance rather than creating its own.
+
+```ts
+import { useSerialRenumber } from "@nexa-ed/react";
+import { useBatchUpdateStudentRecords } from "@nexa-ed/react";
+import { useQueryClient } from "@tanstack/react-query";
+
+const queryClient = useQueryClient();
+const batchMutation = useBatchUpdateStudentRecords();
+
+const { handleRenumber } = useSerialRenumber(
+  fileId,
+  page,
+  limit,
+  hasWarnings,
+  queryClient,
+  batchMutation.mutateAsync
+);
+
+// Assigns "1", "2", "3"… to the "S/N" column in display order
+await handleRenumber(records, "S/N", 1);
+```
+
+To continue a multi-page sequence, track `lastSerialNumber` from `onRenumberComplete` and pass `lastSerialNumber + 1` as `startFrom` on the next page.
+
+<Screenshot caption="Renumber action bar open — column selected, start number input, row count shown, Apply button" />
+
+---
+
+### `useUpdatePageRecord`
+
+Optimistic update for a record inside the `getPageRecordsWithRefinement` cache — used by `PageDetailPanel`, not the main paginated list.
+
+```ts
+import { useUpdatePageRecord } from "@nexa-ed/react";
+
+const updateMutation = useUpdatePageRecord(fileId, pageNumber);
+await updateMutation.mutateAsync({ recordId, recordData });
+```
+
+---
+
+### `useDeletePageRecord`
+
+Optimistic delete from the `getPageRecordsWithRefinement` cache.
+
+```ts
+import { useDeletePageRecord } from "@nexa-ed/react";
+
+const deleteMutation = useDeletePageRecord(fileId, pageNumber);
+await deleteMutation.mutateAsync({ recordId });
+```
+
+---
 
 ## useUploadFile
 

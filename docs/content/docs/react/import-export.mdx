@@ -1,0 +1,165 @@
+---
+title: Export & Import Sync
+description: Download records as XLSX, CSV, or JSON and sync edited files back with a full diff preview — no deletions, nothing lost.
+---
+
+The export/import round-trip lets teachers edit extracted records in Excel and push changes back into the database with a single file upload. The diff engine classifies every row before writing anything, so teachers can preview exactly what will change.
+
+All utilities are exported from `@nexa-ed/react` and are **browser-only** — do not call them in a server context.
+
+<Screenshot size="wide" caption="Export dropdown open — XLSX, CSV, and JSON options shown, with active filter state reflected in the download" src="https://7o8ex6gsi1.ufs.sh/f/EyRmrLuwyQI1h60nZl8RquzhsnQjTGkYF6JwraOSEyf1gI7v"/>
+
+```ts
+import {
+  downloadAsXlsx,
+  downloadAsCsv,
+  downloadAsJson,
+  buildExportHeaders,
+  parseImportFile,
+  buildImportDiff,
+} from "@nexa-ed/react";
+import type { ParsedImportRow, ImportDiff } from "@nexa-ed/react";
+```
+
+---
+
+## Export
+
+### `buildExportHeaders(rows, columnOrder?)`
+
+Returns the final ordered column header array. `__record_id` is always first (required for round-trip sync), followed by `columnOrder` columns in order, then any remaining keys.
+
+```ts
+const headers = buildExportHeaders(rows, ["name", "score", "grade"]);
+// → ["__record_id", "name", "score", "grade", ...rest]
+```
+
+### `downloadAsXlsx(rows, fileName, columnOrder?)`
+
+Triggers a browser download as an `.xlsx` file.
+
+- The `__record_id` column is written as column A but **hidden** (width 0) — teachers see a clean sheet while the ID is preserved for sync.
+- The first row is frozen.
+- Auto-widths are applied to all visible columns.
+
+```ts
+const rows = records.map((r) => ({ __record_id: r.id, ...r.recordData }));
+downloadAsXlsx(rows, `records-${fileId.slice(0, 8)}`, columnOrder);
+```
+
+### `downloadAsCsv(rows, fileName, columnOrder?)`
+
+Same column ordering as XLSX. `__record_id` appears as the first visible column in CSV (it cannot be hidden the way it is in XLSX).
+
+```ts
+downloadAsCsv(rows, `records-${fileId.slice(0, 8)}`, columnOrder);
+```
+
+### `downloadAsJson(rows, fileName)`
+
+Pretty-printed JSON array. `__record_id` is included in every object so the file can be used for round-trip sync.
+
+```ts
+downloadAsJson(rows, `records-${fileId.slice(0, 8)}`);
+```
+
+### The `__record_id` field
+
+Every exported row contains a `__record_id` field — the database ID of the record. It is the key that makes round-trip sync possible. When the file is re-imported, each row is matched back to the original record using this ID.
+
+<Screenshot caption="Downloaded XLSX open in Excel — column A (hidden __record_id) not visible, first row frozen, auto-widths applied" src="https://7o8ex6gsi1.ufs.sh/f/EyRmrLuwyQI1I7lhWjcVfBapxXgFZNoHM9yK5wienb4k6EzW"/>
+
+<Callout type="warn">
+  Never delete or modify the `__record_id` column. In XLSX it is hidden (column A, width 0) — leave it alone. In CSV and JSON it is visible.
+</Callout>
+
+---
+
+## Import / sync
+
+### `parseImportFile(file): Promise<ParsedImportRow[]>`
+
+Accepts a `File` object from an `<input type="file">` or drag-and-drop. Handles `.xlsx`, `.csv`, and `.json`. All values are coerced to `string | null`.
+
+Rows **without** a `__record_id` value — for example, rows the teacher added at the bottom of the Excel file — are kept in the output. `buildImportDiff` will classify these as new rows to create.
+
+```ts
+const parsed = await parseImportFile(uploadedFile);
+// [
+//   { __record_id: "rec_abc", name: "Alice", score: "92" },  ← update candidate
+//   { name: "Bob", score: "88" }                              ← create candidate (no ID)
+// ]
+```
+
+<Screenshot caption="parseImportFile result — parsed rows array logged in DevTools, showing __record_id on matched rows and null on new rows" />
+
+### `buildImportDiff(parsed, currentRecords): ImportDiff`
+
+Compares parsed rows against a `Map<recordId, recordData>` snapshot of the current records and returns a diff object safe to show as a preview before applying anything.
+
+**Merge strategy for updates:** `{ ...existing, ...imported }` — columns absent from the uploaded file are preserved from the existing record. Nothing is erased by omission.
+
+```ts
+const currentMap = new Map(records.map((r) => [r.id, r.recordData ?? {}]));
+const diff = buildImportDiff(parsed, currentMap);
+
+// diff.toUpdate  → [{ id, recordData }]  send to batchUpdateStudentRecords
+// diff.toCreate  → [recordData]           send to batchCreateStudentRecordsFromImport
+// diff.unchanged → number
+// diff.skipped   → number  (IDs not found in this document — safely ignore)
+```
+
+### `ImportDiff` type
+
+| Field | Type | Description |
+|---|---|---|
+| `toUpdate` | `Array<{ id, recordData }>` | Rows with a matching `__record_id` where at least one value changed. |
+| `toCreate` | `Array<recordData>` | Rows with no `__record_id` — new rows the teacher added. |
+| `unchanged` | `number` | Rows that matched but had no changed values. No DB write needed. |
+| `skipped` | `number` | Rows with a `__record_id` that doesn't exist in this document (e.g. exported from a different file). |
+
+<Screenshot caption="Sync from file dialog — file chip selected, diff preview showing new rows (green), updates (blue), unchanged (gray), skipped (amber)" />
+
+---
+
+## Full round-trip example
+
+```ts
+// 1. Export
+const exportRows = records.map((r) => ({ __record_id: r.id, ...r.recordData }));
+downloadAsXlsx(exportRows, "semester-results", columnOrder);
+
+// 2. Teacher edits in Excel — may change cell values, add new rows at the bottom
+//    New rows have a blank __record_id cell.
+
+// 3. Teacher re-uploads the edited file.
+
+// 4. Parse
+const parsed = await parseImportFile(uploadedFile);
+
+// 5. Diff — show preview before writing anything
+const currentMap = new Map(records.map((r) => [r.id, r.recordData ?? {}]));
+const diff = buildImportDiff(parsed, currentMap);
+
+console.log(`${diff.toUpdate.length} will be updated`);
+console.log(`${diff.toCreate.length} new rows will be created`);
+console.log(`${diff.unchanged} unchanged`);
+console.log(`${diff.skipped} from another document`);
+
+// 6. Apply updates
+await batchUpdateMutation.mutateAsync({
+  updates: diff.toUpdate.map(({ id, recordData }) => ({ recordId: id, recordData })),
+});
+
+// 7. Apply creates
+if (diff.toCreate.length > 0) {
+  await batchCreateMutation.mutateAsync({ fileId, rows: diff.toCreate });
+}
+```
+
+<Screenshot size="wide" caption="Table after applying sync — green NEW badges on created rows, blue-tinted cells on updated rows, unchanged rows unaffected" />
+
+<Callout type="info">
+  `StudentRecordsTable` handles the entire round-trip automatically — the **Sync from file** button
+  in its toolbar runs parse → diff → preview → apply with no extra code needed.
+</Callout>

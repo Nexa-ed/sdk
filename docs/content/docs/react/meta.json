@@ -1,4 +1,4 @@
 {
   "title": "React",
-  "pages": ["components", "hooks"]
+  "pages": ["components", "ocr-records", "import-export", "hooks"]
 }

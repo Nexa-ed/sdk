@@ -1,0 +1,244 @@
+---
+title: OCR Records UI
+description: Full-featured data grid, inline editing, export/import sync, and roster matching for extracted student records.
+---
+
+The `@nexa-ed/react` package ships two ways to embed the records UI: a fully self-contained drop-in (`StudentRecordsTable`) and a lower-level composable grid (`RecordDataGrid`) for custom data layers. Both live under the `react` section of this SDK.
+
+<Screenshot size="wide" caption="Full records table — overview of the complete UI with all panels, toolbar, and roster column visible" src="https://7o8ex6gsi1.ufs.sh/f/EyRmrLuwyQI1Lrb9tWHWhTcVUOYAdwnmoqgv38pBDraJE2u0" />
+
+---
+
+## StudentRecordsTable
+
+The highest-level component. **Pass only a `fileId` — everything else is handled internally**: paginated fetching, four filter toggles, inline cell editing, column sort, drag-and-drop column reorder, multi-row selection, bulk operations, XLSX/CSV/JSON export, import sync with diff preview, and a full roster matching column.
+
+```tsx
+import { StudentRecordsTable } from "@nexa-ed/react";
+
+export default function RecordsPage({ fileId }: { fileId: string }) {
+  return <StudentRecordsTable fileId={fileId} />;
+}
+```
+
+<Screenshot caption="StudentRecordsTable rendered — showing the filter toggles, toolbar, and paginated records" src="https://7o8ex6gsi1.ufs.sh/f/EyRmrLuwyQI1HZWt62KTGQwFxMBoDOys7PdiAaIhvVNrJ04R"/>
+
+### Built-in features
+
+| Feature | Details |
+|---|---|
+| Filters | Students only · Partial matches · Hide fully missing · Warnings only |
+| Inline editing | Double-click or `Enter` to open a cell; auto-saves on blur / `Tab` / `Enter` / arrow keys |
+| Column sort | Click header → asc → desc → off. Numeric columns compared as numbers |
+| Column reorder | Drag headers; **Reset columns** restores server order |
+| Row selection | Checkbox, `Shift`+click range, `Ctrl`+click anchor range |
+| Bulk operations | Mass-update a column across selected rows; delete selected rows |
+| Add rows | Inline form per page; rows appended after the last existing record |
+| Renumber | Re-sequences a numeric column from a chosen start number |
+| Export | XLSX (hidden `__record_id`), CSV, JSON — respects active filters and column order |
+| Sync from file | Upload → diff preview (new / updated / unchanged / skipped) → apply |
+| NEW badge | Rows created via sync show a green **NEW** pill in the `#` column |
+| Roster column | `RosterCell` per row; manual reassignment popover; **Re-run matching** button |
+
+---
+
+## RecordDataGrid
+
+Lower-level grid. All features are **opt-in via props** — omit a prop group to disable it entirely. Use this when you control your own data-fetching layer.
+
+```tsx
+import { RecordDataGrid } from "@nexa-ed/react";
+import type { RecordRow, RosterEntry } from "@nexa-ed/react";
+```
+
+### Props reference
+
+| Prop | Type | Description |
+|---|---|---|
+| `records` | `RecordRow[]` | **Required.** Rows to display. |
+| `onSave` | `(id, data) => Promise<void>` | Enables inline editing. Called on cell commit. |
+| `saving` | `string \| null` | ID of the row currently saving — dims that row. |
+| `diffBase` | `Record<id, recordData>` | Pre-edit snapshot. Changed cells render with a blue tint. |
+| `label` | `string` | Optional heading above the grid. |
+| `columnOrder` | `string[]` | Controls the display order of data columns. |
+| `onAddRows` | `(pageNumber, rows) => Promise<void>` | Enables the **+ Add rows** button in the footer. |
+| `onMassUpdate` | `(col, value) => Promise<void>` | Enables the column-level mass-update action bar. |
+| `onDeleteRow` | `(id) => Promise<void>` | Enables the per-row delete icon. |
+| `onDeleteRows` | `(ids[]) => Promise<void>` | Enables **Delete selected** in the row action bar. |
+| `onMassUpdateRows` | `(ids[], col, value) => Promise<void>` | Enables **Set value in column** in the row action bar. |
+| `sortCol` | `string \| null` | Currently sorted column. |
+| `sortDir` | `"asc" \| "desc" \| null` | Sort direction. |
+| `onToggleSort` | `(col) => void` | Called when a column header is clicked. |
+| `onRenumber` | `(records, col, start) => Promise<void>` | Enables the Renumber action bar. |
+| `lastSerialNumber` | `number \| null` | Last serial from the previous page — continue a multi-page sequence. |
+| `onRenumberComplete` | `(lastSerial) => void` | Called with the last serial after renumber finishes. |
+| `rosterEntries` | `Map<string, RosterEntry>` | Enables the **Roster** column. |
+| `onAssignRoster` | `(recordId, rosterId \| null) => void` | Called when a manual assignment is made or cleared. |
+| `onRerunMatching` | `() => void` | Shows the **Re-run matching** button in the footer. |
+| `onColumnReorder` | `(newOrder: string[]) => void` | Enables column drag-and-drop. |
+| `onResetColumnOrder` | `() => void` | Called when **Reset columns** is clicked. |
+| `newRecordIds` | `Set<string>` | IDs of rows just created via import sync — shown with a green **NEW** badge. |
+
+<Screenshot caption="RecordDataGrid with inline cell editing active — text input open, row dimmed while saving" src="https://7o8ex6gsi1.ufs.sh/f/EyRmrLuwyQI1wCAc2pYWTSpBtdyrGCseaQRXMbg9lqImjUiY"/>
+
+### Highlighting changed cells with `diffBase`
+
+Capture a snapshot of `recordData` before a bulk operation and pass it as `diffBase`. Any cell that now differs from the snapshot renders with a blue tint — useful for post-import review.
+
+```ts
+const base: Record<string, Record<string, string | null>> = {};
+records.forEach((r) => { base[r.id] = { ...r.recordData }; });
+
+// …apply updates…
+
+<RecordDataGrid records={updatedRecords} diffBase={base} />
+```
+
+### Building the `rosterEntries` map
+
+```ts
+const rosterMap = new Map<string, RosterEntry>(
+  rosterItems.map((e) => [e.id, {
+    id: e.id,
+    name: e.name,
+    externalId: e.externalId,   // registration / admission number
+    classGroup: e.classGroup,   // e.g. "SS3A"
+    metadata: e.metadata,       // extra import columns shown as gray tag pills
+  }])
+);
+
+<RecordDataGrid rosterEntries={rosterMap} onAssignRoster={handleAssign} />
+```
+
+<Screenshot caption="diffBase in action — blue-tinted cells show values changed since the snapshot was taken" />
+
+---
+
+## RosterCell
+
+Badge + search popover for linking a single record row to a roster entry. Used inside `RecordDataGrid` but composable anywhere.
+
+```tsx
+import { RosterCell } from "@nexa-ed/react";
+
+<RosterCell
+  record={record}
+  rosterEntries={rosterMap}
+  onAssignRoster={(recordId, rosterId) => {
+    // rosterId is null when "Clear match" is chosen
+  }}
+  disabled={isSaving}
+/>
+```
+
+**Badge colours**
+
+| Colour | `rosterMatchStatus` | Meaning |
+|---|---|---|
+| Green | `"auto"` | Linked by the trigram name-similarity algorithm |
+| Amber | `"manual"` | Manually assigned via the popover |
+| None | `null` / `"unmatched"` | Not linked |
+
+The popover search filters across `name`, `externalId`, `classGroup`, and all `metadata` values. Metadata key/value pairs render as small gray tag pills below each result.
+
+<Screenshot caption="RosterCell — green auto-matched badge (left), amber manual badge (centre), and the search popover with metadata tag pills (right)" size="wide" src="https://7o8ex6gsi1.ufs.sh/f/EyRmrLuwyQI1FRPm6BNUOx6MXyaufVsZjIdQYDzwebv2ntgW"/>
+
+---
+
+## Custom records page
+
+If `StudentRecordsTable` is too opinionated and you need full control over data fetching:
+
+```tsx
+"use client";
+
+import { useState, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { orpc } from "@repo/api/client";
+import { useBatchUpdateStudentRecords } from "@nexa-ed/react";
+import {
+  RecordDataGrid,
+  useColumnSort,
+  useUpdateRecordInList,
+  useAddRowsToList,
+  useDeleteRecordFromList,
+  useSerialRenumber,
+} from "@nexa-ed/react";
+import type { RecordRow } from "@nexa-ed/react";
+
+export function CustomRecordsPage({ fileId }: { fileId: string }) {
+  const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const limit = 50;
+
+  const { data, isLoading } = useQuery(
+    orpc.documents.getFileStudentRecords.queryOptions({
+      input: { fileId, page, limit },
+    })
+  );
+  const records: RecordRow[] = (data?.items ?? []) as RecordRow[];
+
+  const { sortCol, sortDir, toggleSort, sortedRecords } = useColumnSort();
+  const displayed = useMemo(() => sortedRecords(records), [sortedRecords, records]);
+
+  const updateMutation  = useUpdateRecordInList(fileId, page, limit);
+  const addRowsMutation = useAddRowsToList(fileId, page, limit);
+  const deleteMutation  = useDeleteRecordFromList(fileId, page, limit);
+  const batchMutation   = useBatchUpdateStudentRecords();
+  const { handleRenumber } = useSerialRenumber(
+    fileId, page, limit, undefined, queryClient, batchMutation.mutateAsync
+  );
+
+  if (isLoading) return <p>Loading…</p>;
+
+  return (
+    <RecordDataGrid
+      records={displayed}
+      onSave={async (recordId, recordData) => {
+        await updateMutation.mutateAsync({ recordId, recordData });
+      }}
+      saving={updateMutation.isPending ? updateMutation.variables?.recordId : null}
+      onAddRows={addRowsMutation.handleAddRows}
+      onDeleteRow={async (recordId) => {
+        await deleteMutation.mutateAsync({ recordId });
+      }}
+      sortCol={sortCol}
+      sortDir={sortDir}
+      onToggleSort={toggleSort}
+      onRenumber={handleRenumber}
+    />
+  );
+}
+```
+
+---
+
+<Screenshot caption="Custom records page using RecordDataGrid with sort, add rows, and delete wired manually" src="https://7o8ex6gsi1.ufs.sh/f/EyRmrLuwyQI1A7MxovXVBdPoaQvcmkbsDIGpKAZfNEW6l35u"/>
+
+## Types
+
+```ts
+type RecordRow = {
+  id: string;
+  recordData: Record<string, string | null> | null;
+  pageNumber?: number | null;
+  recordNumberForPage?: number | null;
+  warnings?: unknown;
+  rosterId?: string | null;
+  rosterMatchConfidence?: string | null; // decimal string e.g. "0.87"
+  rosterMatchStatus?: "auto" | "manual" | "unmatched" | null;
+};
+
+type RosterEntry = {
+  id: string;
+  name: string;
+  externalId?: string | null;
+  classGroup?: string | null;
+  metadata?: Record<string, string> | null;
+};
+```
+
+<Callout type="info">
+  For a visual walkthrough of every feature with screenshot slots, see the **Records Guide** page
+  in your Nexa Ed dashboard at `/dashboard/records-guide`.
+</Callout>

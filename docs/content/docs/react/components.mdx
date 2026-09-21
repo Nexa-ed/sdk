@@ -94,25 +94,40 @@ import { PipelineTimeline } from "@nexa-ed/react";
 
 ## StudentRecordsTable
 
-Paginated table of student records with sorting and row selection.
+Drop-in, fully self-contained records table. Pass only a `fileId` — fetching, pagination, filters, inline editing, column sort/reorder, bulk operations, export (XLSX / CSV / JSON), import sync with diff preview, and roster matching are all built in.
 
 ```tsx
 import { StudentRecordsTable } from "@nexa-ed/react";
 
-<StudentRecordsTable fileId="file_xyz" userId="user_abc" pageSize={25} />
+<StudentRecordsTable fileId="file_xyz" />
 ```
+
+See [OCR Records UI](/docs/react/ocr-records) for the full feature list, all props, and a custom-page example.
 
 ---
 
 ## RecordDataGrid
 
-Full CRUD data grid: inline editing, bulk delete, row reordering, and CSV export.
+Lower-level records grid. All features opt-in via props — omit a prop group to disable it entirely.
 
 ```tsx
 import { RecordDataGrid } from "@nexa-ed/react";
+import type { RecordRow } from "@nexa-ed/react";
 
-<RecordDataGrid fileId="file_xyz" userId="user_abc" />
+<RecordDataGrid
+  records={records}
+  onSave={handleSave}
+  onAddRows={handleAddRows}
+  onDeleteRow={handleDelete}
+  sortCol={sortCol}
+  sortDir={sortDir}
+  onToggleSort={toggleSort}
+  rosterEntries={rosterMap}
+  onAssignRoster={handleAssign}
+/>
 ```
+
+See [OCR Records UI](/docs/react/ocr-records) for the complete props reference.
 
 ---
 

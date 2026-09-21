@@ -16,6 +16,15 @@ Platform API reference: https://nexa-ed.com/llm.txt
 
 ---
 
+## AI-assisted development
+
+Working with an AI coding agent? Run: npx create-nexaed-app skill
+Installs a Claude Code skill at .claude/skills/nexa-ed-sdk (SKILL.md + reference/) with the
+SDK's real API surface, verified against source — not just these docs. Already included
+automatically in apps scaffolded with create-nexaed-app init. See /docs/getting-started/cli.
+
+---
+
 ## SDK Reference  (@nexa-ed/sdk)
 
 /docs/sdk/documents  — NexaSDK.documents.*: extract(), getStatus(), getProgress(), listHistory(). Async extraction lifecycle, jobId polling, SSE streams.
@@ -38,11 +47,22 @@ Platform API reference: https://nexa-ed.com/llm.txt
 ## React Integration  (@nexa-ed/react)
 
 /docs/react/components  — Pre-built UI components:
-                          <PaymentButton />      — Triggers Paystack checkout, handles redirect.
-                          <DocumentUploader />   — Drag-and-drop file upload with real-time progress bar.
-                          <ReceiptCard />        — Displays a formatted payment receipt.
-                          <ResultsTable />       — Renders extracted student results in a responsive table.
-                          <ServiceStatusBadge /> — Shows enabled/disabled state for a platform service.
+                          <UploadZone />               — Drag-and-drop file upload, wired to nexa.files.submit().
+                          <DocumentSelector />          — Lists a user's uploaded documents with status badges.
+                          <StatusBanner />              — Current processing status for a file.
+                          <PipelineTimeline />          — Step-by-step OCR pipeline visualization.
+                          <StudentRecordsTable />       — Self-contained records table (fetch, edit, export, import — all built in).
+                          <RecordDataGrid />            — Lower-level records grid, all features opt-in via props.
+                          <PageDetailPanel />           — Per-page record review alongside the scanned image.
+                          <StatsPanel />                — Subject pass/fail rates, score averages, grade distribution.
+                          <ResultsViewerSheet />        — Slide-over combining Pipeline/Records/Stats tabs.
+                          <NexaPaymentWidget />         — Standalone Paystack checkout widget with fee calc + polling.
+                          <EnrollmentPaymentFlow />     — 3-step fee breakdown → payment → receipt flow.
+                          <PaymentConfigPanel />        — Admin UI to view/update platform fee configuration.
+                          <PaymentStatusDashboard />    — Transaction list with search, filters, CSV export.
+                          <StudentEmailAccountManager /> — Create/suspend/restore/reset-password for one student email account.
+                          <EmailBulkProvisioningPanel /> — Bulk-provision up to 500 student accounts with live progress.
+                          <ServicesPanel />              — Lists a tenant's enabled platform services with expandable per-service usage.
 
 /docs/react/hooks       — React hooks:
                           useDocumentStatus(jobId)    — Subscribes to SSE progress stream.

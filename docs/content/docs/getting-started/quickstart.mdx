@@ -129,7 +129,8 @@ In the **Nexa dashboard → Webhooks**, register these URLs so Nexa can call bac
 |-------|-----|
 | `file.completed` | `https://your-domain.com/api/nexa/webhook` |
 | `payment.completed` | `https://your-domain.com/api/nexa/payments/forward` |
-| `email.bulk_completed` | `https://your-domain.com/api/nexa/email-provisioning/forward` |
+
+Student email events (`email.created`, `email.status_changed`, `email.bulk_completed`) aren't handled by the catch-all route — see [Webhooks → Email events](/docs/sdk/webhooks#email-events-need-a-custom-route) if you provision student emails.
 
 Use a tool like [ngrok](https://ngrok.com) to expose localhost during development.
 

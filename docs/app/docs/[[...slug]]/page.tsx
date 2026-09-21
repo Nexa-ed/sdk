@@ -8,6 +8,7 @@ import {
 import { notFound } from "next/navigation";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import { Callout } from "@/components/Callout";
+import { Screenshot } from "@/components/Screenshot";
 
 export default async function Page({
   params,
@@ -30,6 +31,7 @@ export default async function Page({
             ...defaultMdxComponents,
             // Available in MDX as <Callout type="warning">...</Callout>
             Callout,
+          Screenshot,
           }}
         />
       </DocsBody>

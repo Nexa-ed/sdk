@@ -160,33 +160,60 @@ type EmailJobStatus = {
 
 ## Webhook types
 
+All variants discriminate on `event`, not `type`.
+
 ```ts
 type WebhookFileCompleteEvent = {
-  type: "file.completed";
+  event: "file.completed";
   fileId: string;
   userId: string;
   tenantId: string;
-  status: "success" | "failed";
-  records?: StudentRecord[];
-  error?: string;
+  timestamp: string;
 };
 
 type WebhookPaymentEvent = {
-  type: "payment.completed";
+  event: "payment.completed";
   reference: string;
   tenantId: string;
+  status: "success" | "pending" | "failed" | "abandoned";
+  amount: number; // smallest currency unit (kobo for NGN)
   customerEmail: string;
-  amount: number;
-  amountPaid: number;
-  status: "success" | "failed";
-  fees: number;
-  platformFee: number;
-  netAmount: number;
-  paidAt: string | null;
-  channel: string;
-  failureReason: string | null;
-  createdAt: string;
-  updatedAt: string;
+  amountPaid?: number;
+  fees?: number;
+  platformFee?: number;
+  netAmount?: number;
+  paidAt?: string;
+  channel?: string;
+  failureReason?: string;
+  createdAt: number;  // Unix ms
+  updatedAt: number;  // Unix ms
+  timestamp?: string; // ISO 8601 — webhook delivery time
+};
+
+/** Fired after a single student email account is provisioned */
+type WebhookEmailCreatedEvent = {
+  event: "email.created";
+  tenantId: string;
+  studentId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  gradeLevel?: string;
+  provider: "nexa" | "stalwart" | "google";
+  providerUserId: string;
+  tier: EmailTier;
+  createdAt: number; // Unix ms
+};
+
+/** Fired when an account is suspended or restored */
+type WebhookEmailStatusChangedEvent = {
+  event: "email.status_changed";
+  tenantId: string;
+  email: string;
+  studentId: string;
+  previousStatus: "active" | "suspended";
+  status: "active" | "suspended";
+  changedAt: number; // Unix ms
 };
 
 /** Fired when a bulk email provisioning job finishes — lean counts only */
@@ -204,8 +231,12 @@ type WebhookEmailBulkCompletedEvent = {
 type WebhookEvent =
   | WebhookFileCompleteEvent
   | WebhookPaymentEvent
+  | WebhookEmailCreatedEvent
+  | WebhookEmailStatusChangedEvent
   | WebhookEmailBulkCompletedEvent;
 ```
+
+`file.completed` and `payment.completed` are auto-verified and dispatched by `createRouteHandler` (to `onFileComplete`/`onPaymentComplete`). The three `email.*` events have no built-in dispatch — verify them yourself with `nexa.webhooks.verify(request)` in a route you write. See [Webhooks](/docs/sdk/webhooks#email-events-need-a-custom-route).
 
 ## Analysis types
 

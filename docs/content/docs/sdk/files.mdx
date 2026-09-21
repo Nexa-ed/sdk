@@ -92,9 +92,10 @@ Use `streamProgress` in a server action or API route to get live events as they 
 
 ```ts
 for await (const event of nexa.files.streamProgress(fileId, userId)) {
-  console.log(event.stage, event.progress); // e.g. "ocr", 42
+  // event.type: "progress" | "complete" | "error" | "ping"
+  console.log(event.fileStatus, event.progressPct); // e.g. "processing", 42
   if (event.type === "complete") {
-    console.log(`${event.records.length} records extracted`);
+    console.log(`${event.recordsExtracted} records extracted`);
   }
 }
 ```

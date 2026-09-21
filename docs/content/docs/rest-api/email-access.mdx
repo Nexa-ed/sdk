@@ -1,0 +1,156 @@
+---
+title: Email Access & Client Setup
+description: How students access their Nexa-provisioned mailbox via webmail or a mail client, including setup steps for Apple Mail, Thunderbird, and Gmail.
+---
+
+Once you provision a student email account the student needs to know how to actually open and use their mailbox. This page covers everything from the zero-install webmail option to step-by-step client configuration — and includes a space for the onboarding video when it is recorded.
+
+---
+
+## Webmail — no setup required
+
+The fastest way for any student to start using their email is the Nexa webmail portal. No app installation or configuration is needed.
+
+| Tier | Webmail URL |
+|------|-------------|
+| Tier 1 — Nexa subdomain | [webmail.nexa-ed.com](https://webmail.nexa-ed.com) |
+| Tier 2 — Custom domain | [webmail.nexa-ed.com](https://webmail.nexa-ed.com) |
+| Tier 3 — Google Workspace | [mail.google.com](https://mail.google.com) |
+
+**Login credentials (Tier 1 & 2)**
+
+- **Username:** full email address (e.g. `amara.obi@loretto.nexa-ed.com`)
+- **Password:** the `temporaryPassword` returned from [Create a student email account](/docs/rest-api/email#create-a-student-email-account)
+
+Recommend students verify they can log in to webmail first — if that works, their credentials are correct and client setup below is optional.
+
+<Callout type="info">
+  The in-app setup guide at `/dashboard/email/setup-guide` links directly to webmail and adjusts its content based on the school's active tier. Share that page (or its QR code) with students as the first step.
+</Callout>
+
+---
+
+## Onboarding video
+
+> **Coming soon** — A walkthrough video showing login, sending mail, and setting up a mail client will be added here once recorded.
+
+{/*
+  VIDEO PLACEHOLDER
+  Replace this block with an embed once the video is available. Example for Loom:
+
+  <iframe
+    src="https://www.loom.com/embed/YOUR_VIDEO_ID"
+    frameBorder="0"
+    allowFullScreen
+    style={{ width: "100%", aspectRatio: "16/9" }}
+  />
+*/}
+
+---
+
+## Server settings (Tier 1 & 2)
+
+Use these when setting up any IMAP/SMTP mail client.
+
+| Setting | Value |
+|---------|-------|
+| Incoming server (IMAP) | `mail.nexa-ed.com` |
+| IMAP port | `993` |
+| IMAP security | SSL/TLS |
+| Outgoing server (SMTP) | `mail.nexa-ed.com` |
+| SMTP port | `465` |
+| SMTP security | SSL/TLS |
+| Username (both) | Full email address |
+
+<Callout type="warn">
+  Always use SSL/TLS. Do not use plain or STARTTLS connections.
+</Callout>
+
+---
+
+## Apple Mail
+
+**iPhone / iPad**
+
+1. Go to **Settings → Mail → Accounts → Add Account**.
+2. Choose **Other → Add Mail Account**.
+3. Enter the student's name, full email address, and password.
+4. Select **IMAP**.
+5. Incoming server: `mail.nexa-ed.com`, port `993`, SSL on.
+6. Outgoing server: `mail.nexa-ed.com`, port `465`, SSL on.
+7. Tap **Save**.
+
+**Mac**
+
+1. Open **Mail → Settings → Accounts → +**.
+2. Choose **Other Mail Account**.
+3. Enter name, email address, and password, then click **Sign In**.
+4. If auto-detection fails, enter the IMAP and SMTP settings from the table above manually.
+
+**Profile install (planned)**
+
+A server-generated `.mobileconfig` profile will allow one-tap setup — the device fills in all fields automatically. See [`email-plan.md`](https://github.com/your-org/project-nexa/blob/master/email-plan.md) for the implementation plan.
+
+---
+
+## Mozilla Thunderbird
+
+1. Open Thunderbird → **Add a new account → Email**.
+2. Enter the student's name, email address, and password → click **Continue**.
+3. If Thunderbird detects settings automatically, click **Done**.
+4. If not, click **Configure manually** and enter:
+   - Incoming: IMAP, `mail.nexa-ed.com`, port `993`, SSL/TLS
+   - Outgoing: SMTP, `mail.nexa-ed.com`, port `465`, SSL/TLS
+   - Username for both: full email address
+5. Click **Done**.
+
+**Autoconfig (planned)**
+
+A Thunderbird autoconfig XML will be served at `https://autoconfig.nexa-ed.com/mail/config-v1.1.xml` so Thunderbird fills in all settings the moment the student types their email address.
+
+---
+
+## Gmail app
+
+The Gmail app (Android or iPhone) supports adding external IMAP accounts.
+
+1. Open Gmail → tap your profile picture → **Add another account**.
+2. Choose **Other** at the bottom of the list.
+3. Enter the email address → tap **Next**.
+4. Choose **Personal (IMAP)**.
+5. Enter the password.
+6. Incoming server: `mail.nexa-ed.com`, port `993`, SSL/TLS.
+7. Outgoing server: `mail.nexa-ed.com`, port `465`, SSL/TLS.
+8. Complete sync settings → tap **Done**.
+
+The school inbox appears as a separate account inside Gmail alongside any personal accounts.
+
+---
+
+## Google Workspace (Tier 3)
+
+Tier 3 students have real Google accounts. Direct them to:
+
+- **Browser:** [mail.google.com](https://mail.google.com) → sign in with the school email and Google password
+- **Gmail app:** Add another account → choose **Google** → sign in with school credentials
+- **Apple Mail / Thunderbird:** choose Google as the account type during setup
+
+No manual IMAP/SMTP entry is needed for Tier 3.
+
+---
+
+## Sharing setup instructions with students
+
+The in-app setup guide at `/dashboard/email/setup-guide?email=STUDENT_EMAIL` generates a QR code linked to that exact page. Admins can:
+
+- Print the QR code and hand it out alongside passwords
+- Display it on a screen during onboarding day
+- Include the URL in the welcome email sent by the provisioning flow
+
+---
+
+## What's next
+
+- [Student Emails API](/docs/rest-api/email) — provision and manage accounts
+- [SDK — Student Emails](/docs/sdk/emails) — typed SDK wrapper
+- [Domain setup](/docs/sdk/domain-setup) — verify your domain to unlock Tier 2
