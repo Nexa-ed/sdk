@@ -12,6 +12,7 @@ export function runHelp(): void {
     `  ${pc.cyan("init")} [name]            Scaffold a new Nexa-connected school app ${pc.dim("(default)")}`,
     `  ${pc.cyan("doctor")}                 Check an existing app for config issues`,
     `  ${pc.cyan("upgrade")}                Upgrade @nexa-ed/* packages to latest`,
+    `  ${pc.cyan("skill")}                  Install the Nexa-Ed Claude Code skill into .claude/skills`,
     `  ${pc.cyan("telemetry")} [on|off]     View or change telemetry preference`,
     `  ${pc.cyan("help")}                   Show this help`,
     "",

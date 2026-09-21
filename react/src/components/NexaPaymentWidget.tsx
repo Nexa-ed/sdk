@@ -41,6 +41,18 @@ export function NexaPaymentWidget({
     totalAmount: number;
   } | null>(null);
 
+  // Dedicated virtual account (DVA) bank-transfer state
+  const [dvaIntent, setDvaIntent] = useState<{
+    intentId: string;
+    expiresAt: number;
+    expectedAmount: number;
+    dedicatedAccount: { accountNumber: string; accountName: string; bankName: string };
+  } | null>(null);
+  const [dvaLoading, setDvaLoading] = useState(false);
+  const [dvaError, setDvaError] = useState<string | null>(null);
+  const [confirmingSent, setConfirmingSent] = useState(false);
+  const [dvaNotYetMatched, setDvaNotYetMatched] = useState(false);
+
   const paymentStatus = externalPaymentStatus !== undefined ? externalPaymentStatus : internalPaymentStatus;
   const paymentReference = externalPaymentReference !== undefined ? externalPaymentReference : internalPaymentReference;
 
@@ -166,6 +178,71 @@ export function NexaPaymentWidget({
     }
   }, [config, feeCalculation, basePath, email, amount, metadata, callbackUrl, onError]);
 
+  // Request a dedicated virtual account for this specific transaction.
+  // Falls back to the tenant's static `config.bankDetails` (below) if the
+  // platform/tenant doesn't have DVA available yet.
+  const createDvaIntent = useCallback(async () => {
+    setDvaLoading(true);
+    setDvaError(null);
+    try {
+      const response = await fetch(`${basePath}/payments/dva-intent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          referenceId: (metadata as { studentId?: string }).studentId ?? email,
+          expectedAmount: feeCalculation ? feeCalculation.totalAmount : amount,
+          description: metadata.source ? `${metadata.source} payment` : undefined,
+          customerEmail: email,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message ?? "Dedicated bank transfer not available");
+      }
+      setDvaIntent(data);
+    } catch (err: any) {
+      setDvaError(err.message ?? "Dedicated bank transfer not available");
+    } finally {
+      setDvaLoading(false);
+    }
+  }, [basePath, metadata, email, feeCalculation, amount]);
+
+  useEffect(() => {
+    if (paymentMethod === "bank" && !dvaIntent && !dvaLoading && !dvaError) {
+      createDvaIntent();
+    }
+  }, [paymentMethod, dvaIntent, dvaLoading, dvaError, createDvaIntent]);
+
+  const handleConfirmSent = useCallback(async () => {
+    if (!dvaIntent) return;
+    setConfirmingSent(true);
+    setDvaNotYetMatched(false);
+    try {
+      const response = await fetch(`${basePath}/payments/dva-confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ intentId: dvaIntent.intentId }),
+      });
+      const data = await response.json();
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message ?? "Failed to confirm transfer");
+      }
+      if (data.matched) {
+        if (externalPaymentReference === undefined && data.transaction?.reference) {
+          setInternalPaymentReference(data.transaction.reference);
+        }
+        if (externalPaymentStatus === undefined) setInternalPaymentStatus("success");
+        onSuccess?.(data.transaction);
+      } else {
+        setDvaNotYetMatched(true);
+      }
+    } catch (err: any) {
+      setError(err.message ?? "Failed to confirm transfer");
+    } finally {
+      setConfirmingSent(false);
+    }
+  }, [basePath, dvaIntent, externalPaymentReference, externalPaymentStatus, onSuccess]);
+
   const formatAmount = (kobo: number) =>
     new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN" }).format(kobo / 100);
 
@@ -174,6 +251,9 @@ export function NexaPaymentWidget({
   const resetState = () => {
     setError(null);
     setPaymentMethod(null);
+    setDvaIntent(null);
+    setDvaError(null);
+    setDvaNotYetMatched(false);
     if (externalPaymentReference === undefined) setInternalPaymentReference(null);
     if (externalPaymentStatus === undefined) setInternalPaymentStatus(null);
   };
@@ -469,66 +549,152 @@ export function NexaPaymentWidget({
         {/* Bank transfer */}
         {paymentMethod === "bank" && (
           <div className="space-y-4">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold mb-3 text-sm">Bank Transfer Details</h4>
-              {bankDetails?.bankName ? (
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-500">Bank Name:</span>
-                    <span className="font-semibold">{bankDetails.bankName}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-500">Account Number:</span>
-                    <span className="font-mono font-semibold text-lg">{bankDetails.accountNumber}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-500">Account Name:</span>
-                    <span className="font-semibold">{bankDetails.accountName}</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t">
-                    <span className="text-gray-500">Amount to Transfer:</span>
-                    <span className="font-bold text-lg">
-                      {feeCalculation ? formatAmount(feeCalculation.totalAmount) : formatAmount(amount)}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500">
-                  Bank details not configured. Please contact {supportEmail} for bank transfer instructions.
-                </p>
-              )}
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-              <div className="flex items-start">
-                <AlertCircle className="h-5 w-5 text-blue-600 mr-2 mt-0.5 shrink-0" />
-                <div className="text-sm text-blue-800">
-                  <p className="font-semibold mb-1">Important Instructions:</p>
-                  <ul className="list-disc list-inside space-y-1 ml-2">
-                    <li>Include your email address ({email}) in the transfer description</li>
-                    <li>
-                      Transfer the exact amount:{" "}
-                      {feeCalculation ? formatAmount(feeCalculation.totalAmount) : formatAmount(amount)}
-                    </li>
-                    {supportEmail && (
-                      <li>After transferring, contact {supportEmail} with proof of payment</li>
-                    )}
-                    <li>Payment confirmation will be processed manually by the school</li>
-                  </ul>
-                </div>
+            {dvaLoading && (
+              <div className="bg-gray-50 p-6 rounded-lg flex items-center justify-center text-sm text-gray-500">
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Generating your dedicated account number…
               </div>
-            </div>
+            )}
 
-            {bankDetails?.bankName && (
-              <button
-                onClick={() => {
-                  const details = `Bank: ${bankDetails.bankName}\nAccount Number: ${bankDetails.accountNumber}\nAccount Name: ${bankDetails.accountName}\nAmount: ${feeCalculation ? formatAmount(feeCalculation.totalAmount) : formatAmount(amount)}`;
-                  navigator.clipboard.writeText(details).catch(() => {});
-                }}
-                className="w-full px-4 py-2 rounded-md border border-gray-300 text-sm font-medium hover:bg-gray-50 transition-colors"
-              >
-                Copy Details
-              </button>
+            {!dvaLoading && dvaIntent && (
+              <>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-3 text-sm">Your Dedicated Bank Transfer Account</h4>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500">Bank Name:</span>
+                      <span className="font-semibold">{dvaIntent.dedicatedAccount.bankName}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500">Account Number:</span>
+                      <span className="font-mono font-semibold text-lg">
+                        {dvaIntent.dedicatedAccount.accountNumber}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500">Account Name:</span>
+                      <span className="font-semibold">{dvaIntent.dedicatedAccount.accountName}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <span className="text-gray-500">Amount to Transfer:</span>
+                      <span className="font-bold text-lg">{formatAmount(dvaIntent.expectedAmount)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                  <div className="flex items-start">
+                    <AlertCircle className="h-5 w-5 text-blue-600 mr-2 mt-0.5 shrink-0" />
+                    <div className="text-sm text-blue-800">
+                      <p className="font-semibold mb-1">Important Instructions:</p>
+                      <ul className="list-disc list-inside space-y-1 ml-2">
+                        <li>This account number is unique to this payment — transfer the exact amount shown above</li>
+                        <li>Do not round the amount, even by a few naira — it's how we match your transfer automatically</li>
+                        <li>This account expires at {new Date(dvaIntent.expiresAt).toLocaleString()}</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {dvaNotYetMatched && (
+                  <div className="flex items-center text-amber-700 text-sm bg-amber-50 border border-amber-200 rounded-md p-3">
+                    <AlertCircle className="h-4 w-4 mr-1.5 shrink-0" />
+                    We haven't received your transfer yet. Bank transfers can take a few minutes to reflect —
+                    please try again shortly.
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <button
+                    onClick={() => {
+                      const details = `Bank: ${dvaIntent.dedicatedAccount.bankName}\nAccount Number: ${dvaIntent.dedicatedAccount.accountNumber}\nAccount Name: ${dvaIntent.dedicatedAccount.accountName}\nAmount: ${formatAmount(dvaIntent.expectedAmount)}`;
+                      navigator.clipboard.writeText(details).catch(() => {});
+                    }}
+                    className="w-full px-4 py-2 rounded-md border border-gray-300 text-sm font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    Copy Details
+                  </button>
+                  <button
+                    onClick={handleConfirmSent}
+                    disabled={confirmingSent}
+                    className="w-full h-12 flex items-center justify-center rounded-md text-base font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: branding?.primaryColor ?? "#111827" }}
+                  >
+                    {confirmingSent ? (
+                      <>
+                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                        Checking…
+                      </>
+                    ) : (
+                      "I've sent the transfer"
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {!dvaLoading && !dvaIntent && dvaError && bankDetails?.bankName && (
+              <>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-3 text-sm">Bank Transfer Details</h4>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500">Bank Name:</span>
+                      <span className="font-semibold">{bankDetails.bankName}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500">Account Number:</span>
+                      <span className="font-mono font-semibold text-lg">{bankDetails.accountNumber}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500">Account Name:</span>
+                      <span className="font-semibold">{bankDetails.accountName}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <span className="text-gray-500">Amount to Transfer:</span>
+                      <span className="font-bold text-lg">
+                        {feeCalculation ? formatAmount(feeCalculation.totalAmount) : formatAmount(amount)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                  <div className="flex items-start">
+                    <AlertCircle className="h-5 w-5 text-blue-600 mr-2 mt-0.5 shrink-0" />
+                    <div className="text-sm text-blue-800">
+                      <p className="font-semibold mb-1">Important Instructions:</p>
+                      <ul className="list-disc list-inside space-y-1 ml-2">
+                        <li>Include your email address ({email}) in the transfer description</li>
+                        <li>
+                          Transfer the exact amount:{" "}
+                          {feeCalculation ? formatAmount(feeCalculation.totalAmount) : formatAmount(amount)}
+                        </li>
+                        {supportEmail && (
+                          <li>After transferring, contact {supportEmail} with proof of payment</li>
+                        )}
+                        <li>Payment confirmation will be processed manually by the school</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    const details = `Bank: ${bankDetails.bankName}\nAccount Number: ${bankDetails.accountNumber}\nAccount Name: ${bankDetails.accountName}\nAmount: ${feeCalculation ? formatAmount(feeCalculation.totalAmount) : formatAmount(amount)}`;
+                    navigator.clipboard.writeText(details).catch(() => {});
+                  }}
+                  className="w-full px-4 py-2 rounded-md border border-gray-300 text-sm font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Copy Details
+                </button>
+              </>
+            )}
+
+            {!dvaLoading && !dvaIntent && dvaError && !bankDetails?.bankName && (
+              <p className="text-sm text-gray-500">
+                Bank transfer is not available right now. Please contact {supportEmail} for instructions.
+              </p>
             )}
 
             <button

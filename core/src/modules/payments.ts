@@ -104,16 +104,37 @@ export class PaymentsModule {
 
   /**
    * List payment transactions for this tenant.
+   *
+   * @example
+   * const { transactions } = await nexa.payments.getTransactions({ status: "success", limit: 50 });
    */
-  async getTransactions(): Promise<{ transactions: PaymentTransaction[] }> {
-    return nexaFetch(this.config, "/api/payments/transactions");
+  async getTransactions(filters?: {
+    status?: "pending" | "success" | "failed" | "abandoned";
+    customerEmail?: string;
+    limit?: number;
+    cursor?: string;
+  }): Promise<{ transactions: PaymentTransaction[]; hasMore?: boolean; nextCursor?: string }> {
+    const params = new URLSearchParams();
+    if (filters?.status) params.set("status", filters.status);
+    if (filters?.customerEmail) params.set("customerEmail", filters.customerEmail);
+    if (filters?.limit) params.set("limit", String(filters.limit));
+    if (filters?.cursor) params.set("cursor", filters.cursor);
+    const qs = params.toString();
+    return nexaFetch(this.config, `/api/payments/transactions${qs ? `?${qs}` : ""}`);
   }
 
   /**
    * Get aggregated payment stats (total revenue, counts by status).
+   *
+   * @example
+   * const stats = await nexa.payments.getStats({ from: "2026-08-01", to: "2026-08-31" });
    */
-  async getStats(): Promise<PaymentStatsResponse> {
-    return nexaFetch(this.config, "/api/payments/stats");
+  async getStats(filters?: { from?: string; to?: string }): Promise<PaymentStatsResponse> {
+    const params = new URLSearchParams();
+    if (filters?.from) params.set("from", filters.from);
+    if (filters?.to) params.set("to", filters.to);
+    const qs = params.toString();
+    return nexaFetch(this.config, `/api/payments/stats${qs ? `?${qs}` : ""}`);
   }
 
   /**

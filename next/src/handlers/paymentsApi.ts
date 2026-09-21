@@ -12,6 +12,8 @@ import type { NexaInstance } from "../types";
  *   GET  payments/status       → GET  /api/payments/status
  *   GET  payments/transactions → GET  /api/payments/transactions
  *   GET  payments/stats        → GET  /api/payments/stats
+ *   POST payments/dva-intent   → POST /api/payments/dva/intent
+ *   POST payments/dva-confirm  → POST /api/payments/dva/confirm-sent
  */
 export async function handlePaymentsApi(
   request: Request,
@@ -27,6 +29,8 @@ export async function handlePaymentsApi(
     status: "/api/payments/status",
     transactions: "/api/payments/transactions",
     stats: "/api/payments/stats",
+    "dva-intent": "/api/payments/dva/intent",
+    "dva-confirm": "/api/payments/dva/confirm-sent",
   };
 
   const upstreamPath = endpointMap[endpoint];
@@ -45,7 +49,7 @@ export async function handlePaymentsApi(
   const fetchOptions: RequestInit = {
     method: request.method,
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      "x-api-key": apiKey,
       "Content-Type": "application/json",
     },
   };

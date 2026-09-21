@@ -2,9 +2,15 @@
 
 ## 0.2.0-beta.5
 
+### Minor Changes
+
+- feat: proxy `payments/dva-intent` and `payments/dva-confirm` through the payments API route handler, so `createBankTransferIntent`/`confirmBankTransferSent` (already available on `@nexa-ed/sdk`'s core client) are reachable from client-side code without exposing the tenant API key.
+- feat: re-export `getSchoolBranding` and `GetSchoolBrandingOptions` from `@nexa-ed/sdk`.
+- feat: add a `services` proxy handler — `GET /api/nexa/services`, `GET /api/nexa/services/:id`, `GET /api/nexa/services/:id/usage` — so the tenant services catalog is reachable client-side without exposing the API key.
+
 ### Patch Changes
 
-- Updated dependencies [1e9350a]
+- Updated dependencies
   - @nexa-ed/sdk@0.2.0-beta.5
 
 ## 0.2.0-beta.4

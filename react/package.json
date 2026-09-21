@@ -43,19 +43,25 @@
     "@orpc/tanstack-query": "catalog:"
   },
   "peerDependencies": {
+    "@radix-ui/react-dialog": ">=1.0.0",
     "@tanstack/react-query": ">=5.0.0",
     "lucide-react": ">=0.400.0",
     "react": ">=19",
-    "react-dom": ">=19"
+    "react-dom": ">=19",
+    "sonner": ">=1.0.0",
+    "xlsx": ">=0.18.0"
   },
   "devDependencies": {
     "@nexa-ed/config": "workspace:*",
+    "@radix-ui/react-dialog": "^1.1.15",
     "@tanstack/react-query": "catalog:",
     "@types/node": "^22.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "lucide-react": "^0.487.0",
+    "sonner": "^2.0.5",
     "tsup": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "xlsx": "^0.18.5"
   }
 }

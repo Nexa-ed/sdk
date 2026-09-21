@@ -7,6 +7,8 @@ import type {
   EmailBulkCreateOptions,
   EmailBulkCreateResult,
   EmailJobStatus,
+  EmailListResult,
+  EmailStats,
   StudentEmailAccount,
 } from "../types";
 
@@ -162,7 +164,15 @@ export class EmailModule {
       body: JSON.stringify({ students: options.students, domain, tier }),
     });
 
-    const data = (await res.json()) as { success: boolean; jobId?: string; tier?: string; totalStudents?: number; message?: string };
+    const data = (await res.json()) as {
+      success: boolean;
+      jobId?: string;
+      tier?: string;
+      totalStudents?: number;
+      batchCount?: number;
+      failedBatches?: number;
+      message?: string;
+    };
 
     if (!res.ok || data.success === false) {
       throw new NexaError(data.message ?? res.statusText, res.status);
@@ -172,6 +182,8 @@ export class EmailModule {
       jobId: data.jobId!,
       tier: (data.tier ?? tier) as EmailBulkCreateResult["tier"],
       totalStudents: data.totalStudents ?? options.students.length,
+      batchCount: data.batchCount ?? 1,
+      failedBatches: data.failedBatches ?? 0,
       message: data.message ?? `Bulk provisioning started for ${options.students.length} students.`,
     };
   }
@@ -224,28 +236,65 @@ export class EmailModule {
   // ------------------------------------------------------------------
 
   /**
-   * List student email accounts for this tenant.
+   * List student email accounts for this tenant (cursor-paginated, 25 per page).
+   *
+   * Pass `continueCursor` from the previous result as `cursor` to fetch the next page.
    *
    * @example
-   * const accounts = await nexa.email.list();
+   * // First page
+   * const page1 = await nexa.email.list();
+   *
+   * // Next page
+   * if (!page1.isDone) {
+   *   const page2 = await nexa.email.list({ cursor: page1.continueCursor });
+   * }
+   *
+   * // Fetch all active accounts
    * const active = await nexa.email.list({ status: "active" });
    */
   async list(options?: {
     status?: "active" | "suspended" | "deleted";
-    limit?: number;
-  }): Promise<StudentEmailAccount[]> {
+    /** Continuation cursor from the previous `list()` call. Omit to start from the beginning. */
+    cursor?: string | null;
+  }): Promise<EmailListResult> {
     const params = new URLSearchParams();
     if (options?.status) params.set("status", options.status);
-    if (options?.limit) params.set("limit", String(options.limit));
+    if (options?.cursor) params.set("cursor", options.cursor);
 
     const query = params.toString();
     const path = `/api/student-emails/list${query ? `?${query}` : ""}`;
 
-    const res = await this.get<{ data: StudentEmailAccount[]; count: number } | StudentEmailAccount[]>(path);
+    const res = await fetch(`${this.config.baseUrl}${path}`, {
+      headers: this.headers,
+    });
 
-    // Nexa returns { data: [...], count: N } from the list endpoint
-    if (Array.isArray(res)) return res;
-    return (res as { data: StudentEmailAccount[] }).data ?? [];
+    const data = (await res.json()) as {
+      success: boolean;
+      message?: string;
+      data?: StudentEmailAccount[];
+      continueCursor?: string | null;
+      isDone?: boolean;
+    };
+
+    if (!res.ok || data.success === false) {
+      throw new NexaError(data.message ?? res.statusText, res.status);
+    }
+
+    return {
+      data: data.data ?? [],
+      continueCursor: data.continueCursor ?? null,
+      isDone: data.isDone ?? true,
+    };
+  }
+
+  /**
+   * Get pre-computed mailbox counts for this tenant — O(1), does not scan the accounts table.
+   *
+   * @example
+   * const { activeCount, suspendedCount } = await nexa.email.getStats();
+   */
+  async getStats(): Promise<EmailStats> {
+    return this.get<EmailStats>("/api/student-emails/stats");
   }
 
   /**

@@ -5,6 +5,7 @@ import type { ParsedArgs } from "../utils/parseArgs";
 import { runPrompts } from "../prompts";
 import { scaffold } from "../scaffold";
 import { handleTelemetryConsent } from "../utils/telemetry";
+import { copySkillFiles } from "../utils/skillFiles";
 
 function detectPackageManager(): string {
   const agent = process.env["npm_config_user_agent"] ?? "";
@@ -61,6 +62,14 @@ export async function runInit(args: ParsedArgs): Promise<void> {
     process.exit(1);
   }
 
+  try {
+    await copySkillFiles(opts.projectDir);
+    p.log.success("Claude Code skill installed (.claude/skills/nexa-ed-sdk).");
+  } catch {
+    // Non-fatal — the skill can always be added later with `create-nexaed-app skill`.
+    p.log.warn("Could not install the Claude Code skill — run `create-nexaed-app skill` later to add it.");
+  }
+
   if (opts.git) {
     const gitEnv = {
       ...process.env,
@@ -87,6 +96,7 @@ export async function runInit(args: ParsedArgs): Promise<void> {
     }
   }
 
+  let installOk = false;
   if (!args.noInstall) {
     // Print a plain log line — the spinner must not run while the package manager
     // writes its own output to the same terminal.
@@ -100,6 +110,32 @@ export async function runInit(args: ParsedArgs): Promise<void> {
       p.log.warn(`Dependency install failed. Run manually: cd ${opts.projectName} && ${pm} install`);
     } else {
       p.log.success("Dependencies installed.");
+      installOk = true;
+    }
+  }
+
+  // `api.nexa.*` only exists once Convex codegen has scanned convex/nexa.ts.
+  // Run it now so the scaffolded project typechecks without any manual step.
+  let codegenOk = false;
+  if (opts.features.convex && installOk) {
+    const execArgs: Record<string, string[]> = {
+      pnpm: ["pnpm", "exec"],
+      npm:  ["npx"],
+      yarn: ["yarn", "run"],
+      bun:  ["bunx"],
+    };
+    p.log.step("Generating Convex API reference…");
+    const [cmd, ...baseArgs] = execArgs[pm] ?? ["npx"];
+    const codegen = spawnSync(
+      cmd,
+      [...baseArgs, "convex", "codegen", "--typecheck", "disable"],
+      { cwd: opts.projectDir, stdio: "inherit", shell: process.platform === "win32" },
+    );
+    if (codegen.status === 0) {
+      p.log.success("Convex _generated/api created (api.nexa.* is live).");
+      codegenOk = true;
+    } else {
+      p.log.warn("Convex codegen failed — run `npx convex dev` once after filling in .env.local.");
     }
   }
 
@@ -131,6 +167,10 @@ export async function runInit(args: ParsedArgs): Promise<void> {
           ...shadcnHint,
         ]),
   ];
+
+  if (opts.features.convex && !codegenOk) {
+    steps.push(pc.cyan(`  • npx convex dev  — first run creates/attaches your deployment and regenerates convex/_generated/api (api.nexa.* won't exist until then)`));
+  }
 
   const outroLines = [
     ``,

@@ -4,6 +4,29 @@ export type RecordRow = {
   pageNumber?: number | null;
   recordNumberForPage?: number | null;
   warnings?: unknown;
+  rosterId?: string | null;
+  rosterMatchConfidence?: string | null;
+  rosterMatchStatus?: "auto" | "manual" | "unmatched" | null;
+};
+
+export type RosterEntry = {
+  id: string;
+  name: string;
+  externalId?: string | null;
+  classGroup?: string | null;
+  metadata?: Record<string, string> | null;
+};
+
+export type ParsedImportRow = {
+  __record_id?: string;
+  [key: string]: string | null | undefined;
+};
+
+export type ImportDiff = {
+  toUpdate: Array<{ id: string; recordData: Record<string, string | null> }>;
+  toCreate: Array<Record<string, string | null>>;
+  unchanged: number;
+  skipped: number;
 };
 
 export type CellEdit = { recordId: string; col: string; value: string; rowIdx: number; colIdx: number };

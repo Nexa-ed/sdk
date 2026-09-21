@@ -5,6 +5,7 @@ import { handleUpload } from "./handlers/upload";
 import { handlePrepareUpload } from "./handlers/prepareUpload";
 import { handlePaymentsForward } from "./handlers/paymentsForward";
 import { handlePaymentsApi } from "./handlers/paymentsApi";
+import { handleServicesApi } from "./handlers/servicesApi";
 import type { NexaInstance } from "./types";
 
 interface RouteContext {
@@ -32,6 +33,9 @@ interface RouteContext {
  *   GET  /api/nexa/payments/status           → Payment status proxy
  *   GET  /api/nexa/payments/transactions     → Transactions list proxy
  *   GET  /api/nexa/payments/stats            → Payment stats proxy
+ *   GET  /api/nexa/services                  → List enabled tenant services
+ *   GET  /api/nexa/services/:id              → Get one service's details
+ *   GET  /api/nexa/services/:id/usage        → Get usage metrics for a service
  *
  * @example
  * ```ts
@@ -61,6 +65,11 @@ export function createRouteHandler(options: { client: NexaInstance }) {
     // Payment API proxy for GET endpoints (config, status, transactions, stats)
     if (segment === "payments") {
       return handlePaymentsApi(request, rest, client);
+    }
+
+    // Services catalog proxy (list, get, usage — all GET)
+    if (segment === "services") {
+      return handleServicesApi(request, rest, client);
     }
 
     return new Response("Not found", { status: 404 });

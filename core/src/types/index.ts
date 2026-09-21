@@ -297,21 +297,43 @@ export interface PaymentStatsResponse {
 
 // ─── Tenant Services ─────────────────────────────────────────────────────────
 
+export interface TenantServiceSubscription {
+  tier: string;
+  status: string;
+  startedAt: number;
+  expiresAt?: number;
+}
+
 export interface TenantService {
   serviceId: string;
   name: string;
-  description: string;
+  description?: string;
   category: string;
   status: "active" | "inactive" | "pending";
-  config: Record<string, unknown>;
-  subscription: Record<string, unknown> | null;
-  availableTiers: string[];
+  enabledAt?: number;
+  /** Infrastructure services only. */
+  config?: Record<string, unknown>;
+  /** Infrastructure services only. */
+  pricing?: Record<string, unknown>;
+  /** Tiered services only. */
+  subscription?: TenantServiceSubscription | null;
+  /** Tiered services only. */
+  availableTiers?: string[];
   features: string[];
-  documentation: string | null;
+  documentation?: string | null;
 }
 
 export interface GetServicesResponse {
   services: TenantService[];
+}
+
+export interface ServiceUsageResult {
+  serviceId: string;
+  category: string;
+  usage?: {
+    currentPeriod: Record<string, unknown>;
+    billingCycle?: { start?: number; end?: number };
+  };
 }
 
 // ─── Email Provisioning ──────────────────────────────────────────────────────
@@ -363,6 +385,10 @@ export interface EmailBulkCreateResult {
   jobId: string;
   tier: EmailTier;
   totalStudents: number;
+  /** Number of QStash batches dispatched (internal batch size is 50 students) */
+  batchCount: number;
+  /** Number of batches that failed to publish to QStash (partial failures only — if all fail the request returns an error) */
+  failedBatches: number;
   message: string;
 }
 
@@ -397,12 +423,31 @@ export interface StudentEmailAccount {
   gradeLevel?: string;
   provider?: "nexa" | "stalwart" | "google";
   providerUserId: string;
+  tier: EmailTier;
   status: "active" | "suspended" | "deleted" | "deleting";
   passwordResetRequired: boolean;
   recoveryEmail?: string;
   aliases?: string[];
+  /** Whether an initial (encrypted) password is stored server-side. Retrieve it from the Nexa dashboard; never returned via API for security. */
+  hasInitialPassword: boolean;
   createdAt: number;
   updatedAt: number;
+}
+
+/** Paginated result from `nexa.email.list()` */
+export interface EmailListResult {
+  data: StudentEmailAccount[];
+  /** Pass as the `cursor` option on the next call to fetch the next page. `null` when `isDone` is true. */
+  continueCursor: string | null;
+  /** `true` when there are no more pages */
+  isDone: boolean;
+}
+
+/** Pre-computed mailbox counts for this tenant */
+export interface EmailStats {
+  activeCount: number;
+  suspendedCount: number;
+  deletedCount: number;
 }
 
 // ─── Webhooks ────────────────────────────────────────────────────────────────

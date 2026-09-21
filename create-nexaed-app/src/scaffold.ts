@@ -9,6 +9,8 @@ import {
   renderDashboardPage,
   renderProvidersFile,
   renderRootLayout,
+  renderConvexSchema,
+  renderConvexNexaModule,
 } from "./templates";
 
 export async function scaffold(opts: ScaffoldOptions): Promise<void> {
@@ -43,6 +45,13 @@ export async function scaffold(opts: ScaffoldOptions): Promise<void> {
   // ── Nexa-ed SDK wiring ───────────────────────────────────────────────────────
   await write(projectDir, "lib/nexa.ts",                         renderNexaLib(opts));
   await write(projectDir, "app/api/nexa/[...nexaed]/route.ts",   renderCatchAllRoute());
+
+  // Convex functions must live in the app's own convex/ dir for codegen to
+  // register them — without these, `api` is {} and api.nexa.* never exists.
+  if (opts.features.convex) {
+    await write(projectDir, "convex/schema.ts", renderConvexSchema(opts));
+    await write(projectDir, "convex/nexa.ts",   renderConvexNexaModule(opts));
+  }
 
   // ── Tailwind + PostCSS ───────────────────────────────────────────────────────
   await write(projectDir, "tailwind.config.ts", tailwindConfig(opts));
@@ -81,7 +90,8 @@ function renderEnvLocal(opts: ScaffoldOptions): string {
   const lines = [
     `# Nexa`,
     `NEXA_API_KEY=${opts.apiKey || "nxk_live_YOUR_KEY_HERE"}`,
-    `NEXA_WEBHOOK_SECRET=whsec_YOUR_SECRET_HERE`,
+    `# Nexa signs webhooks with your API key — keep this the same value as NEXA_API_KEY`,
+    `NEXA_WEBHOOK_SECRET=${opts.apiKey || "same_value_as_NEXA_API_KEY"}`,
     ``,
   ];
   if (opts.authProvider === "workos") {
@@ -421,8 +431,6 @@ function tailwindConfig(opts: ScaffoldOptions): string {
   const darkMode = `\n  darkMode: ["class"],`;
 
   const shadcnColors = opts.uiLibrary === "shadcn" ? `
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",

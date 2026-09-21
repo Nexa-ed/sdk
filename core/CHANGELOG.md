@@ -4,15 +4,8 @@
 
 ### Minor Changes
 
-- 1e9350a: Add `nexa.payments.createBankTransferIntent()` and `nexa.payments.confirmBankTransferSent()` for attributing Dedicated Virtual Account (DVA) bank transfers to a specific student/payer without a narration code.
-
-  **`createBankTransferIntent(options)`**
-  Declares an intent to pay by bank transfer before the payer sends it. Returns the tenant's dedicated bank-transfer account details plus an `expectedAmount` to show the payer — Nexa may nudge this by a few kobo so payers with an identical fee (e.g. flat tuition) can still be told apart on their first payment.
-
-  **`confirmBankTransferSent(intentId)`**
-  Payer-facing "I've sent it" — triggers an immediate check against Paystack instead of waiting for the next reconciliation pass, so the UI can show instant feedback.
-
-  New types: `BankTransferIntentOptions`, `BankTransferIntentResult`, `ConfirmBankTransferSentResult`.
+- feat: add `getSchoolBranding(subdomain, options)` — a standalone, unauthenticated helper for fetching a school's public branding config, usable from middleware before a tenant session exists. Also re-exported from `@nexa-ed/next`.
+- fix: widen the `TenantService` type to match the platform's actual `/api/tenant/services*` response shape — most fields (`description`, `config`, `pricing`, `subscription`, `availableTiers`, `documentation`) are now optional/nullable since they only populate for certain service categories, and `enabledAt` was added. `getUsage()` now returns a typed `ServiceUsageResult` instead of `Record<string, unknown>`.
 
 ## 0.2.0-beta.4
 

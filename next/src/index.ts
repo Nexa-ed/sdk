@@ -6,11 +6,13 @@ export {
   NexaClient,
   NexaError,
   isNexaError,
+  getSchoolBranding,
 } from "@nexa-ed/sdk";
 
 export type {
   NexaConfig,
   NexaEmailConfig,
+  GetSchoolBrandingOptions,
   ExtractionType,
   FileSubmitOptions,
   FileSubmitResult,
@@ -29,6 +31,9 @@ export type {
   PaymentStatus,
   PaymentTransaction,
   TenantService,
+  TenantServiceSubscription,
+  GetServicesResponse,
+  ServiceUsageResult,
   WebhookEvent,
   WebhookFileCompleteEvent,
   // Email provisioning

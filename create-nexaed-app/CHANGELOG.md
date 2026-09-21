@@ -1,10 +1,14 @@
 # create-nexaed-app
 
-## 0.3.0-beta.1
+## 0.3.0-beta.2
 
 ### Minor Changes
 
-- e76b1da: v0.3.0-beta.0 — What Changed Bug Fix WorkOS middleware was broken for every scaffolded app. The generated middleware.ts was missing redirectUri, causing the auth callback to fail silently. Added redirectUri: process.env.WORKOS_REDIRECT_URI — the env var was already being written to .env.local so no extra setup needed. --- New Features (CLI) Git opt-in - Interactive prompt asks "Initialize a git repository?" (default: yes) - --git / --no-git flags for CI/non-interactive mode - On success: runs git init → git add -A → initial commit - Graceful fallback warning if git isn't installed or commit fails Nexium Labs attribution Generated landing page footer now reads: © {year} {ProjectName} · Built with Nexa Ed — a product by Nexium Labs
+- 519e604: v0.3.0-beta.0 — What Changed Bug Fix WorkOS middleware was broken for every scaffolded app. The generated middleware.ts was missing redirectUri, causing the auth callback to fail silently. Added redirectUri: process.env.WORKOS_REDIRECT_URI — the env var was already being written to .env.local so no extra setup needed. --- New Features (CLI) Git opt-in - Interactive prompt asks "Initialize a git repository?" (default: yes) - --git / --no-git flags for CI/non-interactive mode - On success: runs git init → git add -A → initial commit - Graceful fallback warning if git isn't installed or commit fails Nexium Labs attribution Generated landing page footer now reads: © {year} {ProjectName} · Built with Nexa Ed — a product by Nexium Labs
+- d27c97f: Add a `skill` command that installs a Claude Code skill (`.claude/skills/nexa-ed-sdk`) covering `createNexa`/`createRouteHandler` setup, every `NexaClient` module's real method signatures, the verified `@nexa-ed/react` component/hook list, and webhook/error handling — verified against SDK source rather than the (sometimes lagging) hosted docs. `init` now installs it automatically into every newly scaffolded app; run `create-nexaed-app skill` to add it to an existing app.
+- fix: scaffolding with `--features convex` now writes `convex/schema.ts` (feature-gated Nexa schema fragments) and `convex/nexa.ts` (mounts `upsert*FromNexa` mutations/queries), then runs `convex codegen` after install so `api.nexa.*` exists out of the box. Previously no `convex/` source files were generated at all, so every Convex project shipped with an empty `api: {}` tree and `createFileCompleteHandler`/`createPaymentCompleteHandler` failed to typecheck at first start.
+
+  fix: shadcn scaffolds no longer emit duplicate `background`/`foreground` keys in `tailwind.config.ts` (TS1117 on `tsc --noEmit` / `next build` in every generated shadcn project).
 
 ## 0.3.0-beta.0
 

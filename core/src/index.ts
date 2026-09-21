@@ -1,5 +1,7 @@
 export { NexaClient } from "./client";
 export { NexaError, isNexaError } from "./error";
+export { getSchoolBranding } from "./modules/branding";
+export type { GetSchoolBrandingOptions } from "./modules/branding";
 export type { NexaConfig, NexaEmailConfig } from "./config";
 
 // All public types
@@ -41,7 +43,9 @@ export type {
 
   // Tenant services
   TenantService,
+  TenantServiceSubscription,
   GetServicesResponse,
+  ServiceUsageResult,
 
   // Email provisioning
   EmailTier,
@@ -50,10 +54,15 @@ export type {
   EmailBulkCreateOptions,
   EmailBulkCreateResult,
   EmailJobStatus,
+  EmailListResult,
+  EmailStats,
   StudentEmailAccount,
 
   // Webhooks
   WebhookFileCompleteEvent,
   WebhookPaymentEvent,
+  WebhookEmailCreatedEvent,
+  WebhookEmailStatusChangedEvent,
+  WebhookEmailBulkCompletedEvent,
   WebhookEvent,
 } from "./types";

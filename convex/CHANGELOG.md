@@ -1,11 +1,17 @@
 # @nexa-ed/convex
 
+## 0.2.0-beta.6
+
+### Patch Changes
+
+- fix: `createPaymentCompleteHandler`/`createFileCompleteHandler`/`createStudentEmailHandler` no longer require an impossible strict structural `api` type. Convex codegen references are branded string types, not `(args) => Promise` callables, so the old `Nexa*Api` interfaces could never match a real generated `api` tree — every consumer was forced into `api as any`. The `api` parameter is now the exported `NexaConvexApi` type (accepts codegen'd trees, `anyApi`, and pre-codegen empty objects), and each factory validates `api.nexa.<mutation>` at creation time, throwing an error with the exact mount + `npx convex codegen` fix steps when it's missing.
+
 ## 0.2.0-beta.5
 
 ### Patch Changes
 
-- Updated dependencies [1e9350a]
-  - @nexa-ed/sdk@0.2.0-beta.5
+- fix: `createStudentEmailHandler`/`createPaymentCompleteHandler`/`createFileCompleteHandler` no longer import the nominal `ConvexHttpClient` class type from `convex/browser`. They now accept a minimal structural `{ mutation }` shape instead, so consuming apps are no longer forced onto whatever `convex` version this package happened to be built against — fixes a type error when a tenant app's `convex` version diverges from this package's.
+- fix: `createStudentEmailHandler`'s returned handler now takes the actual `email.created`/`email.status_changed` webhook event (`WebhookEmailCreatedEvent | WebhookEmailStatusChangedEvent`) instead of a full `StudentEmailAccount`. The old parameter type didn't match what any caller actually has on hand in a webhook route — passing the verified webhook event failed to type-check.
 
 ## 0.2.0-beta.4
 

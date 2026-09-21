@@ -2,10 +2,10 @@
 
 ## 0.2.0-beta.5
 
-### Patch Changes
+### Minor Changes
 
-- Updated dependencies [1e9350a]
-  - @nexa-ed/sdk@0.2.0-beta.5
+- feat: `NexaPaymentWidget`'s bank-transfer path now requests a dedicated virtual account per transaction via `POST {basePath}/payments/dva-intent` and confirms via `POST {basePath}/payments/dva-confirm` (requires `@nexa-ed/next@>=0.2.0-beta.5` for the new proxy routes), instead of showing one static shared account. Falls back to the previous static `config.bankDetails` display if DVA isn't available for a tenant.
+- feat: add `ServicesPanel` component — lists a tenant's enabled platform services via `GET {basePath}/services`, with an expandable per-service usage view via `GET {basePath}/services/:id/usage` (requires `@nexa-ed/next@>=0.2.0-beta.5` for the new proxy routes).
 
 ## 0.2.0-beta.4
 

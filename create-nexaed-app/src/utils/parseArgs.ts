@@ -1,5 +1,5 @@
 export interface ParsedArgs {
-  command: "init" | "doctor" | "upgrade" | "help" | "telemetry";
+  command: "init" | "doctor" | "upgrade" | "help" | "telemetry" | "skill";
   projectName?: string;
   auth?: string;
   ui?: string;
@@ -13,7 +13,7 @@ export interface ParsedArgs {
   git?: boolean;
 }
 
-const COMMANDS = new Set(["doctor", "upgrade", "help", "telemetry"]);
+const COMMANDS = new Set(["doctor", "upgrade", "help", "telemetry", "skill"]);
 
 export function parseArgs(argv: string[]): ParsedArgs {
   const result: ParsedArgs = { command: "init", noInstall: false };

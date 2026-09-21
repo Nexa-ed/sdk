@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
-import type { RecordRow, CellEdit, ActiveBar } from "../types";
+import type { RecordRow, CellEdit, ActiveBar, RosterEntry } from "../types";
 import type { SortDir } from "../hooks/useColumnSort";
 import { moveCell } from "../hooks/useGridNavigation";
 import { SortIcon } from "../primitives/SortIcon";
+import { RosterCell } from "../primitives/RosterCell";
 
 // ── Selection types ───────────────────────────────────────────────────────────
 type CellPos = { rowIdx: number; colIdx: number };
@@ -51,6 +52,15 @@ export function RecordDataGrid({
   onRenumber,
   lastSerialNumber,
   onRenumberComplete,
+  // Roster props
+  rosterEntries,
+  onAssignRoster,
+  onRerunMatching,
+  // Column reorder props
+  onColumnReorder,
+  onResetColumnOrder,
+  // New record highlighting
+  newRecordIds,
 }: {
   records: RecordRow[];
   onSave?: (recordId: string, newData: Record<string, string | null>) => Promise<void>;
@@ -71,6 +81,15 @@ export function RecordDataGrid({
   onRenumber?: (records: RecordRow[], col: string, startFrom: number) => Promise<void>;
   lastSerialNumber?: number | null;
   onRenumberComplete?: (lastSerial: number) => void;
+  // Roster
+  rosterEntries?: Map<string, RosterEntry>;
+  onAssignRoster?: (recordId: string, rosterId: string | null) => void;
+  onRerunMatching?: () => void;
+  // Column reorder
+  onColumnReorder?: (newOrder: string[]) => void;
+  onResetColumnOrder?: () => void;
+  // New record highlighting
+  newRecordIds?: Set<string>;
 }) {
   // ── Edit state ──────────────────────────────────────────────────────────────
   const [editing, setEditing] = useState<CellEdit | null>(null);
@@ -534,6 +553,24 @@ export function RecordDataGrid({
             + Add rows
           </button>
         )}
+        {onRerunMatching && (
+          <button
+            onClick={onRerunMatching}
+            title="Re-run automatic roster matching for all records on this page."
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-md border border-dashed border-violet-300 text-violet-600 hover:bg-violet-50 transition-colors text-xs font-medium ${onAddRows ? "" : "ml-auto"}`}
+          >
+            ⟳ Re-run matching
+          </button>
+        )}
+        {onResetColumnOrder && (
+          <button
+            onClick={onResetColumnOrder}
+            title="Reset column order to the server default."
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors text-xs"
+          >
+            Reset columns
+          </button>
+        )}
       </div>
 
       {/* Mass-update bar */}
@@ -877,6 +914,9 @@ export function RecordDataGrid({
                   </th>
                 );
               })}
+              {rosterEntries && (
+                <th className="px-2 py-2 w-24 text-muted-foreground font-semibold text-center border-r border-border/50 cursor-help" title="Roster match status — green = auto-matched, amber = manually assigned.">Roster</th>
+              )}
               <th className="px-2 py-2 w-14 text-muted-foreground font-semibold text-center cursor-help" title="Warnings and missing-field counts. ⚠ = processing warning; N✗ = blank fields.">⚠ / ✗</th>
               {onDeleteRow && <th className="w-8 px-1" />}
             </tr>
@@ -929,7 +969,13 @@ export function RecordDataGrid({
                     </td>
                   )}
                   <td className="px-2 py-1.5 text-muted-foreground text-center font-mono border-r border-border/50">{rec.pageNumber ?? "—"}</td>
-                  <td className="px-2 py-1.5 text-muted-foreground text-center font-mono border-r border-border/50">{rec.recordNumberForPage ?? "—"}</td>
+                  <td className="px-2 py-1.5 text-muted-foreground text-center font-mono border-r border-border/50">
+                    {newRecordIds?.has(rec.id) ? (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">NEW</span>
+                    ) : (
+                      rec.recordNumberForPage ?? "—"
+                    )}
+                  </td>
 
                   {allCols.map((col, colIdx) => {
                     const val = data[col];
@@ -1004,6 +1050,18 @@ export function RecordDataGrid({
                       </td>
                     );
                   })}
+
+                  {/* Roster column */}
+                  {rosterEntries && (
+                    <td className="px-2 py-1.5 text-center border-r border-border/50">
+                      <RosterCell
+                        record={rec}
+                        rosterEntries={rosterEntries}
+                        onAssignRoster={onAssignRoster}
+                        disabled={isSaving}
+                      />
+                    </td>
+                  )}
 
                   {/* ⚠/✗ column */}
                   <td className="px-2 py-1.5 text-center whitespace-nowrap">

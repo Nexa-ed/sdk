@@ -32,3 +32,4 @@ export { nexaPaymentsSchema, nexaFilesSchema, nexaStudentEmailsSchema } from "./
 export { upsertPaymentFromNexa, upsertFileResultFromNexa, upsertStudentEmailFromNexa } from "./mutations";
 export { getPaymentByReference, getPaymentsByEmail, getFileResult, getFileResultsByUser, getStudentEmailByEmail, listStudentEmailsByTenant, listStudentEmailsByStatus } from "./queries";
 export { createPaymentCompleteHandler, createFileCompleteHandler, createStudentEmailHandler } from "./handlers";
+export type { NexaConvexApi } from "./handlers";

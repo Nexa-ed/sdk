@@ -5,6 +5,7 @@ import { runInit } from "./commands/init";
 import { runDoctor } from "./commands/doctor";
 import { runUpgrade } from "./commands/upgrade";
 import { runHelp } from "./commands/help";
+import { runSkill } from "./commands/skill";
 import { checkForUpdate } from "./utils/updateNotifier";
 import { runTelemetryCommand } from "./utils/telemetry";
 
@@ -27,6 +28,9 @@ async function main() {
         break;
       case "telemetry":
         await runTelemetryCommand(args.telemetryValue);
+        break;
+      case "skill":
+        await runSkill();
         break;
       default:
         await runInit(args);

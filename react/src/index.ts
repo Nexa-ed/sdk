@@ -57,6 +57,9 @@ export { useSerialRenumber } from "./hooks/useSerialRenumber";
 export { useUpdatePageRecord } from "./hooks/useUpdatePageRecord";
 export { useDeletePageRecord } from "./hooks/useDeletePageRecord";
 export { useRefinePageWithLLM } from "./hooks/useRefinePageWithLLM";
+export { useGetRoster } from "./hooks/useGetRoster";
+export { useBatchUpdateStudentRecords } from "./hooks/useBatchUpdateStudentRecords";
+export { useBatchCreateStudentRecordsFromImport } from "./hooks/useBatchCreateStudentRecordsFromImport";
 
 // Primitives
 export { Badge, StatusBadge } from "./primitives/Badge";
@@ -65,9 +68,10 @@ export { SectionHeader } from "./primitives/SectionHeader";
 export { SortIcon } from "./primitives/SortIcon";
 export { RowsPerPageSelect } from "./primitives/RowsPerPageSelect";
 export { HelpButton } from "./primitives/HelpModal";
+export { RosterCell } from "./primitives/RosterCell";
 
 // Types & utilities
-export type { RecordRow, CellEdit, ActiveBar, UploadState, StageStatus, Tab } from "./types";
+export type { RecordRow, RosterEntry, ParsedImportRow, ImportDiff, CellEdit, ActiveBar, UploadState, StageStatus, Tab } from "./types";
 export type {
   UserDocument,
   UserDocumentsResult,
@@ -83,6 +87,10 @@ export type {
 } from "./api-types";
 export { TABS } from "./types";
 export { fmtMs, statusColor, stageRing, stageRow, stageLine, stageText, pageColor, accuracyBar } from "./utils";
+
+// Export / import utilities
+export { buildExportHeaders, downloadAsXlsx, downloadAsCsv, downloadAsJson } from "./exportUtils";
+export { parseImportFile, buildImportDiff } from "./importUtils";
 export type { SortDir } from "./hooks/useColumnSort";
 export type { FileProgressData, AnalysisJobProgress } from "./hooks/useFileProgress";
 export type { UploadZoneProps } from "./components/UploadZone";
@@ -111,6 +119,10 @@ export { PaymentConfigPanel } from "./components/PaymentConfigPanel";
 export type { PaymentConfigPanelProps } from "./components/PaymentConfigPanel";
 export { PaymentStatusDashboard } from "./components/PaymentStatusDashboard";
 export type { PaymentStatusDashboardProps } from "./components/PaymentStatusDashboard";
+
+// Services catalog
+export { ServicesPanel } from "./components/ServicesPanel";
+export type { ServicesPanelProps } from "./components/ServicesPanel";
 
 // Payment types & utilities
 export type {

@@ -127,6 +127,7 @@ export function renderNexaLib(opts: ScaffoldOptions): string {
 
   lines.push(`export const nexa = createNexa({`);
   lines.push(`  apiKey:        process.env.NEXA_API_KEY!,`);
+  lines.push(`  // Nexa signs webhooks with your API key — NEXA_WEBHOOK_SECRET mirrors it`);
   lines.push(`  webhookSecret: process.env.NEXA_WEBHOOK_SECRET!,`);
   lines.push(``);
   lines.push(`  getUser: async () => {`);
@@ -171,6 +172,82 @@ export function renderNexaLib(opts: ScaffoldOptions): string {
   return lines.join("\n");
 }
 
+// ── convex/schema.ts + convex/nexa.ts ────────────────────────────────────────
+
+/**
+ * Convex codegen only registers functions reachable from the app's own
+ * convex/ directory. Without these two files `api` is an empty `{}` and
+ * the @nexa-ed/convex handler factories can never resolve api.nexa.*.
+ */
+export function renderConvexSchema(opts: ScaffoldOptions): string {
+  const imports: string[] = [];
+  const spreads: string[] = [];
+  if (opts.features.payments) {
+    imports.push(`nexaPaymentsSchema`);
+    spreads.push(`  ...nexaPaymentsSchema,`);
+  }
+  if (opts.features.fileProcessing) {
+    imports.push(`nexaFilesSchema`);
+    spreads.push(`  ...nexaFilesSchema,`);
+  }
+  if (opts.features.emailProvisioning) {
+    imports.push(`nexaStudentEmailsSchema`);
+    spreads.push(`  ...nexaStudentEmailsSchema,`);
+  }
+
+  if (imports.length === 0) {
+    return `import { defineSchema } from "convex/server";
+
+// Add your tables here, or spread Nexa fragments:
+// import { nexaPaymentsSchema, nexaFilesSchema, nexaStudentEmailsSchema } from "@nexa-ed/convex/schema";
+
+export default defineSchema({});
+`;
+  }
+
+  return `import { defineSchema } from "convex/server";
+import { ${imports.join(", ")} } from "@nexa-ed/convex/schema";
+
+export default defineSchema({
+${spreads.join("\n")}
+});
+`;
+}
+
+export function renderConvexNexaModule(opts: ScaffoldOptions): string {
+  const mutationExports: string[] = [];
+  const queryExports: string[] = [];
+  if (opts.features.payments) {
+    mutationExports.push(`upsertPaymentFromNexa`);
+    queryExports.push(`getPaymentByReference`, `getPaymentsByEmail`);
+  }
+  if (opts.features.fileProcessing) {
+    mutationExports.push(`upsertFileResultFromNexa`);
+    queryExports.push(`getFileResult`, `getFileResultsByUser`);
+  }
+  if (opts.features.emailProvisioning) {
+    mutationExports.push(`upsertStudentEmailFromNexa`);
+    queryExports.push(`getStudentEmailByEmail`, `listStudentEmailsByTenant`, `listStudentEmailsByStatus`);
+  }
+
+  const lines: string[] = [
+    `/**`,
+    ` * Mounts the pre-built @nexa-ed/convex functions so Convex codegen sees them.`,
+    ` * After editing this file run \`npx convex dev\` (or \`npx convex codegen\`) once`,
+    ` * to regenerate _generated/api — that is what makes api.nexa.* exist.`,
+    ` */`,
+    ``,
+  ];
+  if (mutationExports.length > 0) {
+    lines.push(`export { ${mutationExports.join(", ")} } from "@nexa-ed/convex/mutations";`);
+  }
+  if (queryExports.length > 0) {
+    lines.push(`export { ${queryExports.join(", ")} } from "@nexa-ed/convex/queries";`);
+  }
+  lines.push(``);
+  return lines.join("\n");
+}
+
 // ── app/api/nexa/[...nexaed]/route.ts ────────────────────────────────────────
 
 export function renderCatchAllRoute(): string {
@@ -190,7 +267,8 @@ export function renderEnvExample(opts: ScaffoldOptions): string {
     `# Get these from https://nexa-ed.com/dashboard/settings`,
     `# ──────────────────────────────────────────────────────────────────────────`,
     `NEXA_API_KEY=nxk_live_YOUR_KEY_HERE`,
-    `NEXA_WEBHOOK_SECRET=whsec_YOUR_SECRET_HERE`,
+    `# Nexa signs webhooks with your API key — set this to the same value as NEXA_API_KEY`,
+    `NEXA_WEBHOOK_SECRET=same_value_as_NEXA_API_KEY`,
     ``,
     `# Optional — only needed when developing against a local Nexa instance`,
     `# NEXA_URL=http://localhost:3000`,

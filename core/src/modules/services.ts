@@ -1,6 +1,6 @@
 import { nexaFetch } from "../http";
 import type { ResolvedNexaConfig } from "../config";
-import type { GetServicesResponse, TenantService } from "../types";
+import type { GetServicesResponse, TenantService, ServiceUsageResult } from "../types";
 
 export class ServicesModule {
   constructor(private readonly config: ResolvedNexaConfig) {}
@@ -30,8 +30,8 @@ export class ServicesModule {
   /**
    * Get usage metrics for a specific service.
    */
-  async getUsage(serviceId: string): Promise<Record<string, unknown>> {
-    return nexaFetch(
+  async getUsage(serviceId: string): Promise<ServiceUsageResult> {
+    return nexaFetch<ServiceUsageResult>(
       this.config,
       `/api/tenant/services/${encodeURIComponent(serviceId)}/usage`,
     );
