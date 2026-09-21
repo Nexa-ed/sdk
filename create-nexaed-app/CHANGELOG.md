@@ -1,5 +1,11 @@
 # create-nexaed-app
 
+## 0.3.0-beta.6
+
+### Patch Changes
+
+- Fix WorkOS scaffold: pin @workos-inc/authkit-nextjs ^4.3.0 and authkit-react ^0.16.0 (the old `^0.x.x` placeholder resolved to an ancient release), and switch the generated lib/nexa.ts from the removed `getUser` export to `withAuth`, which v4 actually provides.
+
 ## 0.3.0-beta.5
 
 ### Patch Changes

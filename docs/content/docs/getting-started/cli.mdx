@@ -27,6 +27,15 @@ npx create-nexaed-app help                 # print usage
   No `npm`/`npx` on your machine? Every command in this page also works with `pnpm dlx create-nexaed-app <args>` in place of `npx create-nexaed-app <args>`.
 </Callout>
 
+<Callout type="warn">
+  `pnpm create` / `npx` **cache the scaffolder** — an unpinned run can silently execute an
+  old copy and generate outdated files. If the output looks stale, pin the current version:
+  `pnpm create nexaed-app@0.3.0-beta.6 my-school` (see
+  [npm](https://www.npmjs.com/package/create-nexaed-app?activeTab=versions) for the latest).
+  The CLI also prints an update notice with the exact pinned command whenever a newer
+  version exists.
+</Callout>
+
 ---
 
 ## Run the scaffolder
@@ -172,7 +181,7 @@ my-school/
 ├── middleware.ts            ← auth route protection
 ├── components.json         ← shadcn/ui config  [shadcn only]
 ├── tailwind.config.ts
-├── pnpm-workspace.yaml     ← build-script approvals (pnpm 10/11 install exits 0)
+├── pnpm-workspace.yaml     ← build-script approvals + always-fresh @nexa-ed installs
 ├── .env.example            ← all required vars with inline comments
 ├── .env.local              ← API key pre-filled if you provided it
 ├── package.json

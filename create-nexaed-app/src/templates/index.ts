@@ -13,8 +13,8 @@ export function renderPackageJson(opts: ScaffoldOptions): string {
   };
 
   if (opts.authProvider === "workos") {
-    deps["@workos-inc/authkit-nextjs"] = "^0.x.x";
-    deps["@workos-inc/authkit-react"]  = "^0.x.x";
+    deps["@workos-inc/authkit-nextjs"] = "^4.3.0";
+    deps["@workos-inc/authkit-react"]  = "^0.16.0";
   } else if (opts.authProvider === "clerk") {
     deps["@clerk/nextjs"] = "^6.0.0";
   } else if (opts.authProvider === "nextauth") {
@@ -80,7 +80,7 @@ export function renderNexaLib(opts: ScaffoldOptions): string {
   lines.push(`import { createNexa } from "@nexa-ed/next";`);
 
   if (opts.authProvider === "workos") {
-    lines.push(`import { getUser } from "@workos-inc/authkit-nextjs";`);
+    lines.push(`import { withAuth } from "@workos-inc/authkit-nextjs";`);
   } else if (opts.authProvider === "clerk") {
     lines.push(`import { auth } from "@clerk/nextjs/server";`);
   } else if (opts.authProvider === "nextauth") {
@@ -112,7 +112,7 @@ export function renderNexaLib(opts: ScaffoldOptions): string {
   let getUserBody: string;
   if (opts.authProvider === "workos") {
     getUserBody = [
-      `    const { user } = await getUser();`,
+      `    const { user } = await withAuth();`,
       `    if (!user?.id) throw new Error("Unauthorized");`,
       `    return { userId: user.id };`,
     ].join("\n");
