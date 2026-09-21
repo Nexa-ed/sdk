@@ -1,5 +1,11 @@
 # create-nexaed-app
 
+## 0.3.0-beta.4
+
+### Patch Changes
+
+- Write pnpm-workspace.yaml with allowBuilds approvals (pnpm 11 ignores the package.json pnpm field, so fresh installs still exited 1), only run Convex codegen when CONVEX_DEPLOYMENT credentials exist (otherwise npx convex dev is listed as an explicit next step), and stop the update notifier from suggesting downgrades during prerelease.
+
 ## 0.3.0-beta.3
 
 ### Patch Changes

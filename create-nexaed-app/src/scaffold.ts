@@ -30,6 +30,9 @@ export async function scaffold(opts: ScaffoldOptions): Promise<void> {
 
   // ── Root files ───────────────────────────────────────────────────────────────
   await write(projectDir, "package.json",  renderPackageJson(opts));
+  // pnpm 11+ only reads build approvals from pnpm-workspace.yaml; without this
+  // a fresh `pnpm install` exits 1 (ERR_PNPM_IGNORED_BUILDS) on pnpm 11.
+  await write(projectDir, "pnpm-workspace.yaml", pnpmWorkspace());
   await write(projectDir, ".env.example",  renderEnvExample(opts));
   await write(projectDir, ".env.local",    renderEnvLocal(opts));
   await write(projectDir, ".gitignore",    gitignore());
@@ -84,6 +87,18 @@ async function write(dir: string, relPath: string, content: string) {
   const full = path.join(dir, relPath);
   await fs.ensureDir(path.dirname(full));
   await fs.writeFile(full, content, "utf8");
+}
+
+function pnpmWorkspace(): string {
+  return [
+    "# Build-script approvals for pnpm 11+ (pnpm 10 reads the list from package.json).",
+    "allowBuilds:",
+    "  '@clerk/shared': true",
+    "  esbuild: true",
+    "  sharp: true",
+    "  unrs-resolver: true",
+    "",
+  ].join("\n");
 }
 
 function renderEnvLocal(opts: ScaffoldOptions): string {

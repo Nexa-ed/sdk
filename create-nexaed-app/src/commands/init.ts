@@ -124,9 +124,11 @@ export async function runInit(args: ParsedArgs): Promise<void> {
   }
 
   // `api.nexa.*` only exists once Convex codegen has scanned convex/nexa.ts.
-  // Run it now so the scaffolded project typechecks without any manual step.
+  // codegen talks to the Convex API, so it can only run when the user already
+  // has deployment credentials in the environment; otherwise the first
+  // `npx convex dev` does it and we just say so.
   let codegenOk = false;
-  if (opts.features.convex && installOk) {
+  if (opts.features.convex && installOk && process.env.CONVEX_DEPLOYMENT) {
     const execArgs: Record<string, string[]> = {
       pnpm: ["pnpm", "exec"],
       npm:  ["npx"],
@@ -178,7 +180,7 @@ export async function runInit(args: ParsedArgs): Promise<void> {
   ];
 
   if (opts.features.convex && !codegenOk) {
-    steps.push(pc.cyan(`  • npx convex dev  — first run creates/attaches your deployment and regenerates convex/_generated/api (api.nexa.* won't exist until then)`));
+    steps.push(pc.cyan(`  • ${exec} convex dev  — logs in, creates/attaches a deployment, and generates convex/_generated/api (check-types won't pass until then)`));
   }
 
   const outroLines = [
