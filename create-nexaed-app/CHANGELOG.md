@@ -1,5 +1,11 @@
 # create-nexaed-app
 
+## 0.3.0-beta.3
+
+### Patch Changes
+
+- Pre-approve package build scripts (pnpm.onlyBuiltDependencies) in generated package.json and treat a warning-only install as successful, so fresh `pnpm create nexaed-app` runs complete and auto-run Convex codegen instead of exiting 1 on ERR_PNPM_IGNORED_BUILDS.
+
 ## 0.3.0-beta.2
 
 ### Minor Changes

@@ -56,6 +56,16 @@ export function renderPackageJson(opts: ScaffoldOptions): string {
         autoprefixer:      "^10",
         postcss:           "^8",
       },
+      // Without this, pnpm 10 exits 1 on a fresh install (ERR_PNPM_IGNORED_BUILDS),
+      // which makes the scaffold report failure and skip convex codegen.
+      pnpm: {
+        onlyBuiltDependencies: [
+          "esbuild",
+          "@clerk/shared",
+          "sharp",
+          "unrs-resolver",
+        ],
+      },
     },
     null,
     2,

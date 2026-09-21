@@ -1,6 +1,8 @@
 import * as p from "@clack/prompts";
 import pc from "picocolors";
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import type { ParsedArgs } from "../utils/parseArgs";
 import { runPrompts } from "../prompts";
 import { scaffold } from "../scaffold";
@@ -106,9 +108,16 @@ export async function runInit(args: ParsedArgs): Promise<void> {
       stdio: "inherit",
       shell: process.platform === "win32",
     });
-    if (result.status !== 0) {
+    // pnpm can exit non-zero for purely advisory reasons (e.g. ignored build
+    // scripts) even though every package landed in node_modules. If the
+    // dependencies are actually present, proceed instead of blocking codegen.
+    const depsPresent = existsSync(path.join(opts.projectDir, "node_modules"));
+    if (result.status !== 0 && !depsPresent) {
       p.log.warn(`Dependency install failed. Run manually: cd ${opts.projectName} && ${pm} install`);
     } else {
+      if (result.status !== 0) {
+        p.log.warn(`Install reported warnings (exit ${result.status}) but dependencies are present — continuing.`);
+      }
       p.log.success("Dependencies installed.");
       installOk = true;
     }
