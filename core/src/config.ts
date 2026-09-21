@@ -29,17 +29,17 @@ export interface NexaEmailConfig {
 
 export interface NexaConfig {
   /**
-   * Your Nexa API key — found in the Nexa dashboard under Settings → API Keys.
+   * Your Nexa API key — found in the Nexa dashboard under **API key**.
    */
   apiKey: string;
 
   /**
    * Webhook signing secret — used to verify the authenticity of incoming
-   * webhook payloads from Nexa. Found in the Nexa dashboard under Webhooks.
+   * webhook payloads from Nexa.
    *
-   * Keep this separate from your API key: the API key authenticates requests
-   * you make TO Nexa, while the webhook secret verifies requests Nexa makes
-   * TO you. Rotating one does not affect the other.
+   * Today Nexa signs every webhook with your **API key** (HMAC-SHA256), so
+   * set this to the same value as `apiKey`. There is no separate secret to
+   * generate yet. Keep them in sync when you rotate the API key.
    */
   webhookSecret: string;
 

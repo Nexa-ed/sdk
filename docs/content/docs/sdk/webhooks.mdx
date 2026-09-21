@@ -7,7 +7,7 @@ description: Receive, verify, and handle Nexa webhook events for file processing
 
 When a file finishes processing, a payment is confirmed, or a student email account is provisioned, Nexa sends a signed `POST` request to a URL you register in the dashboard. The SDK:
 
-1. Verifies the HMAC-SHA256 signature using your `NEXA_WEBHOOK_SECRET`
+1. Verifies the HMAC-SHA256 signature using your `NEXA_WEBHOOK_SECRET` (your API key — see setup below)
 2. Rejects events older than 5 minutes (replay protection)
 3. Parses the payload into a typed `WebhookEvent`
 4. Calls your `onFileComplete` or `onPaymentComplete` callback
@@ -29,8 +29,15 @@ All of this happens automatically inside the catch-all route handler — you onl
 **2. Confirm `NEXA_WEBHOOK_SECRET` is set** in your environment:
 
 ```bash
-NEXA_WEBHOOK_SECRET=whsec_...
+NEXA_WEBHOOK_SECRET=nxa_live_...   # same value as NEXA_API_KEY
 ```
+
+<Callout type="info">
+  Nexa signs every webhook with HMAC-SHA256 using your **API key** as the signing
+  secret. There is no separate webhook secret to generate today — set
+  `NEXA_WEBHOOK_SECRET` to the same value as `NEXA_API_KEY`, and update both
+  whenever you rotate the key.
+</Callout>
 
 **3. Implement your callbacks** in `lib/nexa.ts`:
 

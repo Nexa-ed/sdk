@@ -7,7 +7,7 @@ description: Choose your integration path and install the right Nexa packages.
 
 - Node.js **18+** (all packages)
 - Node.js **20+** if using `@nexa-ed/next`
-- A Nexa tenant account — grab your **API key** and **webhook secret** from the dashboard
+- A Nexa tenant account — grab your **API key** from the dashboard (it doubles as your webhook signing secret, see below)
 
 ---
 
@@ -126,9 +126,9 @@ export default defineSchema({
 Add these to `.env.local` (or your framework's equivalent) regardless of which package you use:
 
 ```bash
-# Required — get both from the Nexa dashboard
+# Required — both values come from the same API key in the Nexa dashboard
 NEXA_API_KEY=nxa_live_...
-NEXA_WEBHOOK_SECRET=whsec_...
+NEXA_WEBHOOK_SECRET=nxa_live_...   # set to the SAME value as NEXA_API_KEY
 
 # Optional — defaults to https://nexa-ed.com
 NEXA_URL=https://nexa-ed.com
@@ -137,4 +137,11 @@ NEXA_URL=https://nexa-ed.com
 <Callout type="warn">
   Never expose `NEXA_API_KEY` in client-side code or commit it to source control.
   All SDK packages route API calls through your server — the key never leaves it.
+</Callout>
+
+<Callout type="info">
+  Nexa signs every webhook with HMAC-SHA256 using your **API key** as the signing
+  secret — there is no separate webhook secret to generate today. Set
+  `NEXA_WEBHOOK_SECRET` to the exact same value as `NEXA_API_KEY`, and update both
+  whenever you rotate the key.
 </Callout>

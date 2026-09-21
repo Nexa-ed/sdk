@@ -6,8 +6,9 @@ import type { WebhookEvent } from "../types";
  * Verify a Nexa webhook request and return the parsed event.
  *
  * Nexa signs every outgoing webhook with HMAC-SHA256 using your
- * `webhookSecret`. The signature covers `payload + timestamp` to prevent
- * replay attacks (events older than 5 minutes are rejected by default).
+ * `webhookSecret` (today this is the same value as your API key). The
+ * signature covers `payload + timestamp` to prevent replay attacks (events
+ * older than 5 minutes are rejected by default).
  *
  * Headers sent by Nexa:
  *   `x-nexa-signature`  — hex-encoded HMAC-SHA256

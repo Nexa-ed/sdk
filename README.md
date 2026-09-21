@@ -227,7 +227,8 @@ await fastify.register(nexaFastify, { client: nexa, prefix: "/api/nexa" });
 ```env
 # Required
 NEXA_API_KEY=             # Your tenant API key from the Nexa platform
-NEXA_WEBHOOK_SECRET=      # Webhook signing secret from the Nexa dashboard
+NEXA_WEBHOOK_SECRET=      # Set to the SAME value as NEXA_API_KEY — Nexa signs
+                          # webhooks with your API key (no separate secret yet)
 ```
 
 ---

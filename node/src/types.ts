@@ -4,7 +4,7 @@ import type { WebhookEvent } from "@nexa-ed/sdk";
  * Configuration for the Node.js adapter.
  */
 export interface NexaNodeConfig {
-  /** Your Nexa API key — from the Nexa dashboard under Settings → API Keys. */
+  /** Your Nexa API key — from the Nexa dashboard under **API key**. */
   apiKey: string;
 
   /**

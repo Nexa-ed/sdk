@@ -192,10 +192,10 @@ Open `.env.local` and set:
 
 ```bash
 NEXA_API_KEY=nxa_live_...
-NEXA_WEBHOOK_SECRET=whsec_...
+NEXA_WEBHOOK_SECRET=nxa_live_...   # same value as NEXA_API_KEY
 ```
 
-Get both values from **Nexa dashboard → Settings → API Keys** and **→ Webhooks**.
+Both come from **Nexa dashboard → API key** — Nexa signs webhooks with your API key, so `NEXA_WEBHOOK_SECRET` is just a second copy of it. Update both whenever you rotate the key.
 
 **3. Register webhook URLs**
 

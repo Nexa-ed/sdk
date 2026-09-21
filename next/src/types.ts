@@ -4,7 +4,7 @@ import type { WebhookEvent, NexaEmailConfig } from "@nexa-ed/sdk";
  * Configuration passed to `createNexa()`.
  */
 export interface NexaNextConfig {
-  /** Your Nexa API key — from the Nexa dashboard under Settings → API Keys. */
+  /** Your Nexa API key — from the Nexa dashboard under **API key**. */
   apiKey: string;
 
   /**
