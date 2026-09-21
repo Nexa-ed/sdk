@@ -6,13 +6,21 @@ interface NextStepsSectionProps {
   name: string;
   pm: PM;
   ui: UiLibrary;
+  hasConvex: boolean;
 }
 
-export function NextStepsSection({ name, pm, ui }: NextStepsSectionProps) {
+export function NextStepsSection({ name, pm, ui, hasConvex }: NextStepsSectionProps) {
   const safeName = name.trim() || "my-school";
   const dlx = pm === "pnpm" ? "pnpm dlx" : pm === "yarn" ? "yarn dlx" : pm === "bun" ? "bunx" : "npx";
+  const convexRun = pm === "pnpm" ? "pnpm exec" : pm === "yarn" ? "yarn" : pm === "bun" ? "bunx" : "npx";
   const hasShadcn = ui === "shadcn";
-  const devStep = hasShadcn ? 4 : 3;
+  let step = 0;
+  const n = () => ++step;
+  const installStep = n();
+  const envStep = n();
+  const convexStep = hasConvex ? n() : 0;
+  const shadcnStep = hasShadcn ? n() : 0;
+  const devStep = n();
 
   return (
     <section className="rounded-xl border border-fd-border bg-fd-card/40 p-6">
@@ -23,25 +31,38 @@ export function NextStepsSection({ name, pm, ui }: NextStepsSectionProps) {
         After running the command
       </h3>
       <ol className="space-y-3 text-sm text-fd-muted-foreground">
-        <StepItem n={1}>
+        <StepItem n={installStep}>
           <code className="rounded border border-fd-border bg-fd-background px-1.5 py-0.5 text-[11px] font-mono text-fd-foreground">
             cd {safeName} && {pm} install
           </code>
         </StepItem>
 
-        <StepItem n={2}>
+        <StepItem n={envStep}>
           Fill in{" "}
           <code className="rounded border border-fd-border bg-fd-background px-1 font-mono text-[11px] text-fd-foreground">
             .env.local
           </code>{" "}
-          — add your{" "}
+          — set{" "}
           <code className="font-mono text-[11px] text-fd-foreground">NEXA_API_KEY</code> and{" "}
           <code className="font-mono text-[11px] text-fd-foreground">NEXA_WEBHOOK_SECRET</code>{" "}
-          from the Nexa dashboard.
+          to the <span className="text-fd-foreground">same API key</span> from the Nexa dashboard
+          (webhooks are signed with your API key).
         </StepItem>
 
+        {hasConvex && (
+          <StepItem n={convexStep}>
+            Connect Convex: run{" "}
+            <code className="rounded border border-fd-border bg-fd-background px-1.5 py-0.5 font-mono text-[11px] text-fd-foreground">
+              {convexRun} convex dev
+            </code>{" "}
+            once — it creates/attaches a deployment and generates{" "}
+            <code className="font-mono text-[11px] text-fd-foreground">convex/_generated/api</code>{" "}
+            so <code className="font-mono text-[11px] text-fd-foreground">api.nexa.*</code> exists.
+          </StepItem>
+        )}
+
         {hasShadcn && (
-          <StepItem n={3}>
+          <StepItem n={shadcnStep}>
             Add your first shadcn component:{" "}
             <code className="rounded border border-fd-border bg-fd-background px-1.5 py-0.5 font-mono text-[11px] text-fd-foreground">
               {dlx} shadcn@latest add button

@@ -114,7 +114,12 @@ export default function BuilderUI() {
             onChange={(pm) => setState((p) => ({ ...p, pm }))}
           />
           <PreviewSection state={state} />
-          <NextStepsSection name={state.name} pm={state.pm} ui={state.ui} />
+          <NextStepsSection
+            name={state.name}
+            pm={state.pm}
+            ui={state.ui}
+            hasConvex={state.features.includes("convex")}
+          />
         </div>
       </main>
     </div>

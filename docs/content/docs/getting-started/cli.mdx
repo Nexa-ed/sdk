@@ -18,9 +18,14 @@ npx create-nexaed-app                      # scaffold a new school app (default)
 npx create-nexaed-app init my-school       # explicit init
 npx create-nexaed-app doctor               # validate an existing app
 npx create-nexaed-app upgrade              # upgrade @nexa-ed/* deps to @latest
+npx create-nexaed-app skill                # install the Nexa-Ed Claude Code skill
 npx create-nexaed-app telemetry on|off     # manage telemetry preference
 npx create-nexaed-app help                 # print usage
 ```
+
+<Callout type="info">
+  No `npm`/`npx` on your machine? Every command in this page also works with `pnpm dlx create-nexaed-app <args>` in place of `npx create-nexaed-app <args>`.
+</Callout>
 
 ---
 
@@ -63,6 +68,15 @@ npx create-nexaed-app my-school \
   --email-tier tier-1-nexa \
   --api-key nxa_live_... \
   --pm pnpm
+
+# or, without npm/npx installed:
+pnpm dlx create-nexaed-app my-school \
+  --auth clerk \
+  --features fileProcessing,payments \
+  --ui shadcn \
+  --email-tier tier-1-nexa \
+  --api-key nxa_live_... \
+  --pm pnpm
 ```
 
 | Flag | Description |
@@ -89,6 +103,7 @@ Run `doctor` inside an existing Nexa-powered school app to check for common setu
 ```bash
 cd my-school
 npx create-nexaed-app doctor
+# or: pnpm dlx create-nexaed-app doctor
 ```
 
 Runs 5 checks:
@@ -110,9 +125,24 @@ Updates all `@nexa-ed/*` dependencies in the current project to `@latest`:
 ```bash
 cd my-school
 npx create-nexaed-app upgrade
+# or: pnpm dlx create-nexaed-app upgrade
 ```
 
 The package manager is detected automatically from your lockfile.
+
+---
+
+## `skill` — teach Claude Code the SDK
+
+Every app scaffolded with `init` already gets this installed at `.claude/skills/nexa-ed-sdk`. If you're adding Nexa-Ed to an **existing** app instead of scaffolding a new one, install it explicitly:
+
+```bash
+cd my-existing-app
+npx create-nexaed-app skill
+# or: pnpm dlx create-nexaed-app skill
+```
+
+This drops a Claude Code [skill](https://docs.claude.com/claude-code) into `.claude/skills/nexa-ed-sdk/` — a `SKILL.md` plus reference files covering `createNexa`/`createRouteHandler` setup, every `NexaClient` module's real method signatures, the verified `@nexa-ed/react` component/hook list, and webhook/error handling. Claude Code picks it up automatically the next time you ask it to work with the SDK in that project — no MCP server or extra config required. It's kept in sync with the SDK source (not just the docs), and calls out a few places where these docs pages currently lag the source.
 
 ---
 
@@ -120,21 +150,29 @@ The package manager is detected automatically from your lockfile.
 
 ```
 my-school/
+├── .claude/
+│   └── skills/nexa-ed-sdk/  ← Claude Code skill (SKILL.md + reference/)
 ├── app/
 │   ├── api/nexa/[...nexaed]/
 │   │   └── route.ts        ← single catch-all route handler
+│   ├── callback/route.ts   ← WorkOS sign-in callback  [workos only]
 │   ├── dashboard/
 │   │   └── page.tsx        ← main dashboard
 │   ├── layout.tsx
 │   ├── page.tsx            ← landing page (Nexa brand colours)
 │   ├── providers.tsx
 │   └── globals.css
+├── convex/                  ← [convex feature only]
+│   ├── schema.ts           ← Nexa schema fragments (payments / files / emails)
+│   └── nexa.ts             ← @nexa-ed/convex function mounts — this is what
+│                             makes `api.nexa.*` appear once codegen runs
 ├── lib/
 │   ├── nexa.ts             ← SDK instance (pre-wired to your auth provider)
 │   └── utils.ts            ← cn() helper  [shadcn only]
-├── middleware.ts            ← auth route protection  [clerk / nextauth only]
+├── middleware.ts            ← auth route protection
 ├── components.json         ← shadcn/ui config  [shadcn only]
 ├── tailwind.config.ts
+├── pnpm-workspace.yaml     ← build-script approvals (pnpm 10/11 install exits 0)
 ├── .env.example            ← all required vars with inline comments
 ├── .env.local              ← API key pre-filled if you provided it
 ├── package.json
@@ -197,7 +235,18 @@ NEXA_WEBHOOK_SECRET=nxa_live_...   # same value as NEXA_API_KEY
 
 Both come from **Nexa dashboard → API key** — Nexa signs webhooks with your API key, so `NEXA_WEBHOOK_SECRET` is just a second copy of it. Update both whenever you rotate the key.
 
-**3. Register webhook URLs**
+**3. Connect Convex** *(only if you chose the `convex` feature)*
+
+```bash
+npx convex dev
+```
+
+This logs you in, creates or attaches a deployment, and generates
+`convex/_generated/api` from the mounts in `convex/nexa.ts`. Until it has run
+once, `api.nexa.*` does not exist and `pnpm check-types` will fail — the CLI
+cannot do this step for you because it needs your Convex account.
+
+**4. Register webhook URLs**
 
 In the Nexa dashboard, add:
 
@@ -205,11 +254,12 @@ In the Nexa dashboard, add:
 |-------|-----|
 | `file.completed` | `https://your-domain.com/api/nexa/webhook` |
 | `payment.completed` | `https://your-domain.com/api/nexa/payments/forward` |
-| `email.bulk_completed` | `https://your-domain.com/api/nexa/email-provisioning/forward` |
+
+If you provision student emails, `email.*` events need a route you write yourself (there's no built-in path for them) — see [Webhooks → Email events](/docs/sdk/webhooks#email-events-need-a-custom-route).
 
 Use [ngrok](https://ngrok.com) to expose `localhost:3000` while developing.
 
-**4. Start the dev server**
+**5. Start the dev server**
 
 ```bash
 pnpm dev
