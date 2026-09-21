@@ -1,30 +1,40 @@
 import fs from "node:fs";
 import path from "node:path";
 
-export async function checkForUpdate(): Promise<string | null> {
+export function readCurrentVersion(): string {
+  const pkgPath = path.resolve(__dirname, "../package.json");
+  const { version } = JSON.parse(fs.readFileSync(pkgPath, "utf8")) as { version: string };
+  return version;
+}
+
+export async function fetchLatestVersion(): Promise<string | null> {
   try {
-    const pkgPath = path.resolve(__dirname, "../package.json");
-    const { version: current } = JSON.parse(
-      fs.readFileSync(pkgPath, "utf8"),
-    ) as { version: string };
-
-    const res = await fetch(
-      "https://registry.npmjs.org/create-nexaed-app/latest",
-      { signal: AbortSignal.timeout(3000) },
-    );
+    const res = await fetch("https://registry.npmjs.org/create-nexaed-app/latest", {
+      signal: AbortSignal.timeout(3000),
+    });
     if (!res.ok) return null;
-
-    const { version: latest } = (await res.json()) as { version: string };
-    if (isNewer(latest, current)) {
-      return (
-        `Update available: ${current} → ${latest}\n` +
-        `  pnpm/npm cache the scaffolder, so an unpinned run may use the old copy.\n` +
-        `  Run the new one explicitly:\n` +
-        `    pnpm create nexaed-app@${latest} <name>   (or: npx create-nexaed-app@${latest} <name>)`
-      );
-    }
+    const { version } = (await res.json()) as { version: string };
+    return version ?? null;
   } catch {
     // Network or parse error — silently ignore
+    return null;
+  }
+}
+
+export function updateAvailableMessage(current: string, latest: string): string {
+  return (
+    `Update available: ${current} → ${latest}\n` +
+    `  pnpm/npm cache the scaffolder, so an unpinned run may use the old copy.\n` +
+    `  Run the new one explicitly:\n` +
+    `    pnpm create nexaed-app@${latest} <name>   (or: npx create-nexaed-app@${latest} <name>)`
+  );
+}
+
+export async function checkForUpdate(): Promise<string | null> {
+  const current = readCurrentVersion();
+  const latest = await fetchLatestVersion();
+  if (latest && isNewer(latest, current)) {
+    return updateAvailableMessage(current, latest);
   }
   return null;
 }

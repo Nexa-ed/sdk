@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { spawnSync } from "node:child_process";
 import * as p from "@clack/prompts";
 import { parseArgs } from "./utils/parseArgs";
 import { runInit } from "./commands/init";
@@ -6,14 +7,73 @@ import { runDoctor } from "./commands/doctor";
 import { runUpgrade } from "./commands/upgrade";
 import { runHelp } from "./commands/help";
 import { runSkill } from "./commands/skill";
-import { checkForUpdate } from "./utils/updateNotifier";
+import {
+  checkForUpdate,
+  fetchLatestVersion,
+  isNewer,
+  readCurrentVersion,
+  updateAvailableMessage,
+} from "./utils/updateNotifier";
 import { runTelemetryCommand } from "./utils/telemetry";
 
-async function main() {
-  const args = parseArgs(process.argv.slice(2));
+// Unpinned `pnpm create nexaed-app` / `npx create-nexaed-app` can silently run
+// an old copy: pnpm's default minimumReleaseAge gate hides same-day publishes,
+// and dlx caches per-package. Exact-version invocations bypass both, so when
+// we detect we're stale, offer to hand off to the newest release.
+function dlxCommand(latest: string, argv: string[]): string | null {
+  // Only safe to rebuild the command line when every arg is a simple token;
+  // anything with shell metacharacters should not be re-quoted by us.
+  if (!argv.every((a) => /^[A-Za-z0-9@/_.:,+-]+$/.test(a))) return null;
+  const spec = `create-nexaed-app@${latest}`;
+  const ua = process.env.npm_config_user_agent ?? "";
+  const runner = ua.startsWith("pnpm/")
+    ? `pnpm dlx ${spec}`
+    : ua.startsWith("yarn/")
+      ? `yarn dlx ${spec}`
+      : ua.startsWith("bun/")
+        ? `bunx ${spec}`
+        : `npx --yes ${spec}`;
+  return [runner, ...argv].join(" ");
+}
 
-  // Fire update check in background — never blocks prompts
-  const updatePromise = checkForUpdate();
+async function guardStaleScaffold(argv: string[]): Promise<void> {
+  if (process.env.NEXAED_SKIP_UPDATE_CHECK === "1") return;
+  const current = readCurrentVersion();
+  const latest = await fetchLatestVersion();
+  if (!latest || !isNewer(latest, current)) return;
+
+  const cmd = dlxCommand(latest, argv);
+  const interactive = Boolean(process.stdin.isTTY && cmd);
+
+  if (interactive && cmd) {
+    const rerun = await p.confirm({
+      message:
+        `You're running create-nexaed-app ${current}, but ${latest} is the latest.\n` +
+        `  pnpm/npm may cache the scaffolder or hide same-day publishes.\n` +
+        `  Re-run the scaffold with ${latest} now?`,
+      initialValue: true,
+    });
+    if (p.isCancel(rerun) || rerun) {
+      p.log.info(`Re-running with create-nexaed-app@${latest} …`);
+      const res = spawnSync(cmd, {
+        stdio: "inherit",
+        shell: true,
+        env: { ...process.env, NEXAED_SKIP_UPDATE_CHECK: "1" },
+      });
+      process.exit(res.status ?? 1);
+    }
+  }
+  p.log.warn(updateAvailableMessage(current, latest));
+}
+
+async function main() {
+  const argv = process.argv.slice(2);
+  const args = parseArgs(argv);
+  const isInit = args.command === "init";
+
+  // Non-init commands only get the lightweight after-the-fact notice.
+  const updatePromise = isInit ? null : checkForUpdate();
+  if (isInit) await guardStaleScaffold(argv);
 
   try {
     switch (args.command) {
@@ -41,7 +101,6 @@ async function main() {
     process.exit(1);
   }
 
-  // Print update notice after everything else
   const updateMsg = await updatePromise;
   if (updateMsg) p.log.warn(updateMsg);
 }

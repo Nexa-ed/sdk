@@ -1,5 +1,11 @@
 # create-nexaed-app
 
+## 0.3.0-beta.7
+
+### Patch Changes
+
+- Unpinned `pnpm create nexaed-app` runs no longer silently scaffold from a stale copy: the CLI now checks the registry before generating anything and, when a newer release exists, re-runs your exact command against that version (pnpm's minimumReleaseAge gate and dlx caches otherwise hand you an old scaffolder — exact-version invocations bypass both). Falls back to the update notice when not interactive.
+
 ## 0.3.0-beta.6
 
 ### Patch Changes
