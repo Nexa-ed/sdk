@@ -1,5 +1,11 @@
 # create-nexaed-app
 
+## 0.3.0-beta.5
+
+### Patch Changes
+
+- Exclude @nexa-ed/\* from pnpm's minimumReleaseAge supply-chain gate in generated projects (pnpm-workspace.yaml now carries minimumReleaseAgeExclude), so a fresh install always resolves the newest SDK publish instead of silently pinning an older one. The update notice now names the cache-proof, version-pinned command instead of a global install.
+
 ## 0.3.0-beta.4
 
 ### Patch Changes

@@ -16,7 +16,12 @@ export async function checkForUpdate(): Promise<string | null> {
 
     const { version: latest } = (await res.json()) as { version: string };
     if (isNewer(latest, current)) {
-      return `Update available: ${current} → ${latest}  Run: pnpm add -g create-nexaed-app`;
+      return (
+        `Update available: ${current} → ${latest}\n` +
+        `  pnpm/npm cache the scaffolder, so an unpinned run may use the old copy.\n` +
+        `  Run the new one explicitly:\n` +
+        `    pnpm create nexaed-app@${latest} <name>   (or: npx create-nexaed-app@${latest} <name>)`
+      );
     }
   } catch {
     // Network or parse error — silently ignore

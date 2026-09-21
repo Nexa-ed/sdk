@@ -97,6 +97,11 @@ function pnpmWorkspace(): string {
     "  esbuild: true",
     "  sharp: true",
     "  unrs-resolver: true",
+    "# pnpm's minimumReleaseAge supply-chain gate would otherwise silently pin",
+    "# @nexa-ed/* to an older publish; always install the newest release.",
+    "minimumReleaseAgeExclude:",
+    "  - '@nexa-ed/*'",
+    "  - create-nexaed-app",
     "",
   ].join("\n");
 }
