@@ -16,6 +16,28 @@ function detectPackageManager(): string {
   return "npm";
 }
 
+// `pm` feeds a shell:true spawn on Windows, so it must never be free-form input.
+function resolvePackageManager(requested?: string): string {
+  const valid = ["pnpm", "npm", "yarn", "bun"];
+  return requested && valid.includes(requested) ? requested : detectPackageManager();
+}
+
+/**
+ * On Windows, spawnSync(cmd, args, { shell: true }) concatenates the args
+ * unescaped (DEP0190); the command is safe to build only from vetted tokens,
+ * which both call sites below are.
+ */
+function spawnTask(
+  cmd: string,
+  args: string[],
+  opts: { cwd: string; stdio: "inherit"; env?: NodeJS.ProcessEnv },
+) {
+  if (process.platform === "win32") {
+    return spawnSync([cmd, ...args].join(" "), { ...opts, shell: true });
+  }
+  return spawnSync(cmd, args, opts);
+}
+
 /** Thin wrapper: uses clack spinner in TTY, plain console.log in CI. */
 function makeSpinner() {
   if (process.stdout.isTTY) {
@@ -42,7 +64,7 @@ export async function runInit(args: ParsedArgs): Promise<void> {
     git: args.git,
   });
 
-  const pm = args.pm ?? detectPackageManager();
+  const pm = resolvePackageManager(args.pm);
 
   // Telemetry consent (asked once, then remembered; skipped in CI)
   await handleTelemetryConsent({
@@ -103,10 +125,9 @@ export async function runInit(args: ParsedArgs): Promise<void> {
     // Print a plain log line — the spinner must not run while the package manager
     // writes its own output to the same terminal.
     p.log.step(`Installing dependencies with ${pm}…`);
-    const result = spawnSync(pm, ["install"], {
+    const result = spawnTask(pm, ["install"], {
       cwd: opts.projectDir,
       stdio: "inherit",
-      shell: process.platform === "win32",
     });
     // pnpm can exit non-zero for purely advisory reasons (e.g. ignored build
     // scripts) even though every package landed in node_modules. If the
@@ -137,10 +158,10 @@ export async function runInit(args: ParsedArgs): Promise<void> {
     };
     p.log.step("Generating Convex API reference…");
     const [cmd, ...baseArgs] = execArgs[pm] ?? ["npx"];
-    const codegen = spawnSync(
+    const codegen = spawnTask(
       cmd,
       [...baseArgs, "convex", "codegen", "--typecheck", "disable"],
-      { cwd: opts.projectDir, stdio: "inherit", shell: process.platform === "win32" },
+      { cwd: opts.projectDir, stdio: "inherit" },
     );
     if (codegen.status === 0) {
       p.log.success("Convex _generated/api created (api.nexa.* is live).");

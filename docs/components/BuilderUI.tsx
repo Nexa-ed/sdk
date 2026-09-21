@@ -28,6 +28,23 @@ export default function BuilderUI() {
   const [state, setState] = useState<BuilderState>(() => paramsToState(searchParams));
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
+  const [cliVersion, setCliVersion] = useState<string | null>(null);
+
+  // Pin the generated command to the actual latest release: unpinned pnpm
+  // runs can be silently resolved to an old cached/gated copy by the package
+  // manager, and an exact version always bypasses that.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("https://registry.npmjs.org/create-nexaed-app/latest")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (!cancelled && j?.version) setCliVersion(j.version);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Sync URL on state change (debounced 300 ms)
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -43,7 +60,7 @@ export default function BuilderUI() {
     };
   }, [state, router]);
 
-  const command = buildCommand(state);
+  const command = buildCommand(state, cliVersion);
 
   const toggleFeature = useCallback((f: Feature) => {
     setState((prev) => {

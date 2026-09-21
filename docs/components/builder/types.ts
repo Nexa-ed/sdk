@@ -28,18 +28,21 @@ export const DEFAULTS: BuilderState = {
 
 /* ─── Command builder ────────────────────────────────────────────────────── */
 
-export function buildCommand(s: BuilderState): string {
+export function buildCommand(s: BuilderState, cliVersion?: string | null): string {
   const safeName = s.name.trim() || "my-school";
   const hasEmail = s.features.includes("emailProvisioning");
+  // pnpm's minimumReleaseAge gate and dlx/npx caches can hand an unpinned run
+  // a months-old scaffolder; an exact version always resolves straight through.
+  const at = cliVersion && /^\d+\.\d+\.\d+(-[\w.]+)?$/.test(cliVersion) ? `@${cliVersion}` : "";
 
   const base =
     s.pm === "pnpm"
-      ? `pnpm create nexaed-app ${safeName}`
+      ? `pnpm create nexaed-app${at} ${safeName}`
       : s.pm === "yarn"
-      ? `yarn create nexaed-app ${safeName}`
+      ? `yarn create nexaed-app${at} ${safeName}`
       : s.pm === "bun"
-      ? `bunx create-nexaed-app ${safeName}`
-      : `npx create-nexaed-app ${safeName}`;
+      ? `bunx create-nexaed-app${at} ${safeName}`
+      : `npx create-nexaed-app${at} ${safeName}`;
 
   const parts: string[] = [base];
 

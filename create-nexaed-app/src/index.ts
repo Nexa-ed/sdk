@@ -19,7 +19,9 @@ import { runTelemetryCommand } from "./utils/telemetry";
 // Unpinned `pnpm create nexaed-app` / `npx create-nexaed-app` can silently run
 // an old copy: pnpm's default minimumReleaseAge gate hides same-day publishes,
 // and dlx caches per-package. Exact-version invocations bypass both, so when
-// we detect we're stale, offer to hand off to the newest release.
+// we detect we're stale we hand the user's original command straight to the
+// newest release instead of generating outdated files. Opt out with
+// NEXAED_SKIP_UPDATE_CHECK=1 (used by the re-exec'd child to stop looping).
 function dlxCommand(latest: string, argv: string[]): string | null {
   // Only safe to rebuild the command line when every arg is a simple token;
   // anything with shell metacharacters should not be re-quoted by us.
@@ -43,25 +45,16 @@ async function guardStaleScaffold(argv: string[]): Promise<void> {
   if (!latest || !isNewer(latest, current)) return;
 
   const cmd = dlxCommand(latest, argv);
-  const interactive = Boolean(process.stdin.isTTY && cmd);
-
-  if (interactive && cmd) {
-    const rerun = await p.confirm({
-      message:
-        `You're running create-nexaed-app ${current}, but ${latest} is the latest.\n` +
-        `  pnpm/npm may cache the scaffolder or hide same-day publishes.\n` +
-        `  Re-run the scaffold with ${latest} now?`,
-      initialValue: true,
+  if (cmd) {
+    p.log.info(
+      `You have create-nexaed-app ${current}, but ${latest} is the latest release — handing off to it…`,
+    );
+    const res = spawnSync(cmd, {
+      stdio: "inherit",
+      shell: true,
+      env: { ...process.env, NEXAED_SKIP_UPDATE_CHECK: "1" },
     });
-    if (p.isCancel(rerun) || rerun) {
-      p.log.info(`Re-running with create-nexaed-app@${latest} …`);
-      const res = spawnSync(cmd, {
-        stdio: "inherit",
-        shell: true,
-        env: { ...process.env, NEXAED_SKIP_UPDATE_CHECK: "1" },
-      });
-      process.exit(res.status ?? 1);
-    }
+    process.exit(res.status ?? 1);
   }
   p.log.warn(updateAvailableMessage(current, latest));
 }

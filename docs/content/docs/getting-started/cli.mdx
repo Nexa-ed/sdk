@@ -28,13 +28,13 @@ npx create-nexaed-app help                 # print usage
 </Callout>
 
 <Callout type="warn">
-  `pnpm create` / `npx` **cache the scaffolder**, and pnpm 11's `minimumReleaseAge`
-  gate can hide same-day releases — an unpinned run may execute an old copy and
-  generate outdated files. From `0.3.0-beta.7` the CLI detects this **before**
-  scaffolding and re-runs your exact command against the newest release. If you are
-  stuck on an older copy, pin the current version explicitly, e.g.
-  `pnpm create nexaed-app@0.3.0-beta.7 my-school` (see
-  [npm](https://www.npmjs.com/package/create-nexaed-app?activeTab=versions) for the latest).
+  `pnpm create` / `npx` **cache the scaffolder**, and pnpm 11's default
+  `minimumReleaseAge` gate hides same-day releases — an unpinned run can resolve
+  to a months-old copy. From `0.3.0-beta.8` the CLI detects this **before** it
+  generates anything and silently hands your command to the newest release.
+  The builder page already copies commands **pinned to the current version**
+  (exact pins bypass the gate entirely), and
+  `NEXAED_SKIP_UPDATE_CHECK=1` opts out of the hand-off for reproducible runs.
 </Callout>
 
 ---

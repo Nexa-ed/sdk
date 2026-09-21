@@ -1,5 +1,11 @@
 # create-nexaed-app
 
+## 0.3.0-beta.8
+
+### Patch Changes
+
+- Stale-CLI hand-off is now silent: when the package manager resolves an outdated scaffolder (pnpm's minimumReleaseAge gate or dlx cache), the CLI re-runs your exact command against the newest release instead of asking, with NEXAED_SKIP_UPDATE_CHECK=1 as the opt-out. Also allowlists --pm values before they reach a shell spawn, and stops the DEP0190 warning during installs.
+
 ## 0.3.0-beta.7
 
 ### Patch Changes

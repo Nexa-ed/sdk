@@ -26,7 +26,9 @@ export function updateAvailableMessage(current: string, latest: string): string 
     `Update available: ${current} → ${latest}\n` +
     `  pnpm/npm cache the scaffolder, so an unpinned run may use the old copy.\n` +
     `  Run the new one explicitly:\n` +
-    `    pnpm create nexaed-app@${latest} <name>   (or: npx create-nexaed-app@${latest} <name>)`
+    `    pnpm create nexaed-app@${latest} <name>   (or: npx create-nexaed-app@${latest} <name>)\n` +
+    `  Refresh a global install with the pinned version:\n` +
+    `    pnpm add -g create-nexaed-app@${latest}`
   );
 }
 
