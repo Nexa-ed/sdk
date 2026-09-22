@@ -28,12 +28,18 @@ npx create-nexaed-app help                 # print usage
 </Callout>
 
 <Callout type="warn">
-  pnpm 11's default `minimumReleaseAge` gate hides same-day releases, so an
-  unpinned run can resolve to a months-old copy of the scaffolder. From
-  `0.3.0-beta.9` the CLI detects this **before** it generates anything and
-  silently re-runs your command against the newest release — you never need a
-  version number. `NEXAED_SKIP_UPDATE_CHECK=1` opts out for reproducible runs;
-  pin explicitly (`create-nexaed-app@1.2.3`) if you want a fixed version.
+  pnpm 11 ships a **24-hour supply-chain gate** (`minimumReleaseAge`, default
+  `1440` minutes) that hides any release published in the last day from
+  `@latest` resolution. So a freshly published scaffolder is invisible to an
+  unpinned `pnpm create nexaed-app` for a day — this is pnpm's default, not a
+  cache and not your config. From `0.3.0-beta.8` the CLI works around it for
+  you: it checks the registry **before** generating anything and silently
+  re-runs your command against the newest release (exact versions bypass the
+  gate). Only a copy older than that release is stuck, and it stops being stuck
+  once the newest guard passes 24 hours. To force a specific version now:
+  `pnpm dlx create-nexaed-app@1.2.3 my-school`, or `--pin 1.2.3` inside a
+  project that already has a newer copy. `NEXAED_SKIP_UPDATE_CHECK=1` opts out
+  of the hand-off entirely.
 </Callout>
 
 ---
