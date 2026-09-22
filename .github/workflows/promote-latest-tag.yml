@@ -1,0 +1,32 @@
+name: Promote npm latest tag
+
+# pnpm's minimumReleaseAge gate (default 1440min/24h) hides any release
+# published in the last day from unpinned installs. If npm's `latest` tag
+# points at something that new, an unpinned `pnpm create`/`pnpm add` silently
+# falls back to whatever release *is* old enough — which can be far older
+# than the one you just shipped. This job keeps `latest` pinned to the
+# newest release that has already cleared the gate, so that gap can't open.
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Promote latest dist-tag past the minimumReleaseAge gate
+        run: node scripts/promote-latest-tag.mjs
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
