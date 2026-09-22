@@ -1,4 +1,5 @@
 import * as p from "@clack/prompts";
+import { readdir } from "node:fs/promises";
 import path from "node:path";
 
 export type AuthProvider = "workos" | "clerk" | "nextauth" | "none";
@@ -48,22 +49,71 @@ const VALID_FEATURES = new Set<string>([
 ]);
 const VALID_UI = new Set<string>(["shadcn", "none"]);
 
+async function isNonEmptyDir(dir: string): Promise<boolean> {
+  try {
+    return (await readdir(dir)).length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Never dead-end a re-run: a previous scaffold (or any folder in the way) sends
+ * the user to a fresh name interactively, and gives a copy-pasteable instruction
+ * when nobody is at the keyboard. Existing files are never touched.
+ */
+async function resolveTarget(name: string): Promise<{ projectName: string; projectDir: string }> {
+  let current = name;
+  for (;;) {
+    const dir = path.resolve(process.cwd(), current);
+    if (!(await isNonEmptyDir(dir))) return { projectName: current, projectDir: dir };
+
+    if (!process.stdin.isTTY) {
+      throw new Error(
+        `Directory "${current}" already exists and is not empty, so nothing was written.\n` +
+          `  Re-run under a new name, e.g. create-nexaed-app ${current}-2\n` +
+          `  Or delete the old folder first and run the same command again.`,
+      );
+    }
+
+    const answer = await p.text({
+      message: `"${current}" already exists and is not empty — its files are left untouched. Choose a new project name:`,
+      initialValue: `${current}-2`,
+      validate: (v) => (v.trim().length === 0 ? "Project name is required." : undefined),
+    });
+    if (p.isCancel(answer)) cancel();
+    current = (answer as string).trim();
+  }
+}
+
 /**
  * Build ScaffoldOptions directly from prefill without any interactive prompts.
  * Used in non-TTY environments (CI) when all required values are supplied via flags.
+ * Unknown values never abort the run: they fall back to the default and say so,
+ * so a typo costs a warning rather than the whole scaffold.
  */
 function buildFromPrefill(nameArg: string, prefill: Prefill): ScaffoldOptions {
   const projectName = nameArg;
+
   const authProvider =
     prefill.auth && VALID_AUTH.has(prefill.auth)
       ? (prefill.auth as AuthProvider)
       : "none";
+  if (prefill.auth && !VALID_AUTH.has(prefill.auth)) {
+    console.warn(
+      `  ! Unknown auth provider '${prefill.auth}' — using 'none'. Valid: ${[...VALID_AUTH].join(", ")}.`,
+    );
+  }
 
   type FeatureKey = "fileProcessing" | "payments" | "convex" | "emailProvisioning";
-  const selectedFeatures: FeatureKey[] =
-    prefill.features && prefill.features.every((f) => VALID_FEATURES.has(f))
-      ? (prefill.features as FeatureKey[])
-      : [];
+  const requested = prefill.features ?? [];
+  const selectedFeatures = requested.filter((f): f is FeatureKey => VALID_FEATURES.has(f));
+  const rejected = requested.filter((f) => !VALID_FEATURES.has(f));
+  if (rejected.length) {
+    console.warn(
+      `  ! Skipping unknown feature(s): ${rejected.join(", ")} — kept: ${selectedFeatures.join(", ") || "none"}. Valid: ${[...VALID_FEATURES].join(", ")}.`,
+    );
+  }
 
   const emailTier =
     selectedFeatures.includes("emailProvisioning") &&
@@ -71,6 +121,16 @@ function buildFromPrefill(nameArg: string, prefill: Prefill): ScaffoldOptions {
     VALID_TIERS.has(prefill.emailTier)
       ? (prefill.emailTier as EmailTier)
       : undefined;
+  if (selectedFeatures.includes("emailProvisioning") && prefill.emailTier && !emailTier) {
+    console.warn(
+      `  ! Unknown email tier '${prefill.emailTier}' — skipping it. Valid: ${[...VALID_TIERS].join(", ")}.`,
+    );
+  }
+  if (!selectedFeatures.includes("emailProvisioning") && (prefill.emailTier || prefill.emailDomain)) {
+    console.warn(
+      `  ! --email-tier/--email-domain need the 'emailProvisioning' feature — add it to --features or they are ignored.`,
+    );
+  }
 
   const emailDomain =
     selectedFeatures.includes("emailProvisioning")
@@ -80,6 +140,9 @@ function buildFromPrefill(nameArg: string, prefill: Prefill): ScaffoldOptions {
 
   const uiLibrary: UiLibrary =
     prefill.ui && VALID_UI.has(prefill.ui) ? (prefill.ui as UiLibrary) : "none";
+  if (prefill.ui && !VALID_UI.has(prefill.ui)) {
+    console.warn(`  ! Unknown UI library '${prefill.ui}' — using 'none'. Valid: ${[...VALID_UI].join(", ")}.`);
+  }
 
   return {
     projectName,
@@ -103,10 +166,24 @@ export async function runPrompts(
   nameArg?: string,
   prefill: Prefill = {},
 ): Promise<ScaffoldOptions> {
+  // Supplying email settings is intent: don't make the user also remember that
+  // the feature has to be named, and don't silently discard what they asked for.
+  if (
+    prefill.features &&
+    (prefill.emailTier || prefill.emailDomain) &&
+    !prefill.features.includes("emailProvisioning")
+  ) {
+    prefill.features = [...prefill.features, "emailProvisioning"];
+    console.log(
+      "  · Enabling the emailProvisioning feature because email settings were given.",
+    );
+  }
+
   // Non-interactive fast path: skip all clack I/O when stdin is not a TTY
   // and a project name is available.
   if (!process.stdin.isTTY && nameArg) {
-    return buildFromPrefill(nameArg, prefill);
+    const target = await resolveTarget(nameArg);
+    return { ...buildFromPrefill(target.projectName, prefill), ...target };
   }
 
   p.intro("create-nexaed-app — scaffold a Nexa-connected school app");
@@ -127,7 +204,9 @@ export async function runPrompts(
     projectName = (answer as string).trim();
   }
 
-  const projectDir = path.resolve(process.cwd(), projectName);
+  const target = await resolveTarget(projectName);
+  projectName = target.projectName;
+  const projectDir = target.projectDir;
 
   // ── Auth provider ─────────────────────────────────────────────────────────────
   let authProvider: AuthProvider;

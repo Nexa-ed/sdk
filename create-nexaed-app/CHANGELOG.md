@@ -1,5 +1,11 @@
 # create-nexaed-app
 
+## 0.3.0-beta.9
+
+### Patch Changes
+
+- The scaffolder no longer needs flags, a version number, or a free directory to be usable. Every option also reads a NEXAED\__ environment variable (flags still win), the stale-version hand-off carries your settings to the newest release through that env instead of the command line so no value ever needs shell quoting, unknown values now warn and continue instead of being dropped in silence, email settings imply the email provisioning feature, an occupied project name asks for a new one rather than aborting, `--pin <version>` opts out of the hand-off for reproducible CI runs, and generated package.json pins @nexa-ed/\* to the exact current registry version so a fresh install can't be parked on an older publish by pnpm's minimumReleaseAge gate.
+
 ## 0.3.0-beta.8
 
 ### Patch Changes

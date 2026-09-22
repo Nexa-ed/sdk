@@ -28,23 +28,23 @@ export const DEFAULTS: BuilderState = {
 
 /* ─── Command builder ────────────────────────────────────────────────────── */
 
-export function buildCommand(s: BuilderState, cliVersion?: string | null): string {
+export function buildCommand(s: BuilderState, pin?: string | null): string {
   const safeName = s.name.trim() || "my-school";
+
+  // Deliberately unpinned by default: the scaffolder hands an unpinned run to
+  // the newest release itself and prompts for anything missing, so a pinned or
+  // flag-heavy command can only go stale or fail in ways the user can't fix.
+  // `pin` is opt-in only, for reproducible CI runs.
+  return commandBase(s.pm, safeName, versionSuffix(pin));
+}
+
+export function versionSuffix(pin?: string | null): string {
+  return pin && /^\d+\.\d+\.\d+(-[\w.]+)?$/.test(pin) ? `@${pin}` : "";
+}
+
+export function buildFlags(s: BuilderState): string {
   const hasEmail = s.features.includes("emailProvisioning");
-  // pnpm's minimumReleaseAge gate and dlx/npx caches can hand an unpinned run
-  // a months-old scaffolder; an exact version always resolves straight through.
-  const at = cliVersion && /^\d+\.\d+\.\d+(-[\w.]+)?$/.test(cliVersion) ? `@${cliVersion}` : "";
-
-  const base =
-    s.pm === "pnpm"
-      ? `pnpm create nexaed-app${at} ${safeName}`
-      : s.pm === "yarn"
-      ? `yarn create nexaed-app${at} ${safeName}`
-      : s.pm === "bun"
-      ? `bunx create-nexaed-app${at} ${safeName}`
-      : `npx create-nexaed-app${at} ${safeName}`;
-
-  const parts: string[] = [base];
+  const parts: string[] = [];
 
   if (s.auth !== "none") parts.push(`--auth ${s.auth}`);
   if (s.features.length > 0) parts.push(`--features ${s.features.join(",")}`);
@@ -54,7 +54,17 @@ export function buildCommand(s: BuilderState, cliVersion?: string | null): strin
   if (s.pm === "npm") parts.push(`--pm npm`);
   if (!s.git) parts.push(`--no-git`);
 
-  return parts.join(" \\\n  ");
+  return parts.join(" ");
+}
+
+function commandBase(pm: PM, safeName: string, at = ""): string {
+  return pm === "pnpm"
+    ? `pnpm create nexaed-app${at} ${safeName}`
+    : pm === "yarn"
+    ? `yarn create nexaed-app${at} ${safeName}`
+    : pm === "bun"
+    ? `bunx create-nexaed-app${at} ${safeName}`
+    : `npx create-nexaed-app${at} ${safeName}`;
 }
 
 /* ─── State ↔ URL ────────────────────────────────────────────────────────── */

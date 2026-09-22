@@ -83,7 +83,8 @@ export async function runInit(args: ParsedArgs): Promise<void> {
   } catch (err: any) {
     spinner.stop("Failed.");
     console.error(err.message ?? String(err));
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   }
 
   try {
@@ -178,6 +179,8 @@ export async function runInit(args: ParsedArgs): Promise<void> {
     npm:  "npx",
   };
   const exec = dlx[pm] ?? "npx";
+  // `npm dev` is not a thing — npm needs `npm run dev`.
+  const runDev = pm === "npm" ? "npm run dev" : `${pm} dev`;
 
   const shadcnHint =
     opts.uiLibrary === "shadcn"
@@ -190,12 +193,12 @@ export async function runInit(args: ParsedArgs): Promise<void> {
       ? [
           pc.cyan(`  2. ${pm} install`),
           pc.cyan(`  3. Fill in .env.local`),
-          pc.cyan(`  4. ${pm} dev`),
+          pc.cyan(`  4. ${runDev}`),
           ...shadcnHint,
         ]
       : [
           pc.cyan(`  2. Fill in .env.local`),
-          pc.cyan(`  3. ${pm} dev`),
+          pc.cyan(`  3. ${runDev}`),
           ...shadcnHint,
         ]),
   ];

@@ -1,6 +1,7 @@
 import fs from "fs-extra";
 import path from "node:path";
 import type { ScaffoldOptions } from "./prompts";
+import { nexaPackages, resolveLatestVersions } from "./utils/sdkVersions";
 import {
   renderPackageJson,
   renderNexaLib,
@@ -28,8 +29,11 @@ export async function scaffold(opts: ScaffoldOptions): Promise<void> {
 
   await fs.ensureDir(projectDir);
 
+  // Resolve the SDK versions before writing any file that lists them.
+  const sdkVersions = await resolveLatestVersions(nexaPackages(opts));
+
   // ── Root files ───────────────────────────────────────────────────────────────
-  await write(projectDir, "package.json",  renderPackageJson(opts));
+  await write(projectDir, "package.json",  renderPackageJson(opts, sdkVersions));
   // pnpm 11+ only reads build approvals from pnpm-workspace.yaml; without this
   // a fresh `pnpm install` exits 1 (ERR_PNPM_IGNORED_BUILDS) on pnpm 11.
   await write(projectDir, "pnpm-workspace.yaml", pnpmWorkspace());

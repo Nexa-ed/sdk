@@ -8,6 +8,7 @@ import {
   type Feature,
   DEFAULTS,
   buildCommand,
+  buildFlags,
   stateToParams,
   paramsToState,
 } from "./builder/types";
@@ -28,17 +29,18 @@ export default function BuilderUI() {
   const [state, setState] = useState<BuilderState>(() => paramsToState(searchParams));
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
+  const [pinned, setPinned] = useState(false);
   const [cliVersion, setCliVersion] = useState<string | null>(null);
 
-  // Pin the generated command to the actual latest release: unpinned pnpm
-  // runs can be silently resolved to an old cached/gated copy by the package
-  // manager, and an exact version always bypasses that.
+  // Fetched only so the opt-in "pin this version" checkbox can name a version.
+  // The default command stays unpinned — the CLI resolves the newest release
+  // itself, which a hard-coded pin can never do.
   useEffect(() => {
     let cancelled = false;
     fetch("https://registry.npmjs.org/create-nexaed-app/latest")
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => {
-        if (!cancelled && j?.version) setCliVersion(j.version);
+        if (!cancelled && typeof j?.version === "string") setCliVersion(j.version);
       })
       .catch(() => {});
     return () => {
@@ -60,7 +62,9 @@ export default function BuilderUI() {
     };
   }, [state, router]);
 
-  const command = buildCommand(state, cliVersion);
+  const command = buildCommand(state, pinned ? cliVersion : null);
+  const flags = buildFlags(state);
+  const fullCommand = flags ? `${command} ${flags}` : command;
 
   const toggleFeature = useCallback((f: Feature) => {
     setState((prev) => {
@@ -71,11 +75,18 @@ export default function BuilderUI() {
   }, []);
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(command.replace(/\\\n\s+/g, " ")).then(() => {
+    navigator.clipboard.writeText(command).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     });
   }, [command]);
+
+  const handleCopyFull = useCallback(() => {
+    navigator.clipboard.writeText(fullCommand).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }, [fullCommand]);
 
   const handleShare = useCallback(() => {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -93,10 +104,15 @@ export default function BuilderUI() {
       <BuilderPanel
         state={state}
         command={command}
+        flags={flags}
+        pinned={pinned}
+        cliVersion={cliVersion}
+        onTogglePin={setPinned}
         copied={copied}
         shared={shared}
         onNameChange={(name) => setState((p) => ({ ...p, name }))}
         onCopy={handleCopy}
+        onCopyFull={handleCopyFull}
         onShare={handleShare}
         onReset={handleReset}
       />

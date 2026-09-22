@@ -28,13 +28,12 @@ npx create-nexaed-app help                 # print usage
 </Callout>
 
 <Callout type="warn">
-  `pnpm create` / `npx` **cache the scaffolder**, and pnpm 11's default
-  `minimumReleaseAge` gate hides same-day releases — an unpinned run can resolve
-  to a months-old copy. From `0.3.0-beta.8` the CLI detects this **before** it
-  generates anything and silently hands your command to the newest release.
-  The builder page already copies commands **pinned to the current version**
-  (exact pins bypass the gate entirely), and
-  `NEXAED_SKIP_UPDATE_CHECK=1` opts out of the hand-off for reproducible runs.
+  pnpm 11's default `minimumReleaseAge` gate hides same-day releases, so an
+  unpinned run can resolve to a months-old copy of the scaffolder. From
+  `0.3.0-beta.9` the CLI detects this **before** it generates anything and
+  silently re-runs your command against the newest release — you never need a
+  version number. `NEXAED_SKIP_UPDATE_CHECK=1` opts out for reproducible runs;
+  pin explicitly (`create-nexaed-app@1.2.3`) if you want a fixed version.
 </Callout>
 
 ---
@@ -49,11 +48,15 @@ npx create-nexaed-app my-school
 pnpm create nexaed-app my-school
 ```
 
+That's the whole command. Everything it doesn't ask you about has a default, and
+every question you skip with a flag is one it would have asked interactively — so
+the shortest command and the fully-flagged one produce the same app.
+
 ---
 
 ## Interactive prompts
 
-The CLI asks six questions:
+The CLI asks only what your command didn't already say:
 
 | Prompt | Options |
 |--------|---------|
@@ -62,6 +65,7 @@ The CLI asks six questions:
 | Features | File processing, Payments, Convex integration, Student email provisioning |
 | UI library | None (plain Tailwind) · shadcn/ui |
 | Initialize git? | Yes (default) · No |
+| Email tier + domain | Only when student email provisioning is selected |
 | Nexa API key | Optional — can be added to `.env.local` later |
 
 ---
@@ -101,8 +105,39 @@ pnpm dlx create-nexaed-app my-school \
 | `--no-install` | Skip dependency installation |
 | `--git` | Initialize a git repository and create an initial commit |
 | `--no-git` | Skip git initialization |
+| `--pin <version>` | Keep this exact scaffolder version instead of handing off to the newest release |
 
 When stdin is not a TTY, the non-interactive fast path activates automatically — no flags needed in most CI environments.
+
+### Environment variables
+
+Every flag has an env-var equivalent, which is handy in Dockerfiles and CI YAML where a long
+command line is awkward. Flags win over env vars, and anything left unset falls back to the
+interactive prompt (or its default in CI):
+
+| Env var | Flag |
+|---------|------|
+| `NEXAED_PROJECT_NAME` | project name argument |
+| `NEXAED_AUTH` | `--auth` |
+| `NEXAED_UI` | `--ui` |
+| `NEXAED_FEATURES` | `--features` |
+| `NEXAED_EMAIL_TIER` | `--email-tier` |
+| `NEXAED_EMAIL_DOMAIN` | `--email-domain` |
+| `NEXAED_API_KEY` | `--api-key` |
+| `NEXAED_PM` | `--pm` |
+| `NEXAED_GIT` | `--git` / `--no-git` (`1` / `0`) |
+| `NEXAED_NO_INSTALL` | `--no-install` |
+| `NEXAED_SKIP_UPDATE_CHECK` | opt out of the automatic hand-off to the newest release |
+
+```bash
+NEXAED_AUTH=clerk NEXAED_FEATURES=convex,payments npx create-nexaed-app my-school
+```
+
+### Mistakes don't abort the run
+
+A typo'd value (`--auth wokos`, `--features paymetns`) prints what it didn't recognise, keeps the
+values it did, and continues with defaults — it never deletes or overwrites a non-empty project
+folder, and if the name you gave is taken it asks for a new one.
 
 ---
 

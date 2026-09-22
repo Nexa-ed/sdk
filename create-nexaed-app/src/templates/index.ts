@@ -2,10 +2,18 @@ import type { ScaffoldOptions } from "../prompts";
 
 // ── package.json ─────────────────────────────────────────────────────────────
 
-export function renderPackageJson(opts: ScaffoldOptions): string {
+// Versions resolved from the registry at scaffold time. They are written as
+// exact pins so a fresh install cannot be parked on an older publish by pnpm's
+// minimumReleaseAge gate; "latest" is the offline fallback.
+export function renderPackageJson(
+  opts: ScaffoldOptions,
+  sdkVersions: Record<string, string> = {},
+): string {
+  const nexa = (pkg: string) => sdkVersions[pkg] ?? "latest";
+
   const deps: Record<string, string> = {
-    "@nexa-ed/next":   "latest",
-    "@nexa-ed/react":  "latest",
+    "@nexa-ed/next":   nexa("@nexa-ed/next"),
+    "@nexa-ed/react":  nexa("@nexa-ed/react"),
     "next":            "^15.0.0",
     "react":           "^19.0.0",
     "react-dom":       "^19.0.0",
@@ -23,7 +31,7 @@ export function renderPackageJson(opts: ScaffoldOptions): string {
 
   if (opts.features.convex) {
     deps["convex"]           = "^1.17.0";
-    deps["@nexa-ed/convex"]  = "latest";
+    deps["@nexa-ed/convex"]  = nexa("@nexa-ed/convex");
   }
 
   deps["next-themes"] = "^0.4.0";

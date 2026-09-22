@@ -5,10 +5,15 @@ import { CheckIcon, CopyIcon, ShareIcon, ResetIcon, ArrowRightIcon } from "./ico
 interface BuilderPanelProps {
   state: BuilderState;
   command: string;
+  flags: string;
+  pinned: boolean;
+  cliVersion: string | null;
+  onTogglePin: (pinned: boolean) => void;
   copied: boolean;
   shared: boolean;
   onNameChange: (name: string) => void;
   onCopy: () => void;
+  onCopyFull: () => void;
   onShare: () => void;
   onReset: () => void;
 }
@@ -16,10 +21,15 @@ interface BuilderPanelProps {
 export function BuilderPanel({
   state,
   command,
+  flags,
+  pinned,
+  cliVersion,
+  onTogglePin,
   copied,
   shared,
   onNameChange,
   onCopy,
+  onCopyFull,
   onShare,
   onReset,
 }: BuilderPanelProps) {
@@ -101,6 +111,45 @@ export function BuilderPanel({
               {command}
             </pre>
           </div>
+          <p className="mt-2 text-[11px] leading-relaxed text-fd-muted-foreground">
+            This always runs the newest release — no version to remember. The prompts
+            collect everything the command leaves out, so it works exactly as typed.
+          </p>
+          <label className="mt-2 flex cursor-pointer items-start gap-2 rounded-lg border border-fd-border bg-fd-background/60 px-3 py-2">
+            <input
+              type="checkbox"
+              checked={pinned}
+              onChange={(e) => onTogglePin(e.target.checked)}
+              className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-nexa-primary"
+            />
+            <span className="text-[11px] leading-relaxed text-fd-muted-foreground">
+              Pin this exact version
+              {cliVersion ? <span className="font-mono"> ({cliVersion})</span> : null}
+              <span className="block text-[10px] opacity-70">
+                Off by default — unpinned runs always take the newest release. Turn on only for
+                reproducible CI runs.
+              </span>
+            </span>
+          </label>
+          {flags ? (
+            <div className="mt-2 flex items-start justify-between gap-2 rounded-lg border border-fd-border bg-fd-background/60 px-3 py-2">
+              <div>
+                <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-fd-muted-foreground">
+                  Skip the prompts
+                </span>
+                <p className="mt-1 break-all font-mono text-[10px] leading-relaxed text-fd-muted-foreground">
+                  {flags}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onCopyFull}
+                className="shrink-0 rounded border border-fd-border bg-fd-background px-2 py-0.5 font-mono text-[10px] text-fd-muted-foreground transition-colors hover:border-nexa-primary/40 hover:text-nexa-primary"
+              >
+                Copy
+              </button>
+            </div>
+          ) : null}
         </div>
 
         {/* Actions */}
