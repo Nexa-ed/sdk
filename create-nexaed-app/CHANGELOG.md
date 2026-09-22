@@ -1,10 +1,16 @@
 # create-nexaed-app
 
+## 0.3.0-beta.10
+
+### Patch Changes
+
+- f6ff0dd: `upgrade` now resolves @nexa-ed/\* to their exact latest published version instead of installing the `@latest` dist-tag, so pnpm's minimumReleaseAge gate can no longer park it on yesterday's publish the way it could the initial scaffold. It also repairs a broken pnpm-workspace.yaml left by pre-beta.3 scaffolds (a literal placeholder instead of `true` for esbuild, missing minimumReleaseAgeExclude entries) before installing, so ERR_PNPM_IGNORED_BUILDS no longer aborts the upgrade on older projects.
+
 ## 0.3.0-beta.9
 
 ### Patch Changes
 
-- The scaffolder no longer needs flags, a version number, or a free directory to be usable. Every option also reads a NEXAED\__ environment variable (flags still win), the stale-version hand-off carries your settings to the newest release through that env instead of the command line so no value ever needs shell quoting, unknown values now warn and continue instead of being dropped in silence, email settings imply the email provisioning feature, an occupied project name asks for a new one rather than aborting, `--pin <version>` opts out of the hand-off for reproducible CI runs, and generated package.json pins @nexa-ed/\* to the exact current registry version so a fresh install can't be parked on an older publish by pnpm's minimumReleaseAge gate.
+- The scaffolder no longer needs flags, a version number, or a free directory to be usable. Every option also reads a NEXAED\_\_ environment variable (flags still win), the stale-version hand-off carries your settings to the newest release through that env instead of the command line so no value ever needs shell quoting, unknown values now warn and continue instead of being dropped in silence, email settings imply the email provisioning feature, an occupied project name asks for a new one rather than aborting, `--pin <version>` opts out of the hand-off for reproducible CI runs, and generated package.json pins @nexa-ed/\* to the exact current registry version so a fresh install can't be parked on an older publish by pnpm's minimumReleaseAge gate.
 
 ## 0.3.0-beta.8
 

@@ -2,6 +2,8 @@ import * as p from "@clack/prompts";
 import fs from "fs-extra";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { resolveLatestVersions } from "../utils/sdkVersions";
+import { repairPnpmWorkspace } from "../utils/pnpmWorkspace";
 
 function detectPM(cwd: string): string {
   const agent = process.env["npm_config_user_agent"] ?? "";
@@ -45,7 +47,24 @@ export async function runUpgrade(): Promise<void> {
 
   const pm = detectPM(cwd);
   const addCmd = pm === "npm" ? "install" : "add";
-  const packages = nexaDeps.map((d) => `${d}@latest`);
+
+  // `@latest` is a dist-tag, not a version — pnpm 11's minimumReleaseAge gate
+  // hides any release under 24h old from tag/range resolution, so an unpinned
+  // `add @nexa-ed/x@latest` can silently install yesterday's publish. Resolve
+  // the real version first and pin it exactly, same as the initial scaffold
+  // (see resolveLatestVersions in sdkVersions.ts) — exact versions bypass the
+  // gate regardless of whether this project's pnpm-workspace.yaml excludes it.
+  const resolved = await resolveLatestVersions(nexaDeps);
+  const packages = nexaDeps.map((d) => `${d}@${resolved[d] ?? "latest"}`);
+
+  // Scaffolds from before beta.3 wrote a broken pnpm-workspace.yaml (a literal
+  // placeholder instead of `true`), which hard-fails every pnpm 11 install
+  // with ERR_PNPM_IGNORED_BUILDS — including this one. Patch it up first so
+  // the upgrade below doesn't fail on a problem that has nothing to do with
+  // the SDK version bump.
+  if (pm === "pnpm" && (await repairPnpmWorkspace(cwd))) {
+    p.log.info("Repaired pnpm-workspace.yaml (missing/invalid build approvals).");
+  }
 
   const spinner = p.spinner();
   spinner.start(`Running ${pm} ${addCmd}…`);
